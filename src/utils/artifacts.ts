@@ -4,6 +4,11 @@ import { Rankify } from "rankify-contracts/types";
 import { ethers } from "ethers";
 export type SupportedChains = "anvil" | "localhost";
 
+export const chainIdMapping: { [key in SupportedChains]: string } = {
+  anvil: "97113",
+  localhost: "1337",
+};
+
 export type ArtifactTypes = "Rankify" | "RankifyInstance" | "RankToken" | "Multipass";
 /**
  * Retrieves the Rankify artifact for the specified chain.
@@ -15,9 +20,11 @@ export type ArtifactTypes = "Rankify" | "RankifyInstance" | "RankToken" | "Multi
 export const getArtifact = (
   chain: SupportedChains,
   artifactName: ArtifactTypes,
-): { abi: JsonFragment[]; address: string } => {
-  const artifact = require(`rankify-contracts/deployments/${chain}/${artifactName}.json`);
-
+): { abi: JsonFragment[]; address: string; execute: { args: string[] } } => {
+  const artifact =
+    artifactName === "Multipass"
+      ? require(`@peeramid-labs/multipass/deployments/${chain}/${artifactName}.json`)
+      : require(`rankify-contracts/deployments/${chain}/${artifactName}.json`);
   if (!artifact) {
     throw new Error("Contract deployment not found");
   }

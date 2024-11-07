@@ -14,6 +14,9 @@ importers:
       '@nomiclabs/hardhat-ethers':
         specifier: ^2.2.3
         version: 2.2.3(ethers@5.7.2)(hardhat@2.19.1(ts-node@10.9.1(@types/node@17.0.45)(typescript@5.3.2))(typescript@5.3.2))
+      '@peeramid-labs/multipass':
+        specifier: ^0.2.0
+        version: 0.2.0(hardhat@2.19.1(ts-node@10.9.1(@types/node@17.0.45)(typescript@5.3.2))(typescript@5.3.2))
       '@peersky/eth-auth':
         specifier: ^2.0.0
         version: 2.1.1
@@ -449,8 +452,19 @@ packages:
   '@openzeppelin/contracts-upgradeable@4.9.6':
     resolution: {integrity: sha512-m4iHazOsOCv1DgM7eD7GupTJ+NFVujRZt1wzddDPSVGpWdKq1SKkla5htKG7+IS4d2XOCtzkUNwRZ7Vq5aEUMA==}
 
+  '@openzeppelin/contracts-upgradeable@5.1.0':
+    resolution: {integrity: sha512-AIElwP5Ck+cslNE+Hkemf5SxjJoF4wBvvjxc27Rp+9jaPs/CLIaUBMYe1FNzhdiN0cYuwGRmYaRHmmntuiju4Q==}
+    peerDependencies:
+      '@openzeppelin/contracts': 5.1.0
+
   '@openzeppelin/contracts@4.9.6':
     resolution: {integrity: sha512-xSmezSupL+y9VkHZJGDoCBpmnB2ogM13ccaYDWqJTfS3dbuHkgjuwDFUmaFauBCboQMGB/S5UqUl2y54X99BmA==}
+
+  '@openzeppelin/contracts@5.1.0':
+    resolution: {integrity: sha512-p1ULhl7BXzjjbha5aqst+QMLY+4/LCWADXOCsmLHRM77AqiPjnd9vvUN9sosUfhL9JGKpZ0TjEGxgvnizmWGSA==}
+
+  '@peeramid-labs/multipass@0.2.0':
+    resolution: {integrity: sha512-jLbGmZOfJUjkRaxtyqWTtEw7ScnANgNqvHV2OEQa9B+0YGVtQ//di8hxIXaGL4JgErlQAEecieTJmTtuwVewXQ==}
 
   '@peersky/eth-auth@2.1.1':
     resolution: {integrity: sha512-vhz2IoSsYyiEL/wBtP250LGj1gwB4zsKelq4pAGG4woqb7EREM6V1lHG5kWIwtepGygAo/SwHK8DC5tEMXcWVQ==}
@@ -3487,7 +3501,36 @@ snapshots:
 
   '@openzeppelin/contracts-upgradeable@4.9.6': {}
 
+  '@openzeppelin/contracts-upgradeable@5.1.0(@openzeppelin/contracts@5.1.0)':
+    dependencies:
+      '@openzeppelin/contracts': 5.1.0
+
   '@openzeppelin/contracts@4.9.6': {}
+
+  '@openzeppelin/contracts@5.1.0': {}
+
+  '@peeramid-labs/multipass@0.2.0(hardhat@2.19.1(ts-node@10.9.1(@types/node@17.0.45)(typescript@5.3.2))(typescript@5.3.2))':
+    dependencies:
+      '@ethersproject/abi': 5.7.0
+      '@ethersproject/providers': 5.7.2
+      '@openzeppelin/contracts': 5.1.0
+      '@openzeppelin/contracts-upgradeable': 5.1.0(@openzeppelin/contracts@5.1.0)
+      '@types/chai': 4.3.11
+      '@types/mocha': 9.1.1
+      '@types/node': 17.0.45
+      chalk: 4.1.2
+      cli-table: 0.3.11
+      hardhat-gas-reporter: 1.0.9(hardhat@2.19.1(ts-node@10.9.1(@types/node@17.0.45)(typescript@5.3.2))(typescript@5.3.2))
+      ts-node: 10.9.1(@types/node@17.0.45)(typescript@5.3.2)
+      typescript: 5.3.2
+    transitivePeerDependencies:
+      - '@codechecks/client'
+      - '@swc/core'
+      - '@swc/wasm'
+      - bufferutil
+      - debug
+      - hardhat
+      - utf-8-validate
 
   '@peersky/eth-auth@2.1.1': {}
 

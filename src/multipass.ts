@@ -2,17 +2,18 @@ import { ethers, Wallet } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { LibMultipass } from "rankify-contracts/types/src/facets/DNSFacet";
 import { RegisterMessage } from "./types";
+import { chainIdMapping, getArtifact, SupportedChains } from "./utils";
 export default class Multipass {
   // private JsonRpcProvider;
-  private chainId;
-  private name;
-  private version;
-  constructor({ chainId, contractName, version }: { chainId: any; contractName: string; version: string }) {
-    // if (!ProviderNetwork) throw new Error("Provider network not defined");
-    // this.JsonRpcProvider = new ethers.providers.BaseProvider(ProviderNetwork);
-    this.chainId = chainId;
-    this.name = contractName;
-    this.version = version;
+  private chainId: string;
+  private name: string;
+  private version: string;
+  constructor({ chainName }: { chainName: SupportedChains }) {
+    this.chainId = chainIdMapping[chainName];
+    console.log(this.chainId);
+    const c = getArtifact(chainName, "Multipass");
+    this.name = c.execute.args[0];
+    this.version = c.execute.args[1];
   }
   public getDappURL(
     message: any,
@@ -72,7 +73,7 @@ export default class Multipass {
         },
       ],
     };
-
+    console.log("signing", domain, types, { ...message });
     const s = await signer._signTypedData(domain, types, { ...message });
     return s;
   };
