@@ -1,5 +1,17 @@
 # rankify-js
 
+## 1.2.0
+
+### Minor Changes
+
+- [#42](https://github.com/peeramid-labs/sdk/pull/42) [`ad21a61`](https://github.com/peeramid-labs/sdk/commit/ad21a6113adec0338029f24a42bc6ea58834fb97) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Migrated to fully use multipass dependency
+
+- [#45](https://github.com/peeramid-labs/sdk/pull/45) [`82bb56c`](https://github.com/peeramid-labs/sdk/commit/82bb56c1960f81c077a302bfd4ba007d5e62aac0) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Update multipass to 0.3.1
+
+### Patch Changes
+
+- [#47](https://github.com/peeramid-labs/sdk/pull/47) [`096a138`](https://github.com/peeramid-labs/sdk/commit/096a138cbea989ddc1a2ea708f79b238149182d3) Thanks [@peersky](https://github.com/peersky)! - changed sdk package name
+
 ## 1.1.0
 
 ### Minor Changes
