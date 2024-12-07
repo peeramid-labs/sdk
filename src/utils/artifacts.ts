@@ -1,7 +1,13 @@
-import { RankToken, RankifyDiamondInstance, MultipassDiamond } from "rankify-contracts/types";
+import {
+  RankToken,
+  RankifyDiamondInstance,
+  DAODistributor,
+  SimpleAccessManager,
+  Rankify,
+} from "rankify-contracts/types";
 import { JsonFragment } from "@ethersproject/abi";
-import { Rankify } from "rankify-contracts/types";
 import { ethers } from "ethers";
+import { Multipass } from "@peeramid-labs/multipass/types/src/Multipass";
 export type SupportedChains = "anvil" | "localhost";
 
 export const chainIdMapping: { [key in SupportedChains]: string } = {
@@ -9,7 +15,7 @@ export const chainIdMapping: { [key in SupportedChains]: string } = {
   localhost: "42161",
 };
 
-export type ArtifactTypes = "Rankify" | "RankifyInstance" | "RankToken" | "Multipass";
+export type ArtifactTypes = "Rankify" | "Distributor" | "RankToken" | "Multipass" | "SimpleAccessManager";
 /**
  * Retrieves the Rankify artifact for the specified chain.
  * @param chain The chain identifier.
@@ -34,7 +40,9 @@ export type ArtifactContractInterfaces = {
   Rankify: Rankify;
   RankToken: RankToken;
   RankifyInstance: RankifyDiamondInstance;
-  Multipass: MultipassDiamond;
+  Multipass: Multipass;
+  Distributor: DAODistributor;
+  SimpleAccessManager: SimpleAccessManager;
 };
 
 /**
