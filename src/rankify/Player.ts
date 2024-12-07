@@ -1,144 +1,224 @@
-import { ethers, BigNumberish, BigNumber, ContractReceipt } from "ethers";
+import {
+  type Address,
+  type PublicClient,
+  type WalletClient,
+  type Hex,
+  parseEventLogs,
+  GetAbiItemParameters,
+  GetAbiItemReturnType,
+  ContractFunctionArgs,
+} from "viem";
+import { getContract, SupportedChains } from "../utils/artifacts";
+import instanceAbi from "../abis/RankifyDiamondInstance";
 import InstanceBase from "./InstanceBase";
-import { SupportedChains } from "../utils/artifacts";
-import { RankifyDiamondInstance } from "rankify-contracts/types";
-import { IRankifyInstance } from "rankify-contracts/types/hardhat-diamond-abi/HardhatDiamondABI.sol/RankifyDiamondInstance";
-import { LibCoinVending } from "rankify-contracts/types/src/mocks/MockVendingMachine";
-// import { IRankifyInstance } from "rankify-contracts/types/src/interfaces/IRankifyInstance";
+type stateMutability = "nonpayable" | "payable";
+export type NewGameParams = {
+  minGameTime: bigint;
+  maxGameTime: bigint;
+  maxPlayers: number;
+  minPlayers: number;
+  timePerTurn: bigint;
+  timeToJoin: bigint;
+  gameMaster: Hex;
+  joinRequirements: {
+    contractAddresses: readonly Hex[];
+    contractIds: readonly bigint[];
+    contractTypes: readonly number[];
+    ethValues: {
+      have: bigint;
+      lock: bigint;
+      burn: bigint;
+      pay: bigint;
+      bet: bigint;
+    }[];
+  };
+};
 
 export default class RankifyPlayer extends InstanceBase {
-  signer: ethers.providers.JsonRpcSigner;
+  walletClient: WalletClient;
+  account: Address;
+
   constructor({
-    signer,
+    publicClient,
+    walletClient,
     chain,
-    rankifyInstance,
+    instanceAddress,
+    account,
   }: {
-    signer: ethers.providers.JsonRpcSigner;
+    publicClient: PublicClient;
+    walletClient: WalletClient;
     chain: SupportedChains;
-    rankifyInstance: RankifyDiamondInstance;
+    instanceAddress: Address;
+    account: Address;
   }) {
     super({
-      provider: signer.provider,
+      publicClient,
       chain,
-      rankifyInstance,
+      instanceAddress,
     });
-    this.signer = signer;
+    this.walletClient = walletClient;
+    this.account = account;
   }
-  /**
-   * Approves tokens if needed.
-   *
-   * @param value - The value of tokens to approve.
-   * @param chain - The supported chain.
-   * @param signer - The JSON-RPC signer.
-   * @returns A promise that resolves to the transaction receipt or 0 if no tokens need to be approved.
-   */
-  approveTokensIfNeeded = async (value: BigNumberish) => {
-    if (ethers.BigNumber.from(value).gt(0)) {
-      return this.getContract("Rankify")
-        .connect(this.signer)
-        .approve(this.rankifyInstance.address, value)
-        .then((tx) => tx.wait(1));
-    } else return 0;
+
+  approveTokensIfNeeded = async (value: bigint) => {
+    const tokenContract = getContract(this.chain, "Rankify", this.walletClient);
+    if (this.walletClient.account?.address) throw new Error("Account not found");
+    if (value > 0n) {
+      const { request } = await this.publicClient.simulateContract({
+        address: tokenContract.address,
+        abi: tokenContract.abi,
+        functionName: "approve",
+        args: [this.instanceAddress, value],
+        account: this.walletClient.account?.address,
+      });
+
+      const hash = await this.walletClient.writeContract(request);
+      await this.publicClient.waitForTransactionReceipt({ hash });
+    }
   };
 
-  createGame = async (
-    newGameParams: IRankifyInstance.NewGameParamsInputStruct,
-  ): Promise<{
-    gameId: BigNumber;
-    receipt: ethers.ContractReceipt;
-  }> => {
-    const contract = this.rankifyInstance.connect(this.signer);
-    return contract.estimateGamePrice(newGameParams.minGameTime).then(async (price) =>
-      this.approveTokensIfNeeded(price).then(() => {
-        return contract.createGame(newGameParams).then((tx) =>
-          tx.wait(1).then((receipt) => {
-            const event = receipt.events?.find((e) => e.event === "gameCreated");
-            if (!event) {
-              throw new Error("Failed to create game");
-            }
-            const gameId = contract.interface.parseLog(event).args.gameId;
-            return { gameId, receipt };
-          }),
-        );
-      }),
-    );
+  createGame = async (creationArgs: ContractFunctionArgs<typeof instanceAbi, stateMutability, "createGame">[0]) => {
+    // if (!creationArgs) throw new Error("args is required");
+    const estimationArgs: ContractFunctionArgs<typeof instanceAbi, "pure" | "view", "estimateGamePrice"> = [
+      creationArgs.minGameTime,
+    ];
+    const price = await this.publicClient.readContract({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      functionName: "estimateGamePrice",
+      args: estimationArgs,
+    });
+
+    await this.approveTokensIfNeeded(price as bigint);
+    if (!this.walletClient.account?.address) throw new Error("Account not found");
+    const { request } = await this.publicClient.simulateContract({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      functionName: "createGame",
+      args: [creationArgs],
+      account: this.walletClient.account.address,
+    });
+
+    const hash = await this.walletClient.writeContract(request);
+    const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
+
+    const events = await this.publicClient.getContractEvents({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      eventName: "gameCreated",
+      args: {},
+      fromBlock: receipt.blockNumber,
+      toBlock: receipt.blockNumber,
+    });
+
+    if (events.length > 1) {
+      throw new Error("Failed to create game: Multiple GameCreated events found");
+    }
+    if (events.length === 0) {
+      throw new Error("Failed to create game: GameCreated event not found");
+    }
+    if (!events[0].args) throw new Error("Failed to create game: Event args not found");
+    if (!("gameId" in events[0].args)) throw new Error("Failed to create game: GameId not found");
+    const { gameId } = events[0].args;
+
+    return {
+      gameId,
+      receipt,
+    };
   };
 
-  /**
-   * Joins a game on the specified chain using the provided signer.
-   * @param chain - The supported chain on which the game is being joined.
-   * @param signer - The JSON-RPC signer used for signing the transaction.
-   * @returns A promise that resolves to the transaction receipt once the join transaction is confirmed.
-   */
-  joinGame = async (gameId: string): Promise<ContractReceipt> => {
-    const reqs = await this.rankifyInstance.getJoinRequirements(gameId);
+  joinGame = async (gameId: bigint) => {
+    const reqs = (await this.publicClient.readContract({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      functionName: "getJoinRequirements",
+      args: [gameId],
+    })) as { ethValues: { have: bigint; lock: bigint; burn: bigint; pay: bigint; bet: bigint } };
+
     const values = reqs.ethValues;
+    const value = values.bet + values.burn + values.pay;
+    if (this.walletClient.account?.address) throw new Error("Account not found");
+    const { request } = await this.publicClient.simulateContract({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      functionName: "joinGame",
+      args: [gameId],
+      value,
+      account: this.walletClient.account?.address,
+    });
 
-    const value = values.bet.add(values.burn).add(values.pay);
-
-    return this.rankifyInstance
-      .connect(this.signer)
-      .joinGame(gameId, { value: value.toString() ?? "0" })
-      .then((tx) => tx.wait(1));
+    const hash = await this.walletClient.writeContract(request);
+    return this.publicClient.waitForTransactionReceipt({ hash });
   };
 
-  /**
-   * Starts a game on the specified chain using the provided signer.
-   * @param chain The supported chain on which the game will be started.
-   * @param signer The JSON-RPC signer used to sign the transaction.
-   * @returns A promise that resolves to the transaction receipt.
-   */
-  startGame = async (gameId: string): Promise<ContractReceipt> => {
-    return await this.rankifyInstance.startGame(gameId).then((tx) => tx.wait(1));
+  startGame = async (gameId: bigint) => {
+    if (!this.walletClient.account?.address) throw new Error("Account not found");
+    const { request } = await this.publicClient.simulateContract({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      functionName: "startGame",
+      args: [gameId],
+      account: this.walletClient.account?.address,
+    });
+
+    const hash = await this.walletClient.writeContract(request);
+    return this.publicClient.waitForTransactionReceipt({ hash });
   };
 
-  /**
-   * Cancels a game.
-   *
-   * @param chain - The supported blockchain network.
-   * @param signer - The JSON-RPC signer.
-   * @returns A promise that resolves to the transaction receipt.
-   */
-  cancelGame = async (gameId: string): Promise<ContractReceipt> => {
-    return this.rankifyInstance.cancelGame(gameId).then((tx) => tx.wait(1));
+  cancelGame = async (gameId: bigint) => {
+    if (!this.walletClient.account?.address) throw new Error("Account not found");
+    const { request } = await this.publicClient.simulateContract({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      functionName: "cancelGame",
+      args: [gameId],
+      account: this.walletClient.account?.address,
+    });
+
+    const hash = await this.walletClient.writeContract(request);
+    return this.publicClient.waitForTransactionReceipt({ hash });
   };
 
-  /**
-   * Leaves a game.
-   * @param chain - The blockchain network.
-   * @param signer - The signer object.
-   * @returns A promise that resolves to the transaction receipt.
-   */
-  leaveGame = async (gameId: string) => {
-    return this.rankifyInstance
-      .connect(this.signer)
-      .leaveGame(gameId)
-      .then((tx) => tx.wait(1));
+  leaveGame = async (gameId: bigint) => {
+    if (!this.walletClient.account?.address) throw new Error("Account not found");
+    const { request } = await this.publicClient.simulateContract({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      functionName: "leaveGame",
+      args: [gameId],
+      account: this.walletClient.account?.address,
+    });
+
+    const hash = await this.walletClient.writeContract(request);
+    return this.publicClient.waitForTransactionReceipt({ hash });
   };
 
-  /**
-   * Opens the registration for a game on the specified chain using the provided signer.
-   * @param chain - The supported chain on which the game is being played.
-   * @param signer - The JSON-RPC signer used to interact with the blockchain.
-   * @returns A promise that resolves to the transaction receipt.
-   */
-  openRegistration = async (gameId: string): Promise<ContractReceipt> => {
-    const contract = this.rankifyInstance.connect(this.signer);
-    return await contract.openRegistration(gameId).then((tx) => tx.wait(1));
+  openRegistration = async (gameId: bigint) => {
+    if (!this.walletClient.account?.address) throw new Error("Account not found");
+    const { request } = await this.publicClient.simulateContract({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      functionName: "openRegistration",
+      args: [gameId],
+      account: this.walletClient.account?.address,
+    });
+
+    const hash = await this.walletClient.writeContract(request);
+    return this.publicClient.waitForTransactionReceipt({ hash });
   };
 
-  /**
-   * Sets the join requirements for a game on the specified chain using the provided signer.
-   *
-   * @param chain - The supported chain on which the game is being played.
-   * @param signer - The JSON-RPC signer used to interact with the contract.
-   * @returns A promise that resolves to the transaction receipt.
-   */
-  setJoinRequirements = async (
-    gameId: string,
-    config: LibCoinVending.ConfigPositionStruct,
-  ): Promise<ContractReceipt> => {
-    const contract = this.rankifyInstance.connect(this.signer);
-    return contract.setJoinRequirements(gameId, config).then((tx) => tx.wait(1));
+  setJoinRequirements = async (params: GetAbiItemParameters<typeof instanceAbi, "setJoinRequirements">["args"]) => {
+    if (!this.walletClient.account?.address) throw new Error("Account not found");
+    if (!params) throw new Error("params is required");
+    const { request } = await this.publicClient.simulateContract({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      functionName: "setJoinRequirements",
+      args: params,
+      account: this.walletClient.account?.address,
+    });
+
+    const hash = await this.walletClient.writeContract(request);
+    return this.publicClient.waitForTransactionReceipt({ hash });
   };
 }

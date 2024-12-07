@@ -1,13 +1,17 @@
 import {
-  RankToken,
-  RankifyDiamondInstance,
-  DAODistributor,
-  SimpleAccessManager,
-  Rankify,
-} from "rankify-contracts/types";
-import { JsonFragment } from "@ethersproject/abi";
-import { ethers } from "ethers";
-import { Multipass } from "@peeramid-labs/multipass/types/src/Multipass";
+  type Address,
+  type PublicClient,
+  type WalletClient,
+  getContract as viemGetContract,
+  type GetContractReturnType,
+  AbiItem,
+} from "viem";
+
+import rankifyAbi from "../abis/Rankify";
+import rankTokenAbi from "../abis/RankToken";
+import multipassAbi from "../abis/Multipass";
+import simpleAccessManagerAbi from "../abis/SimpleAccessManager";
+import DAODistributorabi from "../abis/DAODistributor";
 export type SupportedChains = "anvil" | "localhost";
 
 export const chainIdMapping: { [key in SupportedChains]: string } = {
@@ -15,18 +19,27 @@ export const chainIdMapping: { [key in SupportedChains]: string } = {
   localhost: "42161",
 };
 
-export type ArtifactTypes = "Rankify" | "Distributor" | "RankToken" | "Multipass" | "SimpleAccessManager";
+export type ArtifactTypes = "Rankify" | "DAODistributor" | "RankToken" | "Multipass" | "SimpleAccessManager";
+
+export type ArtifactAbi = {
+  Rankify: typeof rankifyAbi;
+  DAODistributor: typeof DAODistributorabi;
+  RankToken: typeof rankTokenAbi;
+  Multipass: typeof multipassAbi;
+  SimpleAccessManager: typeof simpleAccessManagerAbi;
+};
+
 /**
- * Retrieves the Rankify artifact for the specified chain.
+ * Retrieves the contract artifact for the specified chain.
  * @param chain The chain identifier.
- * @param artifactName
- * @returns The Rankify artifact containing the ABI and address.
+ * @param artifactName The name of the artifact to retrieve
+ * @returns The artifact containing the address and execution args
  * @throws Error if the contract deployment is not found.
  */
 export const getArtifact = (
   chain: SupportedChains,
   artifactName: ArtifactTypes,
-): { abi: JsonFragment[]; address: string; execute: { args: string[] } } => {
+): { abi: readonly AbiItem[]; address: Address; execute: { args: string[] } } => {
   const artifact =
     artifactName === "Multipass"
       ? require(`@peeramid-labs/multipass/deployments/${chain}/${artifactName}.json`)
@@ -34,29 +47,29 @@ export const getArtifact = (
   if (!artifact) {
     throw new Error("Contract deployment not found");
   }
-  return artifact;
-};
-export type ArtifactContractInterfaces = {
-  Rankify: Rankify;
-  RankToken: RankToken;
-  RankifyInstance: RankifyDiamondInstance;
-  Multipass: Multipass;
-  Distributor: DAODistributor;
-  SimpleAccessManager: SimpleAccessManager;
+  return {
+    address: artifact.address as Address,
+    execute: artifact.execute,
+    abi: artifact.abi,
+  };
 };
 
 /**
- * Retrieves the contract instance for the specified chain using the provided provider.
- * @param chain The supported chain for the contract.
- * @param provider The Web3Provider or Signer instance used for interacting with the blockchain.
- * @returns The contract instance.
+ * Gets a contract instance with the appropriate ABI and address for the given chain
+ * @param chain The chain to get the contract for
+ * @param artifactName The name of the contract to get
+ * @param client The viem client to use (public or wallet)
+ * @returns A viem contract instance
  */
-export const getContract = <T extends ArtifactTypes>(
+export const getContract = <TArtifactName extends ArtifactTypes, TClient extends PublicClient | WalletClient>(
   chain: SupportedChains,
-  artifactName: T,
-  providerOrSigner: ethers.providers.JsonRpcProvider | ethers.providers.JsonRpcSigner,
-) => {
+  artifactName: TArtifactName,
+  client: TClient,
+): GetContractReturnType<ArtifactAbi[TArtifactName], TClient> => {
   const artifact = getArtifact(chain, artifactName);
-
-  return new ethers.Contract(artifact.address, artifact.abi, providerOrSigner) as ArtifactContractInterfaces[T];
+  return viemGetContract({
+    address: artifact.address,
+    abi: artifact.abi,
+    client,
+  }) as GetContractReturnType<ArtifactAbi[TArtifactName], TClient>;
 };

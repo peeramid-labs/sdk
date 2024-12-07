@@ -1,8 +1,8 @@
-import { ethers, BigNumberish, BigNumber } from "ethers";
-import { TurnEndedEventObject } from "rankify-contracts/types/hardhat-diamond-abi/HardhatDiamondABI.sol/RankifyDiamondInstance";
-import { SupportedChains, ArtifactTypes, getArtifact, ApiError, ArtifactContractInterfaces } from "../utils/index";
-import { RankifyDiamondInstance } from "rankify-contracts/types";
-import { deepArrayToObject } from "../utils";
+import { Address, PublicClient, type GetContractReturnType, type Block } from "viem";
+import { SupportedChains, ApiError } from "../utils/index";
+
+import instanceAbi from "../abis/RankifyDiamondInstance";
+
 export enum gameStatusEnum {
   created = "Game created",
   open = "Registration open",
@@ -13,55 +13,49 @@ export enum gameStatusEnum {
   notFound = "not found",
 }
 
+export type RankifyContract = GetContractReturnType<typeof instanceAbi, PublicClient>;
+
 export default class InstanceBase {
-  provider: ethers.providers.JsonRpcProvider;
+  publicClient: PublicClient;
   chain: SupportedChains;
-  rankifyInstance: RankifyDiamondInstance;
+  instanceAddress: Address;
 
   constructor({
-    provider,
+    publicClient,
     chain,
-    rankifyInstance,
+    instanceAddress,
   }: {
-    provider: ethers.providers.JsonRpcProvider;
+    publicClient: PublicClient;
     chain: SupportedChains;
-    rankifyInstance: RankifyDiamondInstance;
+    instanceAddress: Address;
   }) {
-    this.provider = provider;
+    this.publicClient = publicClient;
     this.chain = chain;
-    this.rankifyInstance = rankifyInstance;
+    this.instanceAddress = instanceAddress;
   }
 
   /**
-   * Retrieves the contract instance for the specified chain using the provided provider.
-   * @param chain The supported chain for the this.rankifyInstance.
-   * @param provider The Web3Provider or Signer instance used for interacting with the blockchain.
-   * @returns The contract instance.
-   */
-  getContract = <T extends ArtifactTypes>(artifactName: T) => {
-    const artifact = getArtifact(this.chain, artifactName);
-
-    return new ethers.Contract(artifact.address, artifact.abi, this.provider) as ArtifactContractInterfaces[T];
-  };
-
-  /**
    * Retrieves the historic turn information for a specific game and turn ID.
-   * @param chain - The supported blockchain network.
-   * @param provider - The Web3 provider.
    * @returns The historic turn event object.
    * @throws {ApiError} If the game or turn is not found.
    */
-  getHistoricTurn = async (gameId: BigNumberish, turnId: BigNumberish) => {
-    //list all events of gameId that ended turnId.
-    const filterTurnEnded = this.rankifyInstance.filters.TurnEnded(gameId, turnId);
-    const turnEndedEvents = await this.rankifyInstance.queryFilter(filterTurnEnded, 0, "latest");
-    //There shall be only one such event
-    if (turnEndedEvents.length !== 1) {
-      console.error("getHistoricTurn", gameId, turnId, "failed:", turnEndedEvents.length);
-      const err = new ApiError("Game not found", { status: 404 });
-      throw err;
+  getHistoricTurn = async (gameId: bigint, turnId: bigint) => {
+    const logs = await this.publicClient.getContractEvents({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      eventName: "TurnEnded",
+      args: {
+        gameId,
+        turn: turnId,
+      },
+    });
+
+    if (logs.length !== 1) {
+      console.error("getHistoricTurn", gameId, turnId, "failed:", logs.length);
+      throw new ApiError("Game not found", { status: 404 });
     }
-    return { ...turnEndedEvents[turnEndedEvents.length - 1] };
+
+    return logs[0];
   };
 
   /**
@@ -69,10 +63,16 @@ export default class InstanceBase {
    * @param gameId - The ID of the game.
    * @returns The previous turn information for the specified game.
    */
-  getPreviousTurnStats = async (gameId: BigNumberish) => {
-    const currentTurn = await this.rankifyInstance.getTurn(gameId);
-    if (currentTurn.gt(1)) {
-      return this.getHistoricTurn(gameId, currentTurn.sub(1));
+  getPreviousTurnStats = async (gameId: bigint) => {
+    const currentTurn = (await this.publicClient.readContract({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      functionName: "getTurn",
+      args: [gameId],
+    })) as bigint;
+
+    if (currentTurn > 1n) {
+      return this.getHistoricTurn(gameId, currentTurn - 1n);
     } else {
       return {
         players: "N/A",
@@ -90,62 +90,82 @@ export default class InstanceBase {
    * @param turnId - The ID of the turn.
    * @returns The voting information for the specified game and turn.
    */
-  getVoting = async (gameId: BigNumberish, turnId: BigNumberish) => {
+  getVoting = async (gameId: bigint, turnId: bigint) => {
     if (!gameId) throw new Error("gameId not set");
     if (!turnId) throw new Error("turnId not set");
-    const filterVoteEvent = this.rankifyInstance.filters.VoteSubmitted(gameId, turnId);
-    const filterProposalEvent = this.rankifyInstance.filters.ProposalSubmitted(gameId, turnId, null, null, null);
-    const proposalEvents = await this.rankifyInstance.queryFilter(filterProposalEvent, 0, "latest");
-    const voteEvents = await this.rankifyInstance.queryFilter(filterVoteEvent, 0, "latest");
-    const fixedProposalArgs = proposalEvents.map((event) => {
-      return {
-        ...event,
-        args: {
-          gameId: event.args[0],
-          turn: event.args[1],
-          proposer: event.args[2],
-          commitmentHash: event.args[3],
-          proposalEncryptedByGM: event.args[4],
-        },
-      };
+    const voteEvents = await this.publicClient.getContractEvents({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      eventName: "VoteSubmitted",
+      args: {
+        gameId,
+        turn: turnId,
+      },
     });
 
-    // for (const filterProposalEvent in filterProposalEvents.topics) {
-    //   if (filterProposalEvent)
-    //     proposals.push(contract.interface.parseLog({ log: proposalEvent }));
-    // }
-    // for (const voteEvent in voteEvents) {
-    //   playersVoted.push(voteEvent[2]);
-    // }
-    return { voteEvents, proposalEvents: fixedProposalArgs };
+    const proposalEvents = await this.publicClient.getContractEvents({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      eventName: "ProposalSubmitted",
+      args: {
+        gameId,
+        turn: turnId,
+      },
+    });
+
+    return { voteEvents, proposalEvents };
   };
 
   /**
    * Retrieves the ongoing voting for a specific game.
-   *
    * @param gameId - The ID of the game.
-   * @returns The ongoing voting for the specified game.
    */
-  getOngoingVoting = async (gameId: BigNumberish) => {
-    this.rankifyInstance
-      .getTurn(gameId)
-      .then((turn) => this.getVoting(gameId, turn))
-      .catch(console.error);
+  getOngoingVoting = async (gameId: bigint) => {
+    try {
+      const turn = (await this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "getTurn",
+        args: [gameId],
+      })) as bigint;
+      return this.getVoting(gameId, turn);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   /**
-   * Retrieves the ongoing proposals for a specific game on a supported chain.
-   *
+   * Retrieves the ongoing proposals for a specific game.
    * @param gameId - The ID of the game.
    * @returns The ongoing proposals for the specified game.
    */
-  getOngoingProposals = async (gameId: BigNumberish) => {
-    const currentTurn = await this.rankifyInstance.getTurn(gameId);
-    //list all events of gameId that ended turnId.
-    const filter = this.rankifyInstance.filters.TurnEnded(gameId, currentTurn.sub(1));
-    const TurnEndedEvents = await this.rankifyInstance.queryFilter(filter, 0, "latest");
-    const args = this.rankifyInstance.interface.parseLog(TurnEndedEvents[0]).args as any as TurnEndedEventObject;
-    return args.newProposals;
+  getOngoingProposals = async (gameId: bigint) => {
+    try {
+      const currentTurn = (await this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "getTurn",
+        args: [gameId],
+      })) as bigint;
+
+      const lastTurnEndedEvent = await this.publicClient.getContractEvents({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        eventName: "TurnEnded",
+        args: { turn: currentTurn - 1n, gameId },
+      });
+
+      if (lastTurnEndedEvent.length !== 1) {
+        console.error("getOngoingProposals", gameId, "failed:", lastTurnEndedEvent.length);
+        throw new ApiError("Game not found", { status: 404 });
+      }
+
+      const args = lastTurnEndedEvent[0].args as { newProposals: unknown[] };
+      return args.newProposals;
+    } catch (error) {
+      console.error("Error in getOngoingProposals:", error);
+      return [];
+    }
   };
 
   /**
@@ -154,75 +174,135 @@ export default class InstanceBase {
    * @param timeToJoin - Optional. The additional time (in seconds) to join the game.
    * @returns A Promise that resolves to the registration deadline timestamp.
    */
-  getRegistrationDeadline = async (gameId: BigNumberish, timeToJoin?: number) => {
-    const filter = this.rankifyInstance.filters.RegistrationOpen(gameId);
-    return this.rankifyInstance.queryFilter(filter, 0, "latest").then((events) =>
-      events[0].getBlock().then(async (block) => {
-        if (timeToJoin) return block.timestamp + timeToJoin;
-        else return this.rankifyInstance.getGameState(gameId).then((gs) => block.timestamp + gs.timeToJoin.toNumber());
-      }),
-    );
+  getRegistrationDeadline = async (gameId: bigint, timeToJoin?: number) => {
+    const log = await this.publicClient.getContractEvents({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      eventName: "RegistrationOpen",
+      args: {
+        gameId,
+      },
+    });
+
+    if (log.length !== 1) {
+      console.error("getRegistrationDeadline", gameId, "failed:", log.length);
+      throw new ApiError("Game not found", { status: 404 });
+    }
+
+    const block = await this.publicClient.getBlock({ blockNumber: log[0].blockNumber });
+
+    if (timeToJoin) {
+      return Number(block.timestamp) + timeToJoin;
+    }
+
+    const gameState = (await this.publicClient.readContract({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      functionName: "getGameState",
+      args: [gameId],
+    })) as { timeToJoin: bigint };
+
+    return Number(block.timestamp) + Number(gameState.timeToJoin);
   };
 
   /**
    * Resolves the deadline for the current turn.
-   * If `timePerTurn` is provided, the deadline is calculated by adding `timePerTurn` to the current block timestamp.
-   * Otherwise, the deadline is obtained from the contract state and calculated by adding `timePerTurn` to the current block timestamp.
    * @param block The current block.
    * @param gameId The ID of the game.
    * @param timePerTurn The time duration per turn (optional).
    * @returns The deadline for the current turn.
    */
-  resolveTurnDeadline = async (block: ethers.providers.Block, gameId: BigNumberish, timePerTurn?: number) => {
-    if (timePerTurn) return block.timestamp + timePerTurn;
-    return this.rankifyInstance.getGameState(gameId).then((gs) => gs.timePerTurn.toNumber() + block.timestamp);
+  resolveTurnDeadline = async (block: Block, gameId: bigint, timePerTurn?: number) => {
+    if (timePerTurn) return Number(block.timestamp) + timePerTurn;
+
+    const gameState = await this.publicClient.readContract({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      functionName: "getGameState",
+      args: [gameId],
+    });
+
+    return Number(block.timestamp) + Number(gameState.timePerTurn);
   };
 
   /**
    * Retrieves the deadline for the current turn in a game.
-   *
-   * @param chainName - The name of the blockchain network.
-   * @param provider - The Web3Provider instance.
    * @param gameId - The ID of the game.
    * @param timePerTurn - Optional. The duration of each turn in seconds.
    * @returns A Promise that resolves to the deadline for the current turn, or 0 if the turn has not started.
-   * @throws An error if the gameId is not set.
    */
-  getTurnDeadline = async (gameId: BigNumberish, timePerTurn?: number) => {
+  getTurnDeadline = async (gameId: bigint, timePerTurn?: number) => {
     if (!gameId) throw new Error("gameId not set");
 
-    return this.rankifyInstance.getTurn(gameId).then(async (ct) => {
-      if (ct.eq(0)) return 0;
-      const filter = ct.eq(1)
-        ? this.rankifyInstance.filters.GameStarted(gameId)
-        : this.rankifyInstance.filters.TurnEnded(gameId, ct.sub(1));
-      return this.rankifyInstance
-        .queryFilter(filter, 0, "latest")
-        .then(async (evts) =>
-          evts[0].getBlock().then(async (block) => this.resolveTurnDeadline(block, gameId, timePerTurn)),
-        );
+    const currentTurn = (await this.publicClient.readContract({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      functionName: "getTurn",
+      args: [gameId],
+    })) as bigint;
+
+    if (currentTurn === 0n) return 0;
+
+    const eventName = currentTurn === 1n ? "GameStarted" : "TurnEnded";
+    const args = currentTurn === 1n ? { gameId } : { gameId, turnId: currentTurn - 1n };
+
+    const logs = await this.publicClient.getContractEvents({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      eventName: eventName,
+      args,
     });
-  };
-  getContractState = async () => {
-    const cs = await this.rankifyInstance.getContractState().then((x) => deepArrayToObject(x));
-    return cs;
+
+    if (logs.length !== 1) {
+      console.error("getTurnDeadline", gameId, "failed:", logs.length);
+      throw new ApiError("Game not found", { status: 404 });
+    }
+
+    const block = await this.publicClient.getBlock({ blockNumber: logs[0].blockNumber });
+    return this.resolveTurnDeadline(block, gameId, timePerTurn);
   };
 
-  getPlayersGame = async (account: string) => {
-    return this.rankifyInstance.getPlayersGame(account);
+  /**
+   * Retrieves the contract state.
+   */
+  getContractState = async () => {
+    const state = await this.publicClient.readContract({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      functionName: "getContractState",
+    });
+    return state;
+  };
+
+  /**
+   * Retrieves a player's game.
+   * @param account - The player's account address.
+   */
+  getPlayersGame = async (account: Address) => {
+    return this.publicClient.readContract({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      functionName: "getPlayersGame",
+      args: [account],
+    });
   };
 
   /**
    * Retrieves the list of proposal scores for a specific game.
    * @param gameId - The ID of the game.
    * @returns A Promise that resolves to the list of proposal scores.
-   * @throws An error if the gameId is not set.
    */
-  getProposalScoresList = async (gameId: string) => {
+  getProposalScoresList = async (gameId: bigint) => {
     if (!gameId) throw new Error("gameId not set");
-    const proposalScoreFilter = this.rankifyInstance.filters.ProposalScore(gameId);
-    const res = await this.rankifyInstance.queryFilter(proposalScoreFilter, 0, "latest");
-    return deepArrayToObject(res);
+
+    const logs = await this.publicClient.getContractEvents({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      eventName: "ProposalScore",
+      args: { gameId },
+    });
+
+    return logs;
   };
 
   /**
@@ -230,9 +310,13 @@ export default class InstanceBase {
    * @param gameId - The ID of the game.
    * @returns A Promise that resolves to the current turn of the game.
    */
-  getCurrentTurn = async (gameId: string) => {
-    const currentTurn = await this.rankifyInstance.getTurn(gameId);
-    return currentTurn;
+  getCurrentTurn = async (gameId: bigint) => {
+    return this.publicClient.readContract({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      functionName: "getTurn",
+      args: [gameId],
+    });
   };
 
   /**
@@ -240,71 +324,135 @@ export default class InstanceBase {
    * @param gameId - The ID of the game.
    * @returns A promise that resolves to an object containing the game state.
    */
-  getGameState = async (gameId: string) => {
-    const gameMaster = await this.rankifyInstance.getGM(gameId);
-    const joinRequirements = await this.rankifyInstance.getJoinRequirements(gameId);
+  getGameState = async (gameId: bigint) => {
+    const [
+      gameMaster,
+      joinRequirements,
+      scores,
+      currentTurn,
+      isFinished,
+      isOvertime,
+      isLastTurn,
+      isOpen,
+      createdBy,
+      gameRank,
+      players,
+      canStart,
+    ] = await Promise.all([
+      this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "getGM",
+        args: [gameId],
+      }),
+      this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "getJoinRequirements",
+        args: [gameId],
+      }),
+      this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "getScores",
+        args: [gameId],
+      }),
+      this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "getTurn",
+        args: [gameId],
+      }),
+      this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "isGameOver",
+        args: [gameId],
+      }),
+      this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "isOvertime",
+        args: [gameId],
+      }),
+      this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "isLastTurn",
+        args: [gameId],
+      }),
+      this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "isRegistrationOpen",
+        args: [gameId],
+      }),
+      this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "gameCreator",
+        args: [gameId],
+      }),
+      this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "getGameRank",
+        args: [gameId],
+      }),
+      this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "getPlayers",
+        args: [gameId],
+      }),
+      this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "canStartGame",
+        args: [gameId],
+      }),
+    ]);
+
     const requirementsPerContract = await Promise.all(
       joinRequirements.contractAddresses.map(async (address, idx) => {
-        return this.rankifyInstance.getJoinRequirementsByToken(
-          gameId,
-          address,
-          joinRequirements.contractIds[idx],
-          joinRequirements.contractTypes[idx],
-        );
+        return this.publicClient.readContract({
+          address: this.instanceAddress,
+          abi: instanceAbi,
+          functionName: "getJoinRequirementsByToken",
+          args: [gameId, address, joinRequirements.contractIds[idx], joinRequirements.contractTypes[idx]],
+        });
       }),
     );
-    const promises: any[] = [];
 
-    promises.push(this.rankifyInstance.getScores(gameId));
-    promises.push(this.rankifyInstance.getTurn(gameId));
-    promises.push(this.rankifyInstance.isGameOver(gameId));
-    promises.push(this.rankifyInstance.isOvertime(gameId));
-    promises.push(this.rankifyInstance.isLastTurn(gameId));
-    promises.push(this.rankifyInstance.isRegistrationOpen(gameId));
-    promises.push(this.rankifyInstance.gameCreator(gameId));
-    promises.push(this.rankifyInstance.getGameRank(gameId));
-    promises.push(this.rankifyInstance.getPlayers(gameId));
-    promises.push(this.rankifyInstance.canStartGame(gameId));
-    return Promise.all(promises).then((values) => {
-      const scores = values[0] as [string, BigNumber];
-      const currentTurn = values[1] as BigNumber;
-      const isFinished = values[2] as boolean;
-      const isOvertime = values[3] as boolean;
-      const isLastTurn = values[4] as boolean;
-      const isOpen = values[5] as boolean;
-      const createdBy = values[6] as string;
-      const gameRank = values[7] as BigNumber;
-      const players = values[8] as string[];
-      const canStart = values[9] as boolean;
-      const gamePhase = (isFinished as boolean)
-        ? gameStatusEnum["finished"]
-        : isOvertime
-          ? gameStatusEnum["overtime"]
-          : isLastTurn
-            ? gameStatusEnum["lastTurn"]
-            : currentTurn.gt(0)
-              ? gameStatusEnum["started"]
-              : isOpen
-                ? gameStatusEnum["open"]
-                : gameMaster
-                  ? gameStatusEnum["created"]
-                  : gameStatusEnum["notFound"];
-      return {
-        gameMaster,
-        joinRequirements,
-        requirementsPerContract,
-        scores,
-        currentTurn,
-        isFinished,
-        isOvertime,
-        isLastTurn,
-        isOpen,
-        createdBy,
-        gameRank,
-        players,
-        canStart,
-        gamePhase,
-      };
-    });
+    const gamePhase = isFinished
+      ? gameStatusEnum["finished"]
+      : isOvertime
+        ? gameStatusEnum["overtime"]
+        : isLastTurn
+          ? gameStatusEnum["lastTurn"]
+          : currentTurn > 0n
+            ? gameStatusEnum["started"]
+            : isOpen
+              ? gameStatusEnum["open"]
+              : gameMaster
+                ? gameStatusEnum["created"]
+                : gameStatusEnum["notFound"];
+
+    return {
+      gameMaster,
+      joinRequirements,
+      requirementsPerContract,
+      scores,
+      currentTurn,
+      isFinished,
+      isOvertime,
+      isLastTurn,
+      isOpen,
+      createdBy,
+      gameRank,
+      players,
+      canStart,
+      gamePhase,
+    };
   };
 }

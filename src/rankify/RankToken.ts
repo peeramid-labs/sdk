@@ -1,17 +1,22 @@
-import { RankToken } from "rankify-contracts/types";
+import { Address, PublicClient } from "viem";
+import { getContract, SupportedChains } from "../utils";
 
 export default class RankTokenClient {
-  rankToken: RankToken;
+  chain: SupportedChains;
+  publicClient: PublicClient;
 
-  constructor({ rankToken }: { rankToken: RankToken }) {
-    this.rankToken = rankToken;
+  constructor({ chain, publicClient }: { chain: SupportedChains; publicClient: PublicClient }) {
+    this.chain = chain;
+    this.publicClient = publicClient;
   }
 
   getRankTokenURI = async () => {
-    return this.rankToken.contractURI();
+    const rankToken = getContract(this.chain, "RankToken", this.publicClient);
+    return rankToken.read.contractURI();
   };
 
-  getRankTokenBalance = async (tokenId: string, account: string) => {
-    return this.rankToken.balanceOf(account, tokenId);
+  getRankTokenBalance = async (tokenId: bigint, account: Address) => {
+    const rankToken = getContract(this.chain, "RankToken", this.publicClient);
+    return rankToken.read.balanceOf([account, tokenId]);
   };
 }

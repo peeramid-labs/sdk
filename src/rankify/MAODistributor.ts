@@ -1,39 +1,63 @@
-import {
-  DistributableGovernanceERC20,
-  MAODistribution,
-  RankifyDiamondInstance,
-  RankToken,
-  SimpleAccessManager,
-} from "rankify-contracts/types";
-import { ethers, Signer } from "ethers";
-import { providers } from "ethers";
 import { DistributorClient } from "../eds/Distributor";
 import { getArtifact } from "../utils";
 import { SupportedChains } from "../utils";
-import { MAOInstances, parseInstantiated, generateDistributorData } from "rankify-contracts/scripts/";
-import instanceAbi from "rankify-contracts/abi/hardhat-diamond-abi/HardhatDiamondABI.sol/RankifyDiamondInstance.json";
-import rankTokenAbi from "rankify-contracts/abi/src/tokens/RankToken.sol/RankToken.json";
-import govtTokenAbi from "rankify-contracts/abi/src/tokens/DistributableGovernanceERC20.sol/DistributableGovernanceERC20.json";
+import { MAOInstances, parseInstantiated } from "rankify-contracts/scripts/parseInstantiated";
+import instanceAbi from "../abis/RankifyDiamondInstance";
+import rankTokenAbi from "../abis/RankToken";
+import govtTokenAbi from "../abis/DistributableGovernanceERC20";
+import govtAccessManagerAbi from "../abis/SimpleAccessManager";
+import {
+  getAddress,
+  getContract,
+  GetContractReturnType,
+  isAddress,
+  Chain,
+  Hex,
+  encodeAbiParameters,
+  GetAbiItemParameters,
+  getAbiItem,
+  stringToHex,
+  PublicClient,
+  WalletClient,
+  parseEventLogs,
+} from "viem";
+import MaoDistributionAbi from "../abis/MAODistribution";
+import distributorAbi from "../abis/IDistributor";
+
+export type TokenArgumentsStructOutput = {
+  tokenName: string;
+  tokenSymbol: string;
+};
+
+export type UserRankifySettingsStructOutput = {
+  principalCost: bigint;
+  principalTimeConstant: bigint;
+  metadata: string;
+  rankTokenURI: string;
+  rankTokenContractURI: string;
+};
+
+export type DistributorArgumentsStruct = {
+  tokenSettings: TokenArgumentsStructOutput;
+  rankifySettings: UserRankifySettingsStructOutput;
+};
 
 export interface MAOInstanceContracts {
-  rankToken: RankToken;
-  instance: RankifyDiamondInstance;
-  govtToken: DistributableGovernanceERC20;
-  govtAccessManager: SimpleAccessManager;
-  ACIDAccessManager: SimpleAccessManager;
+  rankToken: GetContractReturnType<typeof rankTokenAbi>;
+  instance: GetContractReturnType<typeof instanceAbi>;
+  govtToken: GetContractReturnType<typeof govtTokenAbi>;
+  govtAccessManager: GetContractReturnType<typeof govtAccessManagerAbi>;
+  ACIDAccessManager: GetContractReturnType<typeof govtAccessManagerAbi>;
 }
 
 export class MAODistributorClient extends DistributorClient {
   private static readonly DEFAULT_NAME = "MAO Distribution";
-  private _signerOrProvider: Signer | providers.Provider;
-  private govtAccessManagerAbi;
+  walletClient: WalletClient;
 
-  constructor(chainName: SupportedChains, signerOrProvider: Signer | providers.Provider) {
-    const { address, abi } = getArtifact(chainName, "Distributor");
-    super(address, abi, signerOrProvider);
-    this.govtAccessManagerAbi = getArtifact(chainName, "SimpleAccessManager").abi;
-
-    this._signerOrProvider = signerOrProvider;
+  constructor(chainName: SupportedChains, client: { publicClient: PublicClient; walletClient: WalletClient }) {
+    const { address } = getArtifact(chainName, "DAODistributor");
+    super({ address: getAddress(address), publicClient: client.publicClient });
+    this.walletClient = client.walletClient;
   }
 
   /**
@@ -44,65 +68,102 @@ export class MAODistributorClient extends DistributorClient {
    */
   addressesToContracts(addresses: MAOInstances): MAOInstanceContracts {
     if (
-      !ethers.utils.isAddress(addresses.ACIDInstance) ||
-      !ethers.utils.isAddress(addresses.rankToken) ||
-      !ethers.utils.isAddress(addresses.govToken) ||
-      !ethers.utils.isAddress(addresses.govTokenAccessManager) ||
-      !ethers.utils.isAddress(addresses.ACIDAccessManager)
+      !isAddress(addresses.ACIDInstance) ||
+      !isAddress(addresses.rankToken) ||
+      !isAddress(addresses.govToken) ||
+      !isAddress(addresses.govTokenAccessManager) ||
+      !isAddress(addresses.ACIDAccessManager)
     ) {
       throw new Error("Invalid address provided to addressesToContracts");
     }
 
-    const instance = new ethers.Contract(
-      addresses.ACIDInstance,
-      instanceAbi,
-      this._signerOrProvider,
-    ) as RankifyDiamondInstance;
+    const instance = getContract({
+      address: addresses.ACIDInstance,
+      abi: instanceAbi,
+      client: this.walletClient,
+    });
 
-    const rankToken = new ethers.Contract(addresses.rankToken, rankTokenAbi, this._signerOrProvider) as RankToken;
+    const rankToken = getContract({
+      address: addresses.rankToken,
+      abi: rankTokenAbi,
+      client: this.walletClient,
+    });
 
-    const govtToken = new ethers.Contract(
-      addresses.govToken,
-      govtTokenAbi,
-      this._signerOrProvider,
-    ) as DistributableGovernanceERC20;
+    const govtToken = getContract({
+      address: addresses.govToken,
+      abi: govtTokenAbi,
+      client: this.walletClient,
+    });
 
-    const govtAccessManager = new ethers.Contract(
-      addresses.govTokenAccessManager,
-      this.govtAccessManagerAbi,
-      this._signerOrProvider,
-    ) as SimpleAccessManager;
+    const govtAccessManager = getContract({
+      address: addresses.govTokenAccessManager,
+      abi: govtAccessManagerAbi,
+      client: this.walletClient,
+    });
 
-    const ACIDAccessManager = new ethers.Contract(
-      addresses.ACIDAccessManager,
-      this.govtAccessManagerAbi,
-      this._signerOrProvider,
-    ) as SimpleAccessManager;
+    const ACIDAccessManager = getContract({
+      address: addresses.ACIDAccessManager,
+      abi: govtAccessManagerAbi,
+      client: this.walletClient,
+    });
 
     return { rankToken, instance, govtToken, govtAccessManager, ACIDAccessManager };
   }
 
   /**
    * Get MAOInstances instances by distribution name
-   * @param name Distribution name (defaults to "MAO Distribution")
+   * @param namedDistribution Distribution name (defaults to "MAO Distribution")
    * @returns Array of MAOInstances contract instances
    */
-  async getMAOInstances(name: string = MAODistributorClient.DEFAULT_NAME): Promise<MAOInstanceContracts[]> {
-    const distributionId = ethers.utils.formatBytes32String(name);
+  async getNamedMAODistributionInstances(namedDistribution: string): Promise<MAOInstanceContracts[]> {
+    const logs = await this.publicClient.getContractEvents({
+      address: this.address,
+      abi: distributorAbi,
+      eventName: "Instantiated",
+      args: {
+        distributionId: stringToHex(namedDistribution, { size: 32 }),
+      },
+    });
 
-    const instances = await this.getNamedDistributionInstances({ namedDistribution: distributionId });
+    const instances = logs
+      .map((l) => parseInstantiated(l.args.instances as string[]))
+      .map((ip) => this.addressesToContracts(ip));
 
-    return instances.map((i) => parseInstantiated(i)).map((ip) => this.addressesToContracts(ip));
+    if (instances.length === 0) {
+      console.error("No instances found");
+      throw new Error(`No instances found for distribution ${namedDistribution}`);
+    }
+
+    return instances;
   }
 
   async getMAOInstance(
     name: string = MAODistributorClient.DEFAULT_NAME,
-    instanceId: number,
+    instanceId: bigint,
   ): Promise<MAOInstanceContracts> {
-    const distributionId = ethers.utils.formatBytes32String(name);
-    return this.getInstance(distributionId, instanceId)
-      .then((i) => parseInstantiated(i))
-      .then((ip) => this.addressesToContracts(ip));
+    const logs = await this.publicClient.getContractEvents({
+      address: this.address,
+      abi: distributorAbi,
+      eventName: "Instantiated",
+      args: {
+        distributionId: stringToHex(name, { size: 32 }),
+        newInstanceId: instanceId,
+      },
+    });
+
+    if (logs.length === 0) {
+      console.error("No instance found");
+      throw new Error(`No instance found for distribution ${name} and id ${instanceId}`);
+    }
+
+    if (logs.length > 1) {
+      console.error("Multiple instances found");
+      throw new Error(`Multiple instances found for distribution ${name} and id ${instanceId}`);
+    }
+
+    const { instances } = logs[0].args;
+    if (!instances) throw new Error(`No instances found for distribution ${name} and id ${instanceId}`);
+    return this.addressesToContracts(parseInstantiated(instances as string[]));
   }
 
   /**
@@ -111,22 +172,44 @@ export class MAODistributorClient extends DistributorClient {
    * @returns Array of created contract addresses
    */
   async instantiate(
-    args: MAODistribution.DistributorArgumentsStruct,
+    args: GetAbiItemParameters<typeof MaoDistributionAbi, "distributionSchema">["args"],
     name: string = MAODistributorClient.DEFAULT_NAME,
+    chain: Chain,
   ): Promise<MAOInstanceContracts> {
-    const tx = await this.getContract().instantiate(
-      ethers.utils.formatBytes32String(name),
-      generateDistributorData(args),
-    );
-    const receipt = await tx.wait();
+    if (!args) throw new Error("args is required");
+    const abiItem = getAbiItem({ abi: MaoDistributionAbi, name: "distributionSchema" });
+    const encodedParams = encodeAbiParameters(abiItem.inputs, args);
+    const encodedName = stringToHex(name, { size: 32 });
+    if (!this.walletClient.account?.address) throw new Error("No account address found");
+    const { request } = await this.publicClient.simulateContract({
+      abi: distributorAbi,
+      address: this.address,
+      functionName: "instantiate",
+      args: [encodedName, encodedParams],
+      account: this.walletClient.account?.address,
+      chain: chain,
+    });
 
-    const instantiatedEvent = receipt.events?.find((e) => e.event === "Instantiated");
-    if (!instantiatedEvent) {
-      console.error(receipt);
-      throw new Error("Failed to instantiate MAO Distribution");
+    const receipt = await this.walletClient
+      .writeContract(request)
+      .then((h) => this.publicClient.waitForTransactionReceipt({ hash: h }));
+
+    const instantiatedEvent = parseEventLogs({
+      abi: distributorAbi,
+      logs: receipt.logs,
+      eventName: "Instantiated",
+    });
+
+    if (instantiatedEvent.length == 0) {
+      console.error("Transaction receipt:", receipt);
+      throw new Error("Instantiated event not found in transaction receipt");
     }
-    const addresses = parseInstantiated(instantiatedEvent.args.instances);
+    if (instantiatedEvent.length > 1) {
+      console.error("Transaction receipt:", receipt);
+      throw new Error("Multiple Instantiated events found in transaction receipt");
+    }
 
+    const addresses = parseInstantiated(instantiatedEvent[0].args.instances as string[]);
     return this.addressesToContracts(addresses);
   }
 }
