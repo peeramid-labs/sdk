@@ -6,9 +6,9 @@ const copyPackageFile = () => {
   console.log("pv", packageJson.version);
   delete packageJson.private;
   console.log("stage is", stage);
-  if (stage === "dev") {
-    packageJson.dependencies["rankify-contracts"] = "file:../../contracts";
-  }
+  // if (stage === "dev") {
+  //   packageJson.dependencies["rankify-contracts"] = "file:../../contracts";
+  // }
   packageJson.type = "commonjs";
   packageJson.main = "./lib.commonjs/index.js";
   packageJson.module = "./lib.esm/index.js";
