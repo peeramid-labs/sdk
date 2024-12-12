@@ -1,46 +1,46 @@
-import promise from "eslint-plugin-promise";
-import globals from "globals";
-import tsParser from "@typescript-eslint/parser";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import js from "@eslint/js";
-import { FlatCompat } from "@eslint/eslintrc";
-import prettier from "eslint-plugin-prettier";
+import tseslint from "typescript-eslint";
+import prettierConfig from "eslint-config-prettier";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-  allConfig: js.configs.all,
-});
-
-export default [
+export default tseslint.config(
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+  prettierConfig,
   {
-    ignores: ["deployments/", "coverage/**", "docs/templates/", "**/node_modules/"],
+    // Base configuration for all files
+    ignores: ["**/node_modules/**", "**/dist/**", "src/abis/*.ts", "scripts", "copyPackageFile.js"],
   },
-  ...compat.extends("eslint:recommended", "plugin:promise/recommended", "prettier"),
   {
     plugins: {
-      promise,
-      prettier, // Add Prettier plugin
+      "@typescript-eslint": tseslint.plugin,
     },
+    // TypeScript files configuration
+    files: ["**/*.ts"],
     languageOptions: {
-      globals: {
-        ...globals.browser,
-        ...globals.node,
-        ...globals.mocha,
-        artifacts: "readonly",
-        contract: "readonly",
-        assert: "readonly",
-        web3: "readonly",
+      parserOptions: {
+        project: ["./tsconfig.json", "./tsconfig.test.json"],
+        tsconfigRootDir: ".",
       },
-      parser: tsParser,
     },
     rules: {
-      "no-unused-vars": "warn",
-      "prettier/prettier": "error", // Add Prettier as an ESLint rule
+      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-unsafe-member-access": "warn",
+      "@typescript-eslint/no-unsafe-call": "warn",
+      "@typescript-eslint/await-thenable": "warn",
+      "@typescript-eslint/no-unsafe-assignment": "warn",
+      "@typescript-eslint/no-require-imports": "off",
     },
-    files: ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx"],
   },
-];
+  {
+    // JavaScript files configuration
+    files: ["**/*.js", "**/*.mjs", "**/*.cjs"],
+    ignores: ["src/**/*.ts", "**/node_modules/**", "**/dist/**"],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: {
+      sourceType: "module",
+    },
+    rules: {
+      // Add JavaScript-specific rules here if needed
+    },
+  }
+);

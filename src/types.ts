@@ -1,5 +1,4 @@
-import { BigNumber, Wallet, BytesLike } from "ethers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { Hex, WalletClient } from "viem";
 export { LibMultipass, Multipass as MultipassDiamond } from "@peeramid-labs/multipass/types/src/Multipass";
 
 export enum SearchCriteria {
@@ -10,12 +9,12 @@ export enum SearchCriteria {
 export interface SignerIdentity {
   name: string;
   id: string;
-  wallet: Wallet | SignerWithAddress;
+  wallet: WalletClient;
 }
 export interface RegisterMessage {
-  name: BytesLike;
-  id: BytesLike;
-  domainName: BytesLike;
-  validUntil: BigNumber;
-  nonce: BigNumber;
+  name: Hex;
+  id: Hex;
+  domainName: Hex;
+  validUntil: bigint;
+  nonce: bigint;
 }
