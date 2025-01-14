@@ -22,7 +22,7 @@ export const edsCommand = new Command("eds")
       .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
       .option("-a, --address <address>", "Address of the contract to check")
       .action(async (options) => {
-        const publicClient = createPublic(options.rpc);
+        const publicClient = await createPublic(options.rpc);
 
         let address = options.address;
         if (!address) {

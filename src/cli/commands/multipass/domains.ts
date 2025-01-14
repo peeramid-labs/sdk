@@ -66,7 +66,7 @@ const domainsCommand = new Command("domains")
         const spinner = ora("Initializing domain...").start();
 
         try {
-          const publicClient = createPublic(options.rpc);
+          const publicClient = await createPublic(options.rpc);
           const walletClient = await createWallet(options.rpc, options.key);
           const chainId = Number(await publicClient.getChainId());
 

@@ -17,7 +17,7 @@ export const getMetadataCommand = new Command("metadata")
     const spinner = ora("Initializing client...").start();
 
     try {
-      const publicClient = createPublic(options.rpc);
+      const publicClient = await createPublic(options.rpc);
       const chainId = await publicClient.getChainId();
       spinner.text = "Fetching metadata...";
 
