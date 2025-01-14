@@ -4,23 +4,27 @@ import ora from "ora";
 import { MAODistributorClient } from "../../../rankify/MAODistributor";
 import { createPublic } from "../../client";
 import { parseInstantiated } from "../../../utils";
+import { getAddress } from "viem";
 
 export const listCommand = new Command("list")
   .description("List all registered instances")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
+  .option("-a, --address <address>", "Address of the Distributor contract")
   .action(async (options) => {
     const spinner = ora("Initializing client...").start();
 
     try {
-      const publicClient = createPublic(options.rpc);
+      const publicClient = await createPublic(options.rpc);
       const chainId = Number(await publicClient.getChainId());
 
       const maoDistributor = new MAODistributorClient(chainId, {
         publicClient,
+        address: options.address && getAddress(options.address),
       });
 
       spinner.text = "Fetching instances...";
       const distributions = await maoDistributor.getDistributions();
+      // console.log(distributions);
       const instancePromises = distributions.map((d) => maoDistributor.getInstances(d));
       const instanceArrays = await Promise.all(instancePromises);
       const instances = instanceArrays.flat().map((i) => parseInstantiated(i.addresses));

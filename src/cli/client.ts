@@ -2,15 +2,37 @@ import { Chain, createPublicClient, createWalletClient, Hex, http, WalletClient 
 import { chainToPath } from "../utils/chainMapping";
 import { privateKeyToAccount } from "viem/accounts";
 
-export const createPublic = (rpcUrl?: string) => {
+export const createPublic = async (rpcUrl?: string) => {
   const endpoint = rpcUrl || process.env.RPC_URL;
   if (!endpoint) {
     throw new Error("RPC URL is required. Either pass it as a parameter or set RPC_URL environment variable");
   }
 
+  const publicClient = createPublicClient({
+    transport: http(endpoint),
+  });
+  const chainId = await publicClient.getChainId();
+  const chain: Chain = {
+    id: chainId,
+    name: chainToPath[chainId.toString()],
+    nativeCurrency: {
+      name: "Ether",
+      symbol: "ETH",
+      decimals: 18,
+    },
+    rpcUrls: {
+      default: {
+        http: [endpoint],
+      },
+      public: {
+        http: [endpoint],
+      },
+    },
+  };
   // Create a temporary client to get chain ID
   return createPublicClient({
     transport: http(endpoint),
+    chain,
   });
 };
 

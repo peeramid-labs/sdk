@@ -517,7 +517,9 @@ export default class InstanceBase {
     pageParam?: number;
     pageSize?: number;
   }): Promise<{
-    items: ContractFunctionReturnType<typeof instanceAbi, "view", "getGameState">[];
+    items: (ContractFunctionReturnType<typeof instanceAbi, "view", "getGameState"> & {
+      gamePhase: gameStatusEnum;
+    })[];
     nextPage: number | undefined;
     hasMore: boolean;
   }> => {
@@ -539,13 +541,31 @@ export default class InstanceBase {
     const nextPage = hasMore ? pageParam + 1 : undefined;
 
     const gameStates = await Promise.all(
-      Array.from({ length: realPageSize }, (_, i) => i + startIndex).map(async (gameId) => {
-        return this.publicClient.readContract({
-          address: this.instanceAddress,
-          abi: instanceAbi,
-          functionName: "getGameState",
-          args: [BigInt(gameId)],
-        });
+      Array.from({ length: realPageSize }, (_, i) => i + startIndex).map(async (index) => {
+        const gameId = index + 1;
+        return this.publicClient
+          .readContract({
+            address: this.instanceAddress,
+            abi: instanceAbi,
+            functionName: "getGameState",
+            args: [BigInt(gameId)],
+          })
+          .then((r) => {
+            const gamePhase = r.hasEnded
+              ? gameStatusEnum["finished"]
+              : r.isOvertime
+                ? gameStatusEnum["overtime"]
+                : r.currentTurn - r.maxTurns === 0n
+                  ? gameStatusEnum["lastTurn"]
+                  : r.startedAt > 0n
+                    ? gameStatusEnum["started"]
+                    : r.registrationOpenAt > 0n
+                      ? gameStatusEnum["open"]
+                      : r.createdBy !== zeroAddress
+                        ? gameStatusEnum["created"]
+                        : gameStatusEnum["notFound"];
+            return { ...r, gamePhase };
+          });
       })
     );
 
