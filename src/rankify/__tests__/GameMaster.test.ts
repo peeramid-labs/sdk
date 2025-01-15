@@ -78,7 +78,11 @@ describe("GameMaster", () => {
       ];
       mockGetContractEvents.mockResolvedValueOnce(mockEvents);
 
-      const result = await gameMaster.decryptProposals(1n, 1n);
+      const result = await gameMaster.decryptProposals({
+        instanceAddress: MOCK_ADDRESSES.INSTANCE,
+        gameId: 1n,
+        turn: 1n,
+      });
       expect(result).toEqual([
         {
           proposer: MOCK_ADDRESSES.PLAYER,
@@ -89,7 +93,11 @@ describe("GameMaster", () => {
 
     it("should return empty array when no proposals exist", async () => {
       mockGetContractEvents.mockResolvedValueOnce([]);
-      const result = await gameMaster.decryptProposals(1n, 1n);
+      const result = await gameMaster.decryptProposals({
+        instanceAddress: MOCK_ADDRESSES.INSTANCE,
+        gameId: 1n,
+        turn: 1n,
+      });
       expect(result).toEqual([]);
     });
   });
