@@ -1,5 +1,19 @@
 # peeramid-labs/sdk
 
+## 3.3.0
+
+### Minor Changes
+
+- [#86](https://github.com/peeramid-labs/sdk/pull/86) [`7ba5a63c5074cb25522c1813013a56f8006535c0`](https://github.com/peeramid-labs/sdk/commit/7ba5a63c5074cb25522c1813013a56f8006535c0) Thanks [@peersky](https://github.com/peersky)! - added support for 0.11 release eip712 name and version resolution
+
+### Patch Changes
+
+- [#87](https://github.com/peeramid-labs/sdk/pull/87) [`3c24e9a4d0e8cb20453f9e7ab57750a648d762cf`](https://github.com/peeramid-labs/sdk/commit/3c24e9a4d0e8cb20453f9e7ab57750a648d762cf) Thanks [@peersky](https://github.com/peersky)! - updated setup local script
+
+- [#90](https://github.com/peeramid-labs/sdk/pull/90) [`743f3dae62ef265f8a4298ac9cada84283cc7b14`](https://github.com/peeramid-labs/sdk/commit/743f3dae62ef265f8a4298ac9cada84283cc7b14) Thanks [@peersky](https://github.com/peersky)! - game master now takes instance address as method arguments
+
+- [#89](https://github.com/peeramid-labs/sdk/pull/89) [`13bdadf796bc1ca3dd785837b5a92f7447084680`](https://github.com/peeramid-labs/sdk/commit/13bdadf796bc1ca3dd785837b5a92f7447084680) Thanks [@peersky](https://github.com/peersky)! - patch fixes for cli and batch getter
+
 ## 3.2.0
 
 ### Minor Changes
