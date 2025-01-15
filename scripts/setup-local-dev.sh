@@ -1,5 +1,5 @@
 #!/bin/bash
-
+tmux kill-session -t anvil
 # Source .env file if it exists
 if [ -f "$(dirname "$0")/../.env" ]; then
     source "$(dirname "$0")/../.env"
@@ -78,7 +78,7 @@ setup_repo() {
     if [ -f "playbook/utils/deploy-to-local-anvil.sh" ]; then
         echo "Deploying $repo_name contracts..."
         pnpm hardhat clean
-        pnpm hardhat compile
+        pnpm hardhat compile && rm -rf deployments/localhost
         bash playbook/utils/deploy-to-local-anvil.sh
     else
         echo "Warning: deployment script not found for $repo_name"
@@ -89,8 +89,10 @@ setup_repo() {
 }
 
 # Setup each repository
-setup_repo "$EDS_PATH" "eds" &&
-setup_repo "$MULTIPASS_PATH" "multipass" &&
+setup_repo "$EDS_PATH" "eds"
+sleep 1
+setup_repo "$MULTIPASS_PATH" "multipass"
+sleep 1
 setup_repo "$RANKIFY_CONTRACTS_PATH" "rankify-contracts"
 
 # Link dependencies in SDK
