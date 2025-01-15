@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.3.1
+
+### Patch Changes
+
+- [`02e7c10b16555d30876495a2ada78e71e8e8f74a`](https://github.com/peeramid-labs/sdk/commit/02e7c10b16555d30876495a2ada78e71e8e8f74a) Thanks [@peersky](https://github.com/peersky)! - fixed bugs in game master constructor type
+
 ## 3.3.0
 
 ### Minor Changes
