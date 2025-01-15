@@ -36,9 +36,6 @@ export class GameMaster {
     randomnessCallback,
     turnSaltCallback,
   }: {
-    EIP712name: string;
-    EIP712Version: string;
-    instanceAddress: Address;
     walletClient: WalletClient;
     publicClient: PublicClient;
     chainId: number;
