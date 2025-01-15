@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.2.0
+
+### Minor Changes
+
+- [#82](https://github.com/peeramid-labs/sdk/pull/82) [`b06e5dc66e74e4ad8b8826980ccecb5f92c083b9`](https://github.com/peeramid-labs/sdk/commit/b06e5dc66e74e4ad8b8826980ccecb5f92c083b9) Thanks [@peersky](https://github.com/peersky)! - added getGameStates and getContractState methods, modified getGameStateDetails to return more info
+
 ## 3.1.0
 
 ### Minor Changes
