@@ -575,6 +575,29 @@ export default class InstanceBase {
       hasMore,
     };
   };
+
+  getEIP712Domain = async () => {
+    /**
+     * Reads the EIP712 domain data from the contract
+     * @returns {Promise<object>} The domain data including separator, chainId, etc.
+     * @throws {Error} If the contract call fails
+     */
+    const domain = await this.publicClient.readContract({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      functionName: "inspectEIP712Hashes",
+    });
+    return {
+      domainSeparator: domain[0],
+      chainId: domain[1],
+      verifierContract: domain[2],
+      hashedName: domain[3],
+      hashedVersion: domain[4],
+      typeHash: domain[5],
+      name: domain[6],
+      version: domain[7],
+    };
+  };
 }
 
 /**

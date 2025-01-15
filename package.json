@@ -55,7 +55,7 @@
     "inquirer": "^12.3.0",
     "lodash": "^4.17.21",
     "ora": "^5.4.1",
-    "rankify-contracts": "^0.10.1",
+    "rankify-contracts": "^0.11.0",
     "viem": "^2.21.55"
   },
   "devDependencies": {
