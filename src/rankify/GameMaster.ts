@@ -1,5 +1,5 @@
 import { Address, WalletClient, PublicClient, keccak256, encodePacked, Hex } from "viem";
-import { IRankifyInstanceAbi, RankifyDiamondInstanceAbi } from "../abis";
+import { RankifyDiamondInstanceAbi } from "../abis";
 import InstanceBase from "./InstanceBase";
 import { handleRPCError } from "../utils";
 
@@ -308,7 +308,7 @@ export class GameMaster {
   decryptVotes = async ({ instanceAddress, gameId }: { instanceAddress: Address; gameId: bigint }) => {
     const currentTurn = await this.publicClient.readContract({
       address: instanceAddress,
-      abi: IRankifyInstanceAbi,
+      abi: RankifyDiamondInstanceAbi,
       functionName: "getTurn",
       args: [gameId],
     });
@@ -328,7 +328,7 @@ export class GameMaster {
   canEndTurn = async ({ instanceAddress, gameId }: { instanceAddress: Address; gameId: bigint }) => {
     return this.publicClient.readContract({
       address: instanceAddress,
-      abi: IRankifyInstanceAbi,
+      abi: RankifyDiamondInstanceAbi,
       functionName: "canEndTurn",
       args: [gameId],
     });
@@ -343,7 +343,7 @@ export class GameMaster {
     try {
       return this.publicClient.readContract({
         address: instanceAddress,
-        abi: IRankifyInstanceAbi,
+        abi: RankifyDiamondInstanceAbi,
         functionName: "getTurn",
         args: [gameId],
       });
@@ -361,7 +361,7 @@ export class GameMaster {
     try {
       return this.publicClient.readContract({
         address: instanceAddress,
-        abi: IRankifyInstanceAbi,
+        abi: RankifyDiamondInstanceAbi,
         functionName: "getPlayers",
         args: [gameId],
       });
