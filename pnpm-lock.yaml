@@ -36,8 +36,8 @@ importers:
         specifier: ^0.11.0
         version: 0.11.0(hardhat@2.22.17(ts-node@10.9.2(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2))
       viem:
-        specifier: ^2.21.55
-        version: 2.22.4(typescript@5.7.2)
+        specifier: '=2.22.8'
+        version: 2.22.8(typescript@5.7.2)
     devDependencies:
       '@changesets/changelog-github':
         specifier: ^0.4.8
@@ -3233,8 +3233,8 @@ packages:
     resolution: {integrity: sha512-kiGUalWN+rgBJ/1OHZsBtU4rXZOfj/7rKQxULKlIzwzQSvMJUUNgPwJEEh7gU6xEVxC0ahoOBvN2YI8GH6FNgA==}
     engines: {node: '>=10.12.0'}
 
-  viem@2.22.4:
-    resolution: {integrity: sha512-35/T2ySpUM0kUVEy2SkaWIAIabSRzF/IZxDdnLxuaI1pwURC92ZiHa9J9nL1rWGl0HTyAqUxcycgJEpOvHrcQA==}
+  viem@2.22.8:
+    resolution: {integrity: sha512-iB3PW/a/qzpYbpjo3R662u6a/zo6piZHez/N/bOC25C79FYXBCs8mQDqwiHk3FYErUhS4KVZLabKV9zGMd+EgQ==}
     peerDependencies:
       typescript: '>=5.0.4'
     peerDependenciesMeta:
@@ -7288,7 +7288,7 @@ snapshots:
       '@types/istanbul-lib-coverage': 2.0.6
       convert-source-map: 2.0.0
 
-  viem@2.22.4(typescript@5.7.2):
+  viem@2.22.8(typescript@5.7.2):
     dependencies:
       '@noble/curves': 1.7.0
       '@noble/hashes': 1.6.1

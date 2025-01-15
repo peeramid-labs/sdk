@@ -37,12 +37,9 @@ const mockWalletClient = createMockWalletClient({
 describe("GameMaster", () => {
   let gameMaster: GameMaster;
 
-  beforeEach(() => {
+  beforeEach(() => {pnp
     jest.clearAllMocks();
     gameMaster = new GameMaster({
-      EIP712name: "TestGame",
-      EIP712Version: "1.0.0",
-      instanceAddress: MOCK_ADDRESSES.INSTANCE,
       walletClient: mockWalletClient as WalletClient,
       publicClient: mockPublicClient as PublicClient,
       chainId: 1,
