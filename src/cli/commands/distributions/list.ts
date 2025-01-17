@@ -11,7 +11,7 @@ export const listCommand = new Command("list")
     const spinner = ora("Initializing client...").start();
 
     try {
-      const publicClient = createPublic(options.rpc);
+      const publicClient = await createPublic(options.rpc);
       const chainId = Number(await publicClient.getChainId());
 
       const maoDistributor = new MAODistributorClient(chainId, {

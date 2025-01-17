@@ -135,7 +135,7 @@ contractCommand
   .action(async (newOwner: string, options) => {
     const spinner = ora("Transferring ownership...").start();
     try {
-      const publicClient = createPublic(options.rpc);
+      const publicClient = await createPublic(options.rpc);
       const walletClient = await createWallet(options.rpc, options.key);
       const chainId = Number(await publicClient.getChainId());
 
@@ -181,5 +181,4 @@ contractCommand
       process.exit(1);
     }
   });
-
 export default contractCommand;

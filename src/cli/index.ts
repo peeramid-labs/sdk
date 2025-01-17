@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
-import { fellowshipsCommand } from "./commands/fellowship";
+import { fellowshipCommand } from "./commands/fellowship";
 import { distributionsCommand } from "./commands/distributions";
 import { instancesCommand } from "./commands/instances";
 import { multipassCommand } from "./commands/multipass";
@@ -14,7 +14,7 @@ const program = new Command()
   .version(version);
 
 // Add commands
-program.addCommand(fellowshipsCommand);
+program.addCommand(fellowshipCommand);
 program.addCommand(distributionsCommand);
 program.addCommand(instancesCommand);
 program.addCommand(multipassCommand);

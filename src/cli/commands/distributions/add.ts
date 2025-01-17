@@ -21,7 +21,7 @@ export const addCommand = new Command("add")
     const spinner = ora("Initializing clients...").start();
 
     try {
-      const publicClient = createPublic(options.rpc);
+      const publicClient = await createPublic(options.rpc);
       const walletClient = await createWallet(options.rpc, options.key);
       const chainId = Number(await publicClient.getChainId());
 

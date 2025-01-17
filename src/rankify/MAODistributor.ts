@@ -98,10 +98,10 @@ export class MAODistributorClient extends DistributorClient {
    * @param chainId - ID of the blockchain network
    * @param client - Object containing public and wallet clients
    */
-  constructor(chainId: number, client: { publicClient: PublicClient; walletClient?: WalletClient }) {
+  constructor(chainId: number, client: { publicClient: PublicClient; walletClient?: WalletClient; address?: Address }) {
     const { address, receipt } = getArtifact(chainId, "DAODistributor");
     super({
-      address: getAddress(address),
+      address: client.address ?? getAddress(address),
       publicClient: client.publicClient,
       creationBlock: BigInt(receipt.blockNumber),
     });

@@ -37,12 +37,9 @@ const mockWalletClient = createMockWalletClient({
 describe("GameMaster", () => {
   let gameMaster: GameMaster;
 
-  beforeEach(() => {
+  beforeEach(() => {pnp
     jest.clearAllMocks();
     gameMaster = new GameMaster({
-      EIP712name: "TestGame",
-      EIP712Version: "1.0.0",
-      instanceAddress: MOCK_ADDRESSES.INSTANCE,
       walletClient: mockWalletClient as WalletClient,
       publicClient: mockPublicClient as PublicClient,
       chainId: 1,
@@ -78,7 +75,11 @@ describe("GameMaster", () => {
       ];
       mockGetContractEvents.mockResolvedValueOnce(mockEvents);
 
-      const result = await gameMaster.decryptProposals(1n, 1n);
+      const result = await gameMaster.decryptProposals({
+        instanceAddress: MOCK_ADDRESSES.INSTANCE,
+        gameId: 1n,
+        turn: 1n,
+      });
       expect(result).toEqual([
         {
           proposer: MOCK_ADDRESSES.PLAYER,
@@ -89,7 +90,11 @@ describe("GameMaster", () => {
 
     it("should return empty array when no proposals exist", async () => {
       mockGetContractEvents.mockResolvedValueOnce([]);
-      const result = await gameMaster.decryptProposals(1n, 1n);
+      const result = await gameMaster.decryptProposals({
+        instanceAddress: MOCK_ADDRESSES.INSTANCE,
+        gameId: 1n,
+        turn: 1n,
+      });
       expect(result).toEqual([]);
     });
   });

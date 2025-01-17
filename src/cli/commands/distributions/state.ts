@@ -11,7 +11,7 @@ export const stateCommand = new Command("state")
   .action(async (options) => {
     const spinner = ora("Initializing clients...").start();
 
-    const publicClient = createPublic(options.rpc);
+    const publicClient = await createPublic(options.rpc);
     const walletClient = await createWallet(options.rpc, options.key);
     const chainId = Number(await publicClient.getChainId());
 

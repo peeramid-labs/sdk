@@ -15,7 +15,7 @@ export const domainCommand = new Command("domain").description("Domain operation
       const spinner = ora("Initializing client...").start();
 
       try {
-        const publicClient = createPublic(options.rpc);
+        const publicClient = await createPublic(options.rpc);
         const chainId = Number(await publicClient.getChainId());
 
         const multipass = new MultipassBase({
@@ -233,7 +233,7 @@ domainCommand
         const spinner = ora("Initializing clients...").start();
 
         try {
-          const publicClient = createPublic(options.rpc);
+          const publicClient = await createPublic(options.rpc);
           const walletClient = await createWallet(options.rpc, options.key);
           const chainId = Number(await publicClient.getChainId());
 
@@ -363,7 +363,7 @@ domainCommand
         const spinner = ora("Initializing clients...").start();
 
         try {
-          const publicClient = createPublic(options.rpc);
+          const publicClient = await createPublic(options.rpc);
           const walletClient = await createWallet(options.rpc, options.key);
           const chainId = Number(await publicClient.getChainId());
 
@@ -474,7 +474,7 @@ domainCommand
         const spinner = ora("Activating domain...").start();
 
         try {
-          const publicClient = createPublic(options.rpc);
+          const publicClient = await createPublic(options.rpc);
           const walletClient = await createWallet(options.rpc, options.key);
           const chainId = Number(await publicClient.getChainId());
 
@@ -506,7 +506,7 @@ domainCommand
         const spinner = ora("Fetching domain state...").start();
 
         try {
-          const publicClient = createPublic(options.rpc);
+          const publicClient = await createPublic(options.rpc);
           const chainId = Number(await publicClient.getChainId());
 
           const multipass = new MultipassBase({
@@ -545,7 +545,7 @@ domainCommand
         const spinner = ora("Fetching records...").start();
 
         try {
-          const publicClient = createPublic(options.rpc);
+          const publicClient = await createPublic(options.rpc);
           const chainId = Number(await publicClient.getChainId());
 
           const multipass = new MultipassBase({

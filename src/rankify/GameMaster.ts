@@ -1,5 +1,5 @@
 import { Address, WalletClient, PublicClient, keccak256, encodePacked, Hex } from "viem";
-import { IRankifyInstanceAbi, RankifyDiamondInstanceAbi } from "../abis";
+import { RankifyDiamondInstanceAbi } from "../abis";
 import InstanceBase from "./InstanceBase";
 import { handleRPCError } from "../utils";
 
@@ -8,20 +8,17 @@ import { handleRPCError } from "../utils";
  * Extends InstanceBase to provide game master specific functionality
  * @public
  */
-export class GameMaster extends InstanceBase {
-  EIP712name: string;
-  EIP712Version: string;
+export class GameMaster {
   walletClient: WalletClient;
+  publicClient: PublicClient;
   encryptionCallback: (data: string) => Promise<string>;
   decryptionCallback: (data: string) => Promise<string>;
   randomnessCallback: () => Promise<number>;
   turnSaltCallback: ({ gameId, turn }: { gameId: bigint; turn: bigint }) => Promise<Hex>;
-
+  chainId: number;
   /**
    * Creates a new GameMaster instance
-   * @param EIP712name - Name for EIP712 signing
-   * @param EIP712Version - Version for EIP712 signing
-   * @param instanceAddress - Address of the Rankify game instance
+
    * @param walletClient - Viem wallet client for transactions
    * @param publicClient - Viem public client for reading state
    * @param chainId - Chain ID of the network
@@ -31,20 +28,14 @@ export class GameMaster extends InstanceBase {
    * @param turnSaltCallback - Callback function for generating turn salts
    */
   constructor({
-    EIP712name,
-    EIP712Version,
-    instanceAddress,
     walletClient,
-    publicClient,
     chainId,
+    publicClient,
     encryptionCallback,
     decryptionCallback,
     randomnessCallback,
     turnSaltCallback,
   }: {
-    EIP712name: string;
-    EIP712Version: string;
-    instanceAddress: Address;
     walletClient: WalletClient;
     publicClient: PublicClient;
     chainId: number;
@@ -53,9 +44,8 @@ export class GameMaster extends InstanceBase {
     randomnessCallback: () => Promise<number>;
     turnSaltCallback: ({ gameId, turn }: { gameId: bigint; turn: bigint }) => Promise<Hex>;
   }) {
-    super({ publicClient, chainId, instanceAddress });
-    this.EIP712Version = EIP712Version;
-    this.EIP712name = EIP712name;
+    this.chainId = chainId;
+    this.publicClient = publicClient;
     this.walletClient = walletClient;
     this.encryptionCallback = encryptionCallback;
     this.decryptionCallback = decryptionCallback;
@@ -70,10 +60,20 @@ export class GameMaster extends InstanceBase {
    * @param proposer - Optional proposer address to filter proposals
    * @returns Array of decrypted proposals with proposer addresses
    */
-  decryptProposals = async (gameId: bigint, turn: bigint, proposer?: Address) => {
+  decryptProposals = async ({
+    instanceAddress,
+    gameId,
+    turn,
+    proposer,
+  }: {
+    instanceAddress: Address;
+    gameId: bigint;
+    turn: bigint;
+    proposer?: Address;
+  }) => {
     const evts = await this.publicClient.getContractEvents({
       abi: RankifyDiamondInstanceAbi,
-      address: this.instanceAddress,
+      address: instanceAddress,
       eventName: "ProposalSubmitted",
       args: { gameId: gameId, turn: turn, proposer: proposer },
     });
@@ -147,16 +147,25 @@ export class GameMaster extends InstanceBase {
    * @param player - Address of the player
    * @returns Index of the player's proposal, -1 if not found
    */
-  findPlayerOngoingProposalIndex = async (gameId: bigint, player: Address) => {
-    const { currentTurn, proposals } = await this.getOngoingProposals(gameId);
+  findPlayerOngoingProposalIndex = async ({
+    instanceAddress,
+    gameId,
+    player,
+  }: {
+    instanceAddress: Address;
+    gameId: bigint;
+    player: Address;
+  }) => {
+    const baseInstance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
+    const { currentTurn, proposals } = await baseInstance.getOngoingProposals(gameId);
     if (currentTurn == 0n) {
       console.error("No proposals in turn 0");
       return -1;
     }
 
     const turn = currentTurn - 1n;
-    const playersProposal = await this.decryptProposals(gameId, turn, player).then((ps) =>
-      ps.length > 0 ? ps[0].proposal : undefined
+    const playersProposal = await this.decryptProposals({ instanceAddress, gameId, turn, proposer: player }).then(
+      (ps) => (ps.length > 0 ? ps[0].proposal : undefined)
     );
     return playersProposal ? proposals.findIndex((p) => p === playersProposal) : -1;
   };
@@ -168,18 +177,28 @@ export class GameMaster extends InstanceBase {
    * @param voter - Address of the voter
    * @returns Transaction hash
    */
-  submitVote = async (gameId: bigint, vote: bigint[], voter: Address) => {
+  submitVote = async ({
+    instanceAddress,
+    gameId,
+    vote,
+    voter,
+  }: {
+    instanceAddress: Address;
+    gameId: bigint;
+    vote: bigint[];
+    voter: Address;
+  }) => {
     if (!gameId) throw new Error("No gameId");
     if (!vote) throw new Error("No votesHidden");
     if (!voter) throw new Error("No voter");
-    const proposerIdx = await this.findPlayerOngoingProposalIndex(gameId, voter);
+    const proposerIdx = await this.findPlayerOngoingProposalIndex({ instanceAddress, gameId, player: voter });
     if (proposerIdx != -1 && vote[proposerIdx] !== 0n) throw new Error("You cannot vote for your own proposal");
     const votesHidden = await this.encryptionCallback(JSON.stringify(vote.map((vi) => vi.toString())));
     if (!this.walletClient?.account?.address) throw new Error("No account address found");
     try {
       const { request } = await this.publicClient.simulateContract({
         account: this.walletClient.account,
-        address: this.instanceAddress,
+        address: instanceAddress,
         abi: RankifyDiamondInstanceAbi,
         functionName: "submitVote",
         args: [gameId, votesHidden, voter],
@@ -212,11 +231,13 @@ export class GameMaster extends InstanceBase {
    * @returns Transaction hash
    */
   submitProposal = async ({
+    instanceAddress,
     gameId,
     commitmentHash,
     proposal,
     proposer,
   }: {
+    instanceAddress: Address;
     gameId: bigint;
     commitmentHash: Hex;
     proposal: string;
@@ -230,7 +251,7 @@ export class GameMaster extends InstanceBase {
     try {
       const { request } = await this.publicClient.simulateContract({
         account: this.walletClient.account,
-        address: this.instanceAddress,
+        address: instanceAddress,
         abi: RankifyDiamondInstanceAbi,
         functionName: "submitProposal",
         args: [{ gameId, commitmentHash, encryptedProposal, proposer }],
@@ -247,9 +268,17 @@ export class GameMaster extends InstanceBase {
    * @param turn - Turn number
    * @returns Array of decrypted votes with player addresses
    */
-  decryptTurnVotes = async (gameId: bigint, turn: bigint) => {
+  decryptTurnVotes = async ({
+    instanceAddress,
+    gameId,
+    turn,
+  }: {
+    instanceAddress: Address;
+    gameId: bigint;
+    turn: bigint;
+  }) => {
     const evts = await this.publicClient.getContractEvents({
-      address: this.instanceAddress,
+      address: instanceAddress,
       abi: RankifyDiamondInstanceAbi,
       eventName: "VoteSubmitted",
       args: { gameId, turn },
@@ -276,10 +305,10 @@ export class GameMaster extends InstanceBase {
    * @param gameId - ID of the game
    * @returns Array of decrypted votes with player addresses
    */
-  decryptVotes = async (gameId: bigint) => {
+  decryptVotes = async ({ instanceAddress, gameId }: { instanceAddress: Address; gameId: bigint }) => {
     const currentTurn = await this.publicClient.readContract({
-      address: this.instanceAddress,
-      abi: IRankifyInstanceAbi,
+      address: instanceAddress,
+      abi: RankifyDiamondInstanceAbi,
       functionName: "getTurn",
       args: [gameId],
     });
@@ -287,7 +316,7 @@ export class GameMaster extends InstanceBase {
       console.error("No proposals in turn 0");
       return -1;
     }
-    const votes = await this.decryptTurnVotes(gameId, currentTurn);
+    const votes = await this.decryptTurnVotes({ instanceAddress, gameId, turn: currentTurn });
     return votes.length === 0 ? -1 : votes;
   };
 
@@ -296,10 +325,10 @@ export class GameMaster extends InstanceBase {
    * @param gameId - ID of the game
    * @returns Boolean indicating if turn can be ended
    */
-  canEndTurn = async (gameId: bigint) => {
+  canEndTurn = async ({ instanceAddress, gameId }: { instanceAddress: Address; gameId: bigint }) => {
     return this.publicClient.readContract({
-      address: this.instanceAddress,
-      abi: IRankifyInstanceAbi,
+      address: instanceAddress,
+      abi: RankifyDiamondInstanceAbi,
       functionName: "canEndTurn",
       args: [gameId],
     });
@@ -310,11 +339,11 @@ export class GameMaster extends InstanceBase {
    * @param gameId - ID of the game
    * @returns Current turn number
    */
-  currentTurn = async (gameId: bigint) => {
+  currentTurn = async ({ instanceAddress, gameId }: { instanceAddress: Address; gameId: bigint }) => {
     try {
       return this.publicClient.readContract({
-        address: this.instanceAddress,
-        abi: IRankifyInstanceAbi,
+        address: instanceAddress,
+        abi: RankifyDiamondInstanceAbi,
         functionName: "getTurn",
         args: [gameId],
       });
@@ -328,11 +357,11 @@ export class GameMaster extends InstanceBase {
    * @param gameId - ID of the game
    * @returns Array of player addresses
    */
-  getPlayers = async (gameId: bigint) => {
+  getPlayers = async ({ instanceAddress, gameId }: { instanceAddress: Address; gameId: bigint }) => {
     try {
       return this.publicClient.readContract({
-        address: this.instanceAddress,
-        abi: IRankifyInstanceAbi,
+        address: instanceAddress,
+        abi: RankifyDiamondInstanceAbi,
         functionName: "getPlayers",
         args: [gameId],
       });
@@ -346,17 +375,17 @@ export class GameMaster extends InstanceBase {
    * @param gameId - ID of the game
    * @returns Transaction hash
    */
-  endTurn = async (gameId: bigint) => {
+  endTurn = async ({ instanceAddress, gameId }: { instanceAddress: Address; gameId: bigint }) => {
     try {
       const turn = await this.publicClient.readContract({
-        address: this.instanceAddress,
+        address: instanceAddress,
         abi: RankifyDiamondInstanceAbi,
         functionName: "getTurn",
         args: [gameId],
       });
 
       const players = (await this.publicClient.readContract({
-        address: this.instanceAddress,
+        address: instanceAddress,
         abi: RankifyDiamondInstanceAbi,
         functionName: "getPlayers",
         args: [gameId],
@@ -375,7 +404,7 @@ export class GameMaster extends InstanceBase {
       //Proposals sequence is directly corresponding to proposers sequence
       if (turn != 1n) {
         const endedEvents = await this.publicClient.getContractEvents({
-          address: this.instanceAddress,
+          address: instanceAddress,
           abi: RankifyDiamondInstanceAbi,
           eventName: "TurnEnded",
           args: { gameId, turn: turn - 1n },
@@ -383,7 +412,7 @@ export class GameMaster extends InstanceBase {
         const evt = endedEvents[0];
         if (endedEvents.length > 1) throw new Error("Multiple turns ended");
         const args = evt.args;
-        const decryptedProposals = await this.decryptProposals(gameId, turn - 1n);
+        const decryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn: turn - 1n });
         if (args.newProposals) {
           args.newProposals.forEach((proposal, idx) => {
             const proposer = decryptedProposals.find((p) => p.proposal === proposal)?.proposer;
@@ -402,7 +431,7 @@ export class GameMaster extends InstanceBase {
             };
           });
         }
-        votes = await this.decryptTurnVotes(gameId, turn).then((voteSubmissions) => {
+        votes = await this.decryptTurnVotes({ instanceAddress, gameId, turn }).then((voteSubmissions) => {
           const orderedVotes: { player: Address; votes: bigint[] }[] = players.map((player) => ({
             player,
             votes: new Array(players.length).fill(0n) as bigint[],
@@ -420,7 +449,7 @@ export class GameMaster extends InstanceBase {
         });
       }
 
-      const newProposals = await this.decryptProposals(gameId, turn);
+      const newProposals = await this.decryptProposals({ instanceAddress, gameId, turn });
       players.forEach((player) => {
         let proposerIdx = oldProposals.findIndex((p) => player === p.proposer);
         if (proposerIdx === -1) proposerIdx = players.length; //Did not propose
@@ -438,7 +467,7 @@ export class GameMaster extends InstanceBase {
       const { request } = await this.publicClient.simulateContract({
         abi: RankifyDiamondInstanceAbi,
         account: this.walletClient.account,
-        address: this.instanceAddress,
+        address: instanceAddress,
         functionName: "endTurn",
         args: [gameId, votes.map((v) => v.votes), shuffled, proposerIndices],
       });

@@ -10,7 +10,7 @@ export const edsCommand = new Command("eds")
   .addCommand(new Command("exists").description("Check if code index exists"))
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
   .action(async (options) => {
-    const publicClient = createPublic(options.rpc);
+    const publicClient = await createPublic(options.rpc);
     const code = await publicClient.getCode({
       address: "0xc0d31d398c5ee86c5f8a23fa253ee8a586da03ce",
     });
@@ -22,7 +22,7 @@ export const edsCommand = new Command("eds")
       .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
       .option("-a, --address <address>", "Address of the contract to check")
       .action(async (options) => {
-        const publicClient = createPublic(options.rpc);
+        const publicClient = await createPublic(options.rpc);
 
         let address = options.address;
         if (!address) {

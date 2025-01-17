@@ -1,7 +1,7 @@
 {
   "name": "@peeramid-labs/sdk",
   "description": "Peeramid Labs JavaScript SDK and CLI tools for building your community",
-  "version": "3.1.0",
+  "version": "3.3.0",
   "private": "true",
   "type": "module",
   "main": "./src/index.ts",
@@ -47,6 +47,7 @@
     "docs:watch": "typedoc --watch"
   },
   "dependencies": {
+    "viem": "=2.22.8",
     "@peeramid-labs/eds": "^2.2.0",
     "@peeramid-labs/multipass": "^0.3.2",
     "chalk": "^4.1.2",
@@ -55,8 +56,7 @@
     "inquirer": "^12.3.0",
     "lodash": "^4.17.21",
     "ora": "^5.4.1",
-    "rankify-contracts": "^0.10.1",
-    "viem": "^2.21.55"
+    "rankify-contracts": "^0.11.0"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^0.4.8",
