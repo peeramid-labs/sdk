@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.4.0
+
+### Minor Changes
+
+- [#94](https://github.com/peeramid-labs/sdk/pull/94) [`ac2699f0039dbde2ba15b31c70723bf6232582ba`](https://github.com/peeramid-labs/sdk/commit/ac2699f0039dbde2ba15b31c70723bf6232582ba) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Fixed players bug in finished phase. added getPlayers method
+
 ## 3.3.1
 
 ### Patch Changes
