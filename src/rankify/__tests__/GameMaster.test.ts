@@ -37,16 +37,16 @@ const mockWalletClient = createMockWalletClient({
 describe("GameMaster", () => {
   let gameMaster: GameMaster;
 
-  beforeEach(() => {pnp
+  beforeEach(() => {
     jest.clearAllMocks();
     gameMaster = new GameMaster({
       walletClient: mockWalletClient as WalletClient,
       publicClient: mockPublicClient as PublicClient,
       chainId: 1,
       encryptionCallback: jest.fn((data: string) => Promise.resolve("encrypted_" + data)),
-      decryptionCallback: jest.fn((data: string) =>
-        Promise.resolve(data === "encrypted_test_proposal" ? "test_proposal" : data.split("_")[1])
-      ),
+      decryptionCallback: jest.fn((data: string) => {
+        return Promise.resolve(data === "encrypted_test_proposal" ? "test_proposal" : data.split("_")[1]);
+      }),
       randomnessCallback: jest.fn(() => Promise.resolve(0.1)),
       turnSaltCallback: jest.fn(() => Promise.resolve("0x123" as Hex)),
     });
