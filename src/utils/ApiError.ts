@@ -43,13 +43,10 @@ export async function handleRPCError(e: unknown) {
           );
           const response = await remoteAttempt;
           const data = await response.json();
-          return new Error(
-            `error: ${e?.shortMessage} | 4byte resolved this as: ${JSON.stringify(data.results, null, 2)}`
-          );
+          return new Error(data.results[0].text_signature);
         } else return e;
       }
-      console.error(e);
-      return new Error(`error: ${errorName}: ${revertError.shortMessage}`);
+      return new Error(errorName);
     }
     if (revertError instanceof ContractFunctionExecutionError) {
       const errorName = revertError.name;
@@ -61,7 +58,7 @@ export async function handleRPCError(e: unknown) {
           );
           const response = await remoteAttempt;
           const data = await response.json();
-          return new Error(`error: ${e?.message} | 4byte: ${JSON.stringify(data.results, null, 2)}`);
+          return new Error(data.results[0].text_signature);
         } else return e;
       }
     }
@@ -71,7 +68,7 @@ export async function handleRPCError(e: unknown) {
         const remoteAttempt = fetch(`https://www.4byte.directory/api/v1/signatures/?hex_signature=${cause.signature}`);
         const response = await remoteAttempt;
         const data = await response.json();
-        return new Error(`error: ${e?.message} | 4byte: ${JSON.stringify(data.results, null, 2)}`);
+        return new Error(data.results[0].text_signature);
       } else return e;
     }
     const cause = e?.cause as { signature?: string };
@@ -79,8 +76,17 @@ export async function handleRPCError(e: unknown) {
       const remoteAttempt = fetch(`https://www.4byte.directory/api/v1/signatures/?hex_signature=${cause.signature}`);
       const response = await remoteAttempt;
       const data = await response.json();
-      return new Error(`error: ${e?.message} | 4byte: ${JSON.stringify(data.results, null, 2)}`);
+      return new Error(data.results[0].text_signature);
     }
+  } 
+
+  if (e && typeof e === 'object' && 'cause' in e && e.cause && 
+      typeof e.cause === 'object' && 'signature' in e.cause) {
+    const remoteAttempt = fetch(`https://www.4byte.directory/api/v1/signatures/?hex_signature=${(e.cause as { signature: string }).signature}`);
+    const response = await remoteAttempt;
+    const data = await response.json();
+    return new Error(data.results[0].text_signature);
   }
+  
   throw e;
 }
