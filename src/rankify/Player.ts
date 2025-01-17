@@ -159,7 +159,7 @@ export default class RankifyPlayer extends InstanceBase {
 
       const values = reqs.ethValues;
       const value = values.bet + values.burn + values.pay;
-      if (this.walletClient.account?.address) throw new Error("Account not found");
+      if (!this.walletClient.account?.address) throw new Error("Account not found");
       const { request } = await this.publicClient.simulateContract({
         address: this.instanceAddress,
         abi: instanceAbi,

@@ -40,6 +40,7 @@ interface GameState extends ContractFunctionReturnType<typeof instanceAbi, "view
   canStart: boolean;
   gamePhase: gameStatusEnum;
   currentPhaseTimeoutAt: bigint;
+  players: readonly `0x${string}`[];
 }
 
 /**
@@ -404,6 +405,24 @@ export default class InstanceBase {
   };
 
   /**
+   * Retrieve s the palyers of a game.
+   * @param gameId - The ID of the game.
+   * @returns A Promise that resolves to the player addresses of the game.
+   */
+  getPlayers = async (gameId: bigint) => {
+    try {
+      return this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "getPlayers",
+        args: [gameId],
+      });
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
+  /**
    * Retrieves the game state for a specific game.
    * @param gameId - The ID of the game.
    * @returns A promise that resolves to an object containing the game state.
@@ -461,16 +480,21 @@ export default class InstanceBase {
       );
 
       let scores = ongoingScores;
+      let returnPlayers = players;
+
       if (state.hasEnded) {
-        const LastTurnScores = await this.publicClient.getContractEvents({
+        const GameOverEvents = await this.publicClient.getContractEvents({
           address: this.instanceAddress,
           abi: instanceAbi,
           eventName: "GameOver",
           args: { gameId },
           fromBlock: await this.getCreationBlock(),
         });
-        const evt = LastTurnScores[0];
-        if (evt.args?.scores && evt.args?.players) scores = [players, evt.args.scores];
+        const evt = GameOverEvents[0];
+        if (evt.args?.scores && evt.args?.players) {
+          returnPlayers = evt.args.players;
+          scores = [returnPlayers, evt.args.scores];
+        }
       }
 
       const gamePhase = state.hasEnded
@@ -498,6 +522,7 @@ export default class InstanceBase {
         joinRequirements,
         requirementsPerContract,
         scores,
+        players:returnPlayers,
         isLastTurn,
         isOpen: state.registrationOpenAt > 0n,
         currentPhaseTimeoutAt,
