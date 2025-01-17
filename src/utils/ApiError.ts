@@ -78,15 +78,16 @@ export async function handleRPCError(e: unknown) {
       const data = await response.json();
       return new Error(data.results[0].text_signature);
     }
-  } 
+  }
 
-  if (e && typeof e === 'object' && 'cause' in e && e.cause && 
-      typeof e.cause === 'object' && 'signature' in e.cause) {
-    const remoteAttempt = fetch(`https://www.4byte.directory/api/v1/signatures/?hex_signature=${(e.cause as { signature: string }).signature}`);
+  if (e && typeof e === "object" && "cause" in e && e.cause && typeof e.cause === "object" && "signature" in e.cause) {
+    const remoteAttempt = fetch(
+      `https://www.4byte.directory/api/v1/signatures/?hex_signature=${(e.cause as { signature: string }).signature}`
+    );
     const response = await remoteAttempt;
     const data = await response.json();
     return new Error(data.results[0].text_signature);
   }
-  
+
   throw e;
 }
