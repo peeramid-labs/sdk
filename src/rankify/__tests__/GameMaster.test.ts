@@ -37,7 +37,7 @@ const mockWalletClient = createMockWalletClient({
 describe("GameMaster", () => {
   let gameMaster: GameMaster;
 
-  beforeEach(() => {pnp
+  beforeEach(() => {
     jest.clearAllMocks();
     gameMaster = new GameMaster({
       walletClient: mockWalletClient as WalletClient,
