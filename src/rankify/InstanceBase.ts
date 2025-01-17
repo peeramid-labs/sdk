@@ -483,14 +483,14 @@ export default class InstanceBase {
       let returnPlayers = players;
 
       if (state.hasEnded) {
-        const LastTurnScores = await this.publicClient.getContractEvents({
+        const GameOverEvents = await this.publicClient.getContractEvents({
           address: this.instanceAddress,
           abi: instanceAbi,
           eventName: "GameOver",
           args: { gameId },
           fromBlock: await this.getCreationBlock(),
         });
-        const evt = LastTurnScores[0];
+        const evt = GameOverEvents[0];
         if (evt.args?.scores && evt.args?.players) {
           returnPlayers = evt.args.players;
           scores = [returnPlayers, evt.args.scores];
