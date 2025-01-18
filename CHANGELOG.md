@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.5.0
+
+### Minor Changes
+
+- [#96](https://github.com/peeramid-labs/sdk/pull/96) [`eede1543ae3264e0a482c754347198b2f9ae62af`](https://github.com/peeramid-labs/sdk/commit/eede1543ae3264e0a482c754347198b2f9ae62af) Thanks [@peersky](https://github.com/peersky)! - Added changes for contracts and eds repositories, accomodating for rename of code index in to ERC4477 and removed EDS from setting up local anvil script
+
 ## 3.4.0
 
 ### Minor Changes
