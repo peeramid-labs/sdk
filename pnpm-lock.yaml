@@ -13,7 +13,7 @@ importers:
         version: 2.3.2(hardhat@2.22.17(ts-node@10.9.2(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2))
       '@peeramid-labs/multipass':
         specifier: ^0.3.2
-        version: link:../multipass
+        version: 0.3.2(hardhat@2.22.17(ts-node@10.9.2(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2))
       chalk:
         specifier: ^4.1.2
         version: 4.1.2
@@ -34,7 +34,7 @@ importers:
         version: 5.4.1
       rankify-contracts:
         specifier: ^0.11.2
-        version: link:../contracts
+        version: 0.11.2(hardhat@2.22.17(ts-node@10.9.2(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2))
       viem:
         specifier: '=2.22.8'
         version: 2.22.8(typescript@5.7.2)
@@ -935,6 +935,9 @@ packages:
 
   '@peeramid-labs/eds@2.3.2':
     resolution: {integrity: sha512-jVXwY4kw9Fsfc0aUuUsR3RvMnGh2NjhJ7H2nq1A0INlMWg0iBKeAk0gn8EMM+deMydgPl/bnVVEUR6jv5POi/Q==}
+
+  '@peeramid-labs/multipass@0.3.2':
+    resolution: {integrity: sha512-pux+6crTfTxxyTTtIXbw9m+5aK7+yHWKhFVCBB2ETh9W+yhJW53VKqlxxiav1nANn+WXV6rWGjCKl+R23OiSkA==}
 
   '@scure/base@1.1.9':
     resolution: {integrity: sha512-8YKhl8GHiNI/pU2VMaofa2Tor7PJRAjwQLBBuilkJ9L5+13yVbC7JO/wS7piioAvPSwR3JKM1IJ/u4xQzbcXKg==}
@@ -2741,6 +2744,9 @@ packages:
   randombytes@2.1.0:
     resolution: {integrity: sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==}
 
+  rankify-contracts@0.11.2:
+    resolution: {integrity: sha512-pdAGFrpD+PSvzEw9WczHgFeL6lvn2Xm/vWm0fcZ5+bOEC5R9zfYlQiNaM2pGQaoNE9TEJB1rftkPVEPxcrPQoQ==}
+
   raw-body@2.5.2:
     resolution: {integrity: sha512-8zGqypfENjCIqGhgXToC8aB2r7YrBX+AQAfIPs/Mlk+BtPTztOvTS01NRW/3Eh60J+a48lt8qsCzirQ6loCVfA==}
     engines: {node: '>= 0.8'}
@@ -4529,6 +4535,29 @@ snapshots:
   '@peeramid-labs/eds@2.3.2(hardhat@2.22.17(ts-node@10.9.2(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2))':
     dependencies:
       '@ethersproject/abi': 5.7.0
+      '@openzeppelin/contracts': 5.1.0
+      '@openzeppelin/contracts-upgradeable': 5.1.0(@openzeppelin/contracts@5.1.0)
+      '@types/chai': 4.3.20
+      '@types/mocha': 9.1.1
+      '@types/node': 17.0.45
+      chalk: 4.1.2
+      cli-table: 0.3.11
+      hardhat-gas-reporter: 1.0.10(hardhat@2.22.17(ts-node@10.9.2(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2))
+      ts-node: 10.9.2(@types/node@17.0.45)(typescript@5.7.3)
+      typescript: 5.7.3
+    transitivePeerDependencies:
+      - '@codechecks/client'
+      - '@swc/core'
+      - '@swc/wasm'
+      - bufferutil
+      - debug
+      - hardhat
+      - utf-8-validate
+
+  '@peeramid-labs/multipass@0.3.2(hardhat@2.22.17(ts-node@10.9.2(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2))':
+    dependencies:
+      '@ethersproject/abi': 5.7.0
+      '@ethersproject/providers': 5.7.2
       '@openzeppelin/contracts': 5.1.0
       '@openzeppelin/contracts-upgradeable': 5.1.0(@openzeppelin/contracts@5.1.0)
       '@types/chai': 4.3.20
@@ -6744,6 +6773,30 @@ snapshots:
     dependencies:
       safe-buffer: 5.2.1
 
+  rankify-contracts@0.11.2(hardhat@2.22.17(ts-node@10.9.2(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2)):
+    dependencies:
+      '@ethersproject/abi': 5.7.0
+      '@ethersproject/providers': 5.7.2
+      '@openzeppelin/contracts': 5.1.0
+      '@openzeppelin/contracts-upgradeable': 5.1.0(@openzeppelin/contracts@5.1.0)
+      '@types/chai': 4.3.20
+      '@types/mocha': 9.1.1
+      '@types/node': 20.17.12
+      chalk: 4.1.2
+      cli-table: 0.3.11
+      hardhat-gas-reporter: 1.0.10(hardhat@2.22.17(ts-node@10.9.2(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2))
+      inquirer: 12.3.0(@types/node@20.17.12)
+      ts-node: 10.9.2(@types/node@20.17.12)(typescript@5.7.3)
+      typescript: 5.7.3
+    transitivePeerDependencies:
+      - '@codechecks/client'
+      - '@swc/core'
+      - '@swc/wasm'
+      - bufferutil
+      - debug
+      - hardhat
+      - utf-8-validate
+
   raw-body@2.5.2:
     dependencies:
       bytes: 3.1.2
@@ -7139,6 +7192,24 @@ snapshots:
       diff: 4.0.2
       make-error: 1.3.6
       typescript: 5.7.2
+      v8-compile-cache-lib: 3.0.1
+      yn: 3.1.1
+
+  ts-node@10.9.2(@types/node@20.17.12)(typescript@5.7.3):
+    dependencies:
+      '@cspotcode/source-map-support': 0.8.1
+      '@tsconfig/node10': 1.0.11
+      '@tsconfig/node12': 1.0.11
+      '@tsconfig/node14': 1.0.3
+      '@tsconfig/node16': 1.0.4
+      '@types/node': 20.17.12
+      acorn: 8.14.0
+      acorn-walk: 8.3.4
+      arg: 4.1.3
+      create-require: 1.1.1
+      diff: 4.0.2
+      make-error: 1.3.6
+      typescript: 5.7.3
       v8-compile-cache-lib: 3.0.1
       yn: 3.1.1
 

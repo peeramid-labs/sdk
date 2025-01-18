@@ -522,7 +522,7 @@ export default class InstanceBase {
         joinRequirements,
         requirementsPerContract,
         scores,
-        players:returnPlayers,
+        players: returnPlayers,
         isLastTurn,
         isOpen: state.registrationOpenAt > 0n,
         currentPhaseTimeoutAt,
