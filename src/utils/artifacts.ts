@@ -16,7 +16,7 @@ import simpleAccessManagerAbi from "../abis/SimpleAccessManager";
 import DAODistributorabi from "../abis/DAODistributor";
 
 import { getChainPath } from "./chainMapping";
-import { CodeIndexAbi } from "../abis";
+import { ERC7744Abi } from "../abis";
 
 export type SupportedChains = "anvil" | "localhost";
 
@@ -32,7 +32,7 @@ export type ArtifactAbi = {
   Multipass: typeof multipassAbi;
   SimpleAccessManager: typeof simpleAccessManagerAbi;
   DAODistributor: typeof DAODistributorabi;
-  CodeIndex: typeof CodeIndexAbi;
+  CodeIndex: typeof ERC7744Abi;
 };
 
 /**
