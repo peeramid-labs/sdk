@@ -3,7 +3,7 @@ import { createPublic } from "../../client";
 import chalk from "chalk";
 import inquirer from "inquirer";
 import { encodePacked, getAddress, keccak256 } from "viem";
-import { CodeIndexAbi } from "../../../abis";
+import { ERC7744Abi } from "../../../abis";
 
 export const edsCommand = new Command("eds")
   .description("Manage EDS")
@@ -12,7 +12,7 @@ export const edsCommand = new Command("eds")
   .action(async (options) => {
     const publicClient = await createPublic(options.rpc);
     const code = await publicClient.getCode({
-      address: "0xc0d31d398c5ee86c5f8a23fa253ee8a586da03ce",
+      address: "0xC0dE1D2F7662c63796E544B2647b2A94EE658E07",
     });
     console.log(code ? chalk.green("Code index exists") : chalk.red("Code index does not exist"));
   })
@@ -41,8 +41,8 @@ export const edsCommand = new Command("eds")
         if (code) {
           const hashCode = keccak256(encodePacked(["bytes"], [code]));
           const distrAddress = await publicClient.readContract({
-            abi: CodeIndexAbi,
-            address: "0xc0d31d398c5ee86c5f8a23fa253ee8a586da03ce",
+            abi: ERC7744Abi,
+            address: "0xC0dE1D2F7662c63796E544B2647b2A94EE658E07",
             functionName: "get",
             args: [hashCode],
           });

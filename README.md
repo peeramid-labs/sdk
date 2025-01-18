@@ -72,7 +72,6 @@ To set up your local development environment:
 2. Set the required environment variables:
    ```bash
    export RANKIFY_CONTRACTS_PATH="/path/to/rankify/contracts"
-   export EDS_PATH="/path/to/eds"
    export MULTIPASS_PATH="/path/to/multipass"
    ```
 

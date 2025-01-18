@@ -31,7 +31,7 @@ import {
 } from "viem";
 import MaoDistributionAbi from "../abis/MAODistribution";
 import distributorAbi from "../abis/DAODistributor";
-import { CodeIndexAbi } from "../abis";
+import { ERC7744Abi } from "../abis";
 
 /**
  * Structure defining token-related arguments
@@ -220,7 +220,7 @@ export class MAODistributorClient extends DistributorClient {
     if (!code) throw new Error(`Code not found on ${address} address`);
     const hashCode = keccak256(encodePacked(["bytes"], [code]));
     const distrAddress = await this.publicClient.readContract({
-      abi: CodeIndexAbi,
+      abi: ERC7744Abi,
       address: getArtifact(chain.id, "CodeIndex").address,
       functionName: "get",
       args: [hashCode],
@@ -229,7 +229,7 @@ export class MAODistributorClient extends DistributorClient {
     if (distrAddress == "0x0000000000000000000000000000000000000000") {
       try {
         const { request } = await this.publicClient.simulateContract({
-          abi: CodeIndexAbi,
+          abi: ERC7744Abi,
           address: getArtifact(chain.id, "CodeIndex").address,
           functionName: "register",
           args: [address],

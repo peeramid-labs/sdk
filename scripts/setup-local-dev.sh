@@ -38,7 +38,6 @@ start_anvil() {
 # Check required environment variables
 required_vars=(
     "RANKIFY_CONTRACTS_PATH"
-    "EDS_PATH"
     "MULTIPASS_PATH"
 )
 
@@ -89,8 +88,6 @@ setup_repo() {
 }
 
 # Setup each repository
-setup_repo "$EDS_PATH" "eds"
-sleep 1
 setup_repo "$MULTIPASS_PATH" "multipass"
 sleep 1
 setup_repo "$RANKIFY_CONTRACTS_PATH" "rankify-contracts"
@@ -103,7 +100,6 @@ pnpm install
 # Create local links
 echo "Creating local links..."
 pnpm link "$RANKIFY_CONTRACTS_PATH"
-pnpm link "$EDS_PATH"
 pnpm link "$MULTIPASS_PATH"
 
 echo "✅ Local development environment setup complete!"
