@@ -103,7 +103,61 @@ export default class InstanceBase {
       throw new ApiError("Game not found", { status: 404 });
     }
 
+    if (logs[0].args.votes && logs[0].args.proposerIndices) {
+      logs[0].args.votes = this.reorganizeVotes(logs[0].args.votes, logs[0].args.proposerIndices);
+    }
+
+    if (logs[0].args.newProposals) {
+      logs[0].args.newProposals = await this.reorganizeProposals(logs[0].args.newProposals, turnId, gameId);
+    }
+
     return logs[0];
+  };
+
+  /**
+   * Reorganizes votes array based on proposerIndices mapping
+   * @param votes - Array of votes for each player
+   * @param proposerIndices - Array of indices mapping shuffled order to original order
+   * @returns Reorganized votes array
+   */
+  reorganizeVotes = (votes: readonly (readonly bigint[])[], proposerIndices: readonly bigint[]): bigint[][] => {
+    return votes.map(playerVotes => {
+      const reorganizedVotes = new Array(playerVotes.length).fill(0n);
+      proposerIndices.forEach((proposerIndex, i) => {
+        reorganizedVotes[i] = playerVotes[Number(proposerIndex)];
+      });
+      return reorganizedVotes;
+    });
+  };
+
+  /**
+   * Reorganizes proposals array based on proposerIndices mapping
+   * @param proposals - Array of proposals for each player
+   * @param proposerIndices - Array of indices mapping shuffled order to original order
+   * @returns Reorganized proposals array
+   */
+  reorganizeProposals = async (proposals: readonly string[], turnId: bigint, gameId: bigint): Promise<readonly string[]> => {
+    const logs = await this.publicClient.getContractEvents({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      fromBlock: await this.getCreationBlock(),
+      eventName: "TurnEnded",
+      args: {
+        gameId,
+        turn: turnId + 1n,
+      },
+    });
+
+    if (logs.length === 0 || logs[0].args === undefined || logs[0].args.proposerIndices === undefined) {
+      return proposals;
+    }
+    const proposerIndices = logs[0].args.proposerIndices;
+    const reorganizedProposals = new Array(proposals.length).fill("");
+    proposerIndices.forEach((proposalIndex, idx) => {
+      reorganizedProposals[Number(proposalIndex)] = proposals[idx];
+    });
+
+    return reorganizedProposals;
   };
 
   getCreationBlock = async () => {
@@ -222,6 +276,8 @@ export default class InstanceBase {
       }
 
       const args = lastTurnEndedEvent[0].args as { newProposals: unknown[] };
+
+      console.log("getOngoingProposals", gameId, args);
       return { currentTurn, proposals: args.newProposals };
     } catch (error) {
       throw await handleRPCError(error);

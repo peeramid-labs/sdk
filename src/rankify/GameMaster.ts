@@ -1,7 +1,7 @@
 import { Address, WalletClient, PublicClient, keccak256, encodePacked, Hex } from "viem";
 import { RankifyDiamondInstanceAbi } from "../abis";
 import InstanceBase from "./InstanceBase";
-import { handleRPCError } from "../utils";
+import { findContractDeploymentBlock, handleRPCError } from "../utils";
 
 /**
  * GameMaster class for managing game state and cryptographic operations in Rankify
@@ -16,6 +16,8 @@ export class GameMaster {
   randomnessCallback: () => Promise<number>;
   turnSaltCallback: ({ gameId, turn }: { gameId: bigint; turn: bigint }) => Promise<Hex>;
   chainId: number;
+  creationBlock: bigint = 0n;
+ 
   /**
    * Creates a new GameMaster instance
 
@@ -53,6 +55,12 @@ export class GameMaster {
     this.turnSaltCallback = turnSaltCallback;
   }
 
+  getCreationBlock = async (instanceAddress: Address) => {
+    if (this.creationBlock == 0n)
+      this.creationBlock = await findContractDeploymentBlock(this.publicClient, instanceAddress);
+    return this.creationBlock;
+  };
+  
   /**
    * Decrypts proposals for a specific game turn
    * @param gameId - ID of the game
@@ -76,6 +84,7 @@ export class GameMaster {
       address: instanceAddress,
       eventName: "ProposalSubmitted",
       args: { gameId: gameId, turn: turn, proposer: proposer },
+      fromBlock: await this.getCreationBlock(instanceAddress),
     });
 
     if (evts.length == 0) return [];
