@@ -40,6 +40,7 @@ export const createMockPublicClient = (overrides = {}) =>
     getContractEvents: jest.fn(() => Promise.resolve([])),
     getBlockNumber: jest.fn(() => Promise.resolve(1000n)),
     getBytecode: jest.fn(({ blockNumber }) => Promise.resolve(blockNumber >= 100n ? "0x1234" : "0x")),
+    getCode: jest.fn(({ blockNumber }) => Promise.resolve(blockNumber >= 100n ? "0x1234" : "0x")),
     request: jest.fn(),
     chain: MOCK_CHAIN,
     ...overrides,
@@ -97,6 +98,7 @@ describe("Test utilities", () => {
     expect(client.getContractEvents).toBeDefined();
     expect(client.getBlockNumber).toBeDefined();
     expect(client.getBytecode).toBeDefined();
+    expect(client.getCode).toBeDefined();
     expect(client.request).toBeDefined();
     expect(client.chain).toBeDefined();
     expect((client.chain as typeof MOCK_CHAIN).id).toBe(31337);
