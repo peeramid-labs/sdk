@@ -277,7 +277,6 @@ export default class InstanceBase {
 
       const args = lastTurnEndedEvent[0].args as { newProposals: unknown[] };
 
-      console.log("getOngoingProposals", gameId, args);
       return { currentTurn, proposals: args.newProposals };
     } catch (error) {
       throw await handleRPCError(error);
