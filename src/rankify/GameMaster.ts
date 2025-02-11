@@ -15,7 +15,7 @@ import { publicKeyToAddress } from "viem/accounts";
 import { logger } from "../utils/log";
 import { buildPoseidon } from "circomlibjs";
 import aes from "crypto-js/aes";
-import { GmProposalParams } from "../types/contracts";
+import { GmProposalParams, VoteAttestation } from "../types/contracts";
 
 interface JoinGameProps {
   gameId: bigint;
@@ -201,12 +201,20 @@ export class GameMaster {
     turn: bigint;
     verifierAddress: Address;
   }): Promise<bigint> => {
-    const message = keccak256(
-      encodePacked(["uint256", "uint256", "address", "uint256"], [gameId, turn, verifierAddress, BigInt(this.chainId)])
-    );
-    if (!this.walletClient.account) throw new Error("No account found");
-    const signature = await this.walletClient.signMessage({ message, account: this.walletClient.account });
-    const seed = keccak256(signature);
+    const gameKey = await this.gameKey({ gameId, contractAddress: verifierAddress });
+    const instance = new InstanceBase({
+      instanceAddress: verifierAddress,
+      publicClient: this.publicClient,
+      chainId: this.chainId,
+    });
+    const seed = instance.pkdf({
+      privateKey: gameKey,
+      turn,
+      gameId,
+      contractAddress: verifierAddress,
+      chainId: this.chainId,
+      scope: "turnSalt",
+    });
     return BigInt(seed);
   };
 
@@ -796,5 +804,150 @@ export class GameMaster {
         account: this.walletClient.account,
       })
       .then((sig) => keccak256(sig));
+  };
+
+  /**
+   * Creates and signs a vote for testing purposes
+   * @param params - Parameters including voter, game info, and vote configuration
+   * @returns A complete mock vote with signatures
+   */
+  attestVote = async ({
+    voter,
+    gameId,
+    turn,
+    vote,
+    verifierAddress,
+    gameSize,
+    name,
+    version,
+    proposerPubKey,
+  }: {
+    voter: Address;
+    gameId: bigint;
+    turn: bigint;
+    vote: bigint[];
+    verifierAddress: Address;
+    gameSize: number;
+    name: string;
+    version: string;
+    proposerPubKey: Hex;
+  }): Promise<VoteAttestation> => {
+    logger(`Attesting vote for player ${voter} in game ${gameId}, turn ${turn}`);
+    const chainId = await this.chainId;
+
+    const playerSalt = await this.getTurnPlayersSalt({
+      gameId,
+      turn,
+      player: voter,
+      verifierAddress,
+      size: gameSize,
+    });
+
+    const ballot = {
+      vote: vote,
+      salt: playerSalt,
+    };
+    const ballotHash: string = keccak256(encodePacked(["uint256[]", "bytes32"], [vote, playerSalt]));
+    const instance = new InstanceBase({
+      instanceAddress: verifierAddress,
+      publicClient: this.publicClient,
+      chainId: this.chainId,
+    });
+    const sharedKey = instance.sharedSigner({
+      publicKey: proposerPubKey,
+      privateKey: await this.gameKey({ gameId, contractAddress: verifierAddress }),
+      gameId,
+      turn,
+      contractAddress: verifierAddress,
+      chainId: this.chainId,
+    });
+    const turnKey = instance.pkdf({
+      privateKey: sharedKey,
+      turn,
+      gameId,
+      contractAddress: verifierAddress,
+      chainId: this.chainId,
+    });
+
+    const ballotId = aes.encrypt(JSON.stringify(ballot.vote), turnKey).toString();
+    const gmSignature = await this.signVote({
+      verifierAddress,
+      voter: voter.wallet.address,
+      gameId,
+      sealedBallotId: ballotId,
+      signer: gm,
+      ballotHash,
+      isGM: true,
+      name,
+      version,
+    });
+    const voterSignature = await this.signVote({
+      verifierAddress,
+      voter: voter.wallet.address,
+      gameId,
+      sealedBallotId: ballotId,
+      signer: voter.wallet,
+      ballotHash,
+      isGM: false,
+      name,
+      version,
+    });
+    const result = { vote, ballotHash, ballot, ballotId, gmSignature, voterSignature };
+    log(`Vote attested for player ${voter.wallet.address}`);
+    return result;
+  };
+
+  // Add new function to sign votes
+  signVote = async (params: {
+    verifierAddress: string;
+    voter: string;
+    gameId: bigint;
+    sealedBallotId: string;
+    ballotHash: string;
+    name: string;
+    version: string;
+  }): Promise<string> => {
+    const { voter, gameId, isGM, verifierAddress, sealedBallotId, signer, ballotHash, name, version } = params;
+    log(`Signing ${isGM ? "GM" : "voter"} vote for player ${voter} in game ${gameId}`);
+    const domain = {
+      name,
+      version,
+      chainId: await this.hre.getChainId(),
+      verifyingContract: verifierAddress,
+    };
+
+    const types: Record<string, TypedDataField[]> = isGM
+      ? {
+          SubmitVote: [
+            { name: "gameId", type: "uint256" },
+            { name: "voter", type: "address" },
+            { name: "sealedBallotId", type: "string" },
+            { name: "ballotHash", type: "bytes32" },
+          ],
+        }
+      : {
+          AuthorizeVoteSubmission: [
+            { name: "gameId", type: "uint256" },
+            { name: "sealedBallotId", type: "string" },
+            { name: "ballotHash", type: "bytes32" },
+          ],
+        };
+
+    const value = isGM
+      ? {
+          gameId: BigNumber.from(gameId),
+          voter: voter,
+          sealedBallotId: sealedBallotId,
+          ballotHash: ballotHash,
+        }
+      : {
+          gameId: BigNumber.from(gameId),
+          sealedBallotId: sealedBallotId,
+          ballotHash: ballotHash,
+        };
+
+    const signature = await signer._signTypedData(domain, types, value);
+    log(`Vote signed for player ${voter}`);
+    return signature;
   };
 }

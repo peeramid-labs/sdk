@@ -7,7 +7,7 @@ import {
   ContractFunctionReturnType,
   keccak256,
   encodePacked,
-  Hex
+  Hex,
 } from "viem";
 import { ApiError, findContractDeploymentBlock, handleRPCError } from "../utils/index";
 import { getSharedSecret } from "@noble/secp256k1";
@@ -634,17 +634,19 @@ export default class InstanceBase {
     gameId,
     turn,
     contractAddress,
+    scope = "default",
   }: {
     chainId: number;
     privateKey: Hex;
     gameId: bigint;
     turn: bigint;
     contractAddress: Address;
+    scope?: "default" | "turnSalt";
   }) => {
     const derivedPrivateKey = keccak256(
       encodePacked(
-        ["bytes32", "uint256", "uint256", "address", "uint256"],
-        [privateKey, gameId, turn, contractAddress, BigInt(chainId)]
+        ["bytes32", "uint256", "uint256", "address", "uint256", "bytes32"],
+        [privateKey, gameId, turn, contractAddress, BigInt(chainId), keccak256(encodePacked(["string"], [scope]))]
       )
     );
     return derivedPrivateKey;
