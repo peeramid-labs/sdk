@@ -1,6 +1,6 @@
-import { Address, WalletClient, PublicClient, keccak256, encodePacked, Hex } from "viem";
+import { Address, WalletClient, PublicClient, keccak256, encodePacked, Hex, stringToHex } from "viem";
 import { RankifyDiamondInstanceAbi } from "../abis";
-import InstanceBase from "./InstanceBase";
+import InstanceBase, { gameStatusEnum } from "./InstanceBase";
 import { handleRPCError } from "../utils";
 interface JoinGameProps {
   gameId: bigint;
