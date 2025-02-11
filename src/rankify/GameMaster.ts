@@ -2,6 +2,11 @@ import { Address, WalletClient, PublicClient, keccak256, encodePacked, Hex } fro
 import { RankifyDiamondInstanceAbi } from "../abis";
 import InstanceBase from "./InstanceBase";
 import { handleRPCError } from "../utils";
+interface JoinGameProps {
+  gameId: bigint;
+  participant: Address;
+  instanceAddress: Address;
+}
 
 /**
  * GameMaster class for managing game state and cryptographic operations in Rankify
@@ -168,6 +173,84 @@ export class GameMaster {
       (ps) => (ps.length > 0 ? ps[0].proposal : undefined)
     );
     return playersProposal ? proposals.findIndex((p) => p === playersProposal) : -1;
+  };
+
+  validateJoinGame = async (props: JoinGameProps): Promise<{ result: boolean, errorMessage: string }> => {
+    const { gameId, participant, instanceAddress } = props;
+    try {
+      const baseInstance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
+      const gameState = await baseInstance.getGameStateDetails(gameId);
+      if (gameState.gamePhase !== gameStatusEnum.open) {
+        return { result: false, errorMessage: "Game is not open for registration" };
+      }
+      if (gameState.players.length === Number(gameState.maxPlayerCnt)) {
+        return { result: false, errorMessage: "Game is already full" };
+      }
+      if (gameState.players.indexOf(participant) !== -1) {
+        return { result: false, errorMessage: "Player already registered" };
+      }
+
+      return { result: true, errorMessage: "" };
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
+  /**
+   * Signs a joining game event
+   * @param gameId - ID of the game
+   * @param participant - Address of the participant
+   * @param instanceAddress - Address of the game instance
+   * @returns Signature and gmCommitment
+   */
+  signJoiningGame = async (props: JoinGameProps) => {
+    const { gameId, participant, instanceAddress } = props;
+    const baseInstance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
+    const eip712 = await baseInstance.getEIP712Domain();
+
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 10);
+    const gmCommitment = stringToHex("0x123131231311", { size: 32 });
+   
+    console.log({
+      name: eip712.name,
+      version: eip712.version,
+      chainId: this.chainId,
+      verifyingContract: instanceAddress,
+    }, {
+      instance: instanceAddress,
+      participant,
+      gameId,
+      gmCommitment,
+      deadline,
+    });
+    const signature = await this.walletClient.signTypedData({
+      domain: {
+        name: eip712.name,
+        version: eip712.version,
+        chainId: this.chainId,
+        verifyingContract: instanceAddress,
+      },
+      types: {
+        AttestJoiningGame: [
+          { type: "address", name: "instance" },
+          { type: "address", name: "participant" },
+          { type: "uint256", name: "gameId" },
+          { type: "bytes32", name: "gmCommitment" },
+          { type: "uint256", name: "deadline" },
+        ],
+      },
+      message: {
+        instance: instanceAddress,
+        participant,
+        gameId,
+        gmCommitment,
+        deadline,
+      },
+      primaryType: "AttestJoiningGame",
+      account: participant,
+    });
+
+    return { signature, gmCommitment, deadline };
   };
 
   /**

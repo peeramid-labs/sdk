@@ -148,7 +148,7 @@ export default class RankifyPlayer extends InstanceBase {
     }
   };
 
-  joinGame = async (gameId: bigint) => {
+  joinGame = async ({ gameId, signature, gmCommitment, deadline }: {gameId: bigint, signature: Address, gmCommitment: Hex, deadline: number}) => {
     try {
       const reqs = (await this.publicClient.readContract({
         address: this.instanceAddress,
@@ -164,7 +164,7 @@ export default class RankifyPlayer extends InstanceBase {
         address: this.instanceAddress,
         abi: instanceAbi,
         functionName: "joinGame",
-        args: [gameId],
+        args: [gameId, signature, gmCommitment, BigInt(deadline)],
         value,
         account: this.walletClient.account,
       });
