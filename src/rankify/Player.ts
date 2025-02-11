@@ -5,12 +5,13 @@ import {
   type Hex,
   GetAbiItemParameters,
   ContractFunctionArgs,
-  TransactionReceipt,
+  TransactionReceipt
 } from "viem";
 import { getContract } from "../utils/artifacts";
 import instanceAbi from "../abis/RankifyDiamondInstance";
 import InstanceBase from "./InstanceBase";
 import { handleRPCError } from "../utils";
+import { GmProposalParams } from "../types/contracts";
 type stateMutability = "nonpayable" | "payable";
 export type NewGameParams = {
   minGameTime: bigint;
@@ -265,5 +266,33 @@ export default class RankifyPlayer extends InstanceBase {
     } catch (e) {
       await handleRPCError(e);
     }
+  };
+
+  signProposalCommitment = async (params: GmProposalParams) => {
+    const proposalTypes = {
+      AuthorizeProposalSubmission: [
+        { type: "uint256", name: "gameId" },
+        { type: "string", name: "encryptedProposal" },
+        { type: "uint256", name: "commitment" },
+      ],
+    };
+    const eip712 = await this.getEIP712Domain();
+
+    return this.walletClient.signTypedData({
+      domain: {
+        name: eip712.name,
+        version: eip712.version,
+        chainId: eip712.chainId,
+        verifyingContract: this.instanceAddress,
+      },
+      types: proposalTypes,
+      primaryType: "AuthorizeProposalSubmission",
+      message: {
+        gameId: params.gameId,
+        encryptedProposal: params.encryptedProposal,
+        commitment: params.commitment,
+      },
+      account: this.account,
+    });
   };
 }
