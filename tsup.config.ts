@@ -1,16 +1,16 @@
-import { defineConfig } from 'tsup'
+import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ['src/index.ts', 'src/cli/index.ts'],
-  format: ['cjs', 'esm'],
+  entry: ["src/index.ts", "src/cli/index.ts"],
+  format: ["cjs", "esm"],
   dts: true,
   clean: true,
   splitting: true,
-  outDir: 'dist',
+  outDir: "dist",
   bundle: true,
   minify: false,
   sourcemap: true,
-  target: 'es2020',
-  platform: 'node',
-  external: ['viem', 'crypto-js', 'lodash']
-})
+  target: "es2020",
+  platform: "node",
+  external: ["viem", "crypto-js", "lodash", "rankify-contracts", "@peeramid-labs/eds", "@peeramid-labs/multipass"],
+});
