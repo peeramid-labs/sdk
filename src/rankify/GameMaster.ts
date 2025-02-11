@@ -94,51 +94,135 @@ export class GameMaster {
   };
 
   /**
-   * Shuffles an array using cryptographically secure randomness
-   * @param array - Array to shuffle
-   * @returns Shuffled array
+   * Generates a deterministic permutation for a specific game turn
+   * @param gameId - ID of the game
+   * @param turn - Turn number
+   * @param size - Size of the permutation
+   * @param verifierAddress - Address of the verifier
+   * @returns The generated permutation, secret, and commitment
    */
-  shuffle = async <T>(array: T[]): Promise<T[]> => {
-    const randomness = await this.randomnessCallback();
-    let currentIndex = array.length,
-      randomIndex;
+  generateDeterministicPermutation = async ({
+    gameId,
+    turn,
+    size = 15,
+    verifierAddress,
+  }: {
+    gameId: bigint;
+    turn: bigint;
+    size?: number;
+    verifierAddress: Address;
+  }): Promise<{
+    permutation: number[];
+    secret: bigint;
+    commitment: bigint;
+  }> => {
+    const maxSize = 15;
+    // Create deterministic seed from game parameters and GM's signature
 
-    // While there remain elements to shuffle.
-    while (currentIndex > 0) {
-      // Pick a remaining element.
-      randomIndex = Math.floor(randomness * currentIndex);
-      currentIndex--;
+    // Use the seed to generate permutation
+    const permutation: number[] = Array.from({ length: maxSize }, (_, i) => i);
 
-      // And swap it with the current element.
-      [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+    // This is kept secret to generate witness
+    const secret = await this.getTurnSalt({ gameId, turn, verifierAddress });
+
+    // Fisher-Yates shuffle with deterministic randomness
+    for (let i = size - 1; i >= 0; i--) {
+      // Generate deterministic random number for this position
+      const randHash = keccak256(encodePacked(["uint256", "uint256"], [secret, BigInt(i)]));
+      const rand = BigInt(randHash);
+      const j = Number(rand % BigInt(i + 1));
+
+      // Swap elements
+      [permutation[i], permutation[j]] = [permutation[j], permutation[i]];
     }
 
-    return array;
-  };
+    // Ensure inactive slots map to themselves
+    for (let i = size; i < maxSize; i++) {
+      permutation[i] = i;
+    }
 
+    // Generate commitment
+    const poseidon = await buildPoseidon();
+    const PoseidonFirst = BigInt(
+      poseidon.F.toObject(poseidon([permutation[0], permutation[1], permutation[2], permutation[3], permutation[4]]))
+    );
+    const PoseidonSecond = BigInt(
+      poseidon.F.toObject(
+        poseidon([PoseidonFirst, permutation[5], permutation[6], permutation[7], permutation[8], permutation[9]])
+      )
+    );
+    const PoseidonThird = BigInt(
+      poseidon.F.toObject(
+        poseidon([PoseidonSecond, permutation[10], permutation[11], permutation[12], permutation[13], permutation[14]])
+      )
+    );
+
+    const commitment = BigInt(poseidon.F.toObject(poseidon([PoseidonThird, secret])));
+
+    return {
+      permutation,
+      secret,
+      commitment,
+    };
+  };
   /**
    * Generates a salt for a specific game turn
    * @param gameId - ID of the game
    * @param turn - Turn number
+   * @param verifierAddress - Address of the verifier
    * @returns Generated salt as Hex
    */
-  getTurnSalt = async ({ gameId, turn }: { gameId: bigint; turn: bigint }) => {
-    return this.turnSaltCallback({ gameId, turn }).then((salt) =>
-      keccak256(encodePacked(["bytes32", "uint256", "uint256"], [salt, gameId, turn]))
+  getTurnSalt = async ({
+    gameId,
+    turn,
+    verifierAddress,
+  }: {
+    gameId: bigint;
+    turn: bigint;
+    verifierAddress: Address;
+  }): Promise<bigint> => {
+    const message = keccak256(
+      encodePacked(["uint256", "uint256", "address", "uint256"], [gameId, turn, verifierAddress, BigInt(this.chainId)])
     );
+    if (!this.walletClient.account) throw new Error("No account found");
+    const signature = await this.walletClient.signMessage({ message, account: this.walletClient.account });
+    const seed = keccak256(signature);
+    return BigInt(seed);
   };
 
   /**
    * Generates a salt for a specific player in a game turn
    * @param gameId - ID of the game
    * @param turn - Turn number
-   * @param proposer - Address of the proposer
+   * @param player - Address of the player
+   * @param verifierAddress - Address of the verifier
+   * @param size - Size of the permutation
    * @returns Generated salt as Hex
    */
-  getTurnPlayersSalt = async ({ gameId, turn, proposer }: { gameId: bigint; turn: bigint; proposer: Address }) => {
-    return this.getTurnSalt({ gameId, turn }).then((salt) =>
-      keccak256(encodePacked(["address", "bytes32"], [proposer, salt]))
-    );
+  getTurnPlayersSalt = async ({
+    gameId,
+    turn,
+    player,
+    verifierAddress,
+    size,
+  }: {
+    gameId: bigint;
+    turn: bigint;
+    player: Address;
+    verifierAddress: Address;
+    size: number;
+  }) => {
+    log(`Generating vote salt for player ${player} in game ${gameId}, turn ${turn}`);
+    const result = await this.generateDeterministicPermutation({
+      gameId,
+      turn: turn - 1n,
+      verifierAddress,
+      size,
+    }).then((perm) => {
+      return keccak256(encodePacked(["address", "uint256"], [player, perm.secret]));
+    });
+    log(`Generated vote salt for player ${player}`);
+    return result;
   };
 
   /**
