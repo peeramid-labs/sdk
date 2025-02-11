@@ -108,9 +108,6 @@ importers:
       typescript:
         specifier: ^5.7.2
         version: 5.7.2
-      typescript-eslint:
-        specifier: ^8.18.0
-        version: 8.19.1(eslint@8.57.1)(typescript@5.7.2)
 
 packages:
 
@@ -3597,13 +3594,6 @@ packages:
     hasBin: true
     peerDependencies:
       typescript: 4.6.x || 4.7.x || 4.8.x || 4.9.x || 5.0.x || 5.1.x || 5.2.x || 5.3.x || 5.4.x
-
-  typescript-eslint@8.19.1:
-    resolution: {integrity: sha512-LKPUQpdEMVOeKluHi8md7rwLcoXHhwvWp3x+sJkMuq3gGm9yaYJtPo8sRZSblMFJ5pcOGCAak/scKf1mvZDlQw==}
-    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
-    peerDependencies:
-      eslint: ^8.57.0 || ^9.0.0
-      typescript: '>=4.8.4 <5.8.0'
 
   typescript@5.7.2:
     resolution: {integrity: sha512-i5t66RHxDvVN40HfDd1PsEThGNnlMCMT3jMUuoh9/0TaqWevNontacunWyN02LA9/fIbEWlcHZcgTKb9QoaLfg==}
@@ -8154,16 +8144,6 @@ snapshots:
       minimatch: 9.0.5
       shiki: 0.14.7
       typescript: 5.7.2
-
-  typescript-eslint@8.19.1(eslint@8.57.1)(typescript@5.7.2):
-    dependencies:
-      '@typescript-eslint/eslint-plugin': 8.19.1(@typescript-eslint/parser@8.19.1(eslint@8.57.1)(typescript@5.7.2))(eslint@8.57.1)(typescript@5.7.2)
-      '@typescript-eslint/parser': 8.19.1(eslint@8.57.1)(typescript@5.7.2)
-      '@typescript-eslint/utils': 8.19.1(eslint@8.57.1)(typescript@5.7.2)
-      eslint: 8.57.1
-      typescript: 5.7.2
-    transitivePeerDependencies:
-      - supports-color
 
   typescript@5.7.2: {}
 
