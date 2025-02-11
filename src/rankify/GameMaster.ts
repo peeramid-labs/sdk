@@ -8,7 +8,7 @@ import { handleRPCError } from "../utils";
  * Extends InstanceBase to provide game master specific functionality
  * @public
  */
-export class GameMaster {
+class GameMaster {
   walletClient: WalletClient;
   publicClient: PublicClient;
   encryptionCallback: (data: string) => Promise<string>;
@@ -477,3 +477,5 @@ export class GameMaster {
     }
   };
 }
+
+export default GameMaster;
