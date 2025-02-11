@@ -1,6 +1,6 @@
-import { Address, WalletClient, PublicClient, keccak256, encodePacked, Hex, GetAbiItemParameters } from "viem";
+import { Address, WalletClient, PublicClient, keccak256, encodePacked, Hex, stringToHex, GetAbiItemParameters } from "viem";
 import { RankifyDiamondInstanceAbi } from "../abis";
-import InstanceBase from "./InstanceBase";
+import InstanceBase, { gameStatusEnum } from "./InstanceBase";
 import { handleRPCError } from "../utils";
 import { publicKeyToAddress } from "viem/accounts";
 import { logger } from "../utils/log";
