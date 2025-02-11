@@ -1,7 +1,13 @@
-import { Address, WalletClient, PublicClient, keccak256, encodePacked, Hex, stringToHex } from "viem";
+import { Address, WalletClient, PublicClient, keccak256, encodePacked, Hex, stringToHex, GetAbiItemParameters } from "viem";
 import { RankifyDiamondInstanceAbi } from "../abis";
 import InstanceBase, { gameStatusEnum } from "./InstanceBase";
 import { handleRPCError } from "../utils";
+import { publicKeyToAddress } from "viem/accounts";
+import { logger } from "../utils/log";
+import { buildPoseidon } from "circomlibjs";
+import aes from "crypto-js/aes";
+import { GmProposalParams } from "../types/contracts";
+
 interface JoinGameProps {
   gameId: bigint;
   participant: Address;
@@ -99,51 +105,135 @@ export class GameMaster {
   };
 
   /**
-   * Shuffles an array using cryptographically secure randomness
-   * @param array - Array to shuffle
-   * @returns Shuffled array
+   * Generates a deterministic permutation for a specific game turn
+   * @param gameId - ID of the game
+   * @param turn - Turn number
+   * @param size - Size of the permutation
+   * @param verifierAddress - Address of the verifier
+   * @returns The generated permutation, secret, and commitment
    */
-  shuffle = async <T>(array: T[]): Promise<T[]> => {
-    const randomness = await this.randomnessCallback();
-    let currentIndex = array.length,
-      randomIndex;
+  generateDeterministicPermutation = async ({
+    gameId,
+    turn,
+    size = 15,
+    verifierAddress,
+  }: {
+    gameId: bigint;
+    turn: bigint;
+    size?: number;
+    verifierAddress: Address;
+  }): Promise<{
+    permutation: number[];
+    secret: bigint;
+    commitment: bigint;
+  }> => {
+    const maxSize = 15;
+    // Create deterministic seed from game parameters and GM's signature
 
-    // While there remain elements to shuffle.
-    while (currentIndex > 0) {
-      // Pick a remaining element.
-      randomIndex = Math.floor(randomness * currentIndex);
-      currentIndex--;
+    // Use the seed to generate permutation
+    const permutation: number[] = Array.from({ length: maxSize }, (_, i) => i);
 
-      // And swap it with the current element.
-      [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+    // This is kept secret to generate witness
+    const secret = await this.getTurnSalt({ gameId, turn, verifierAddress });
+
+    // Fisher-Yates shuffle with deterministic randomness
+    for (let i = size - 1; i >= 0; i--) {
+      // Generate deterministic random number for this position
+      const randHash = keccak256(encodePacked(["uint256", "uint256"], [secret, BigInt(i)]));
+      const rand = BigInt(randHash);
+      const j = Number(rand % BigInt(i + 1));
+
+      // Swap elements
+      [permutation[i], permutation[j]] = [permutation[j], permutation[i]];
     }
 
-    return array;
-  };
+    // Ensure inactive slots map to themselves
+    for (let i = size; i < maxSize; i++) {
+      permutation[i] = i;
+    }
 
+    // Generate commitment
+    const poseidon = await buildPoseidon();
+    const PoseidonFirst = BigInt(
+      poseidon.F.toObject(poseidon([permutation[0], permutation[1], permutation[2], permutation[3], permutation[4]]))
+    );
+    const PoseidonSecond = BigInt(
+      poseidon.F.toObject(
+        poseidon([PoseidonFirst, permutation[5], permutation[6], permutation[7], permutation[8], permutation[9]])
+      )
+    );
+    const PoseidonThird = BigInt(
+      poseidon.F.toObject(
+        poseidon([PoseidonSecond, permutation[10], permutation[11], permutation[12], permutation[13], permutation[14]])
+      )
+    );
+
+    const commitment = BigInt(poseidon.F.toObject(poseidon([PoseidonThird, secret])));
+
+    return {
+      permutation,
+      secret,
+      commitment,
+    };
+  };
   /**
    * Generates a salt for a specific game turn
    * @param gameId - ID of the game
    * @param turn - Turn number
+   * @param verifierAddress - Address of the verifier
    * @returns Generated salt as Hex
    */
-  getTurnSalt = async ({ gameId, turn }: { gameId: bigint; turn: bigint }) => {
-    return this.turnSaltCallback({ gameId, turn }).then((salt) =>
-      keccak256(encodePacked(["bytes32", "uint256", "uint256"], [salt, gameId, turn]))
+  getTurnSalt = async ({
+    gameId,
+    turn,
+    verifierAddress,
+  }: {
+    gameId: bigint;
+    turn: bigint;
+    verifierAddress: Address;
+  }): Promise<bigint> => {
+    const message = keccak256(
+      encodePacked(["uint256", "uint256", "address", "uint256"], [gameId, turn, verifierAddress, BigInt(this.chainId)])
     );
+    if (!this.walletClient.account) throw new Error("No account found");
+    const signature = await this.walletClient.signMessage({ message, account: this.walletClient.account });
+    const seed = keccak256(signature);
+    return BigInt(seed);
   };
 
   /**
    * Generates a salt for a specific player in a game turn
    * @param gameId - ID of the game
    * @param turn - Turn number
-   * @param proposer - Address of the proposer
+   * @param player - Address of the player
+   * @param verifierAddress - Address of the verifier
+   * @param size - Size of the permutation
    * @returns Generated salt as Hex
    */
-  getTurnPlayersSalt = async ({ gameId, turn, proposer }: { gameId: bigint; turn: bigint; proposer: Address }) => {
-    return this.getTurnSalt({ gameId, turn }).then((salt) =>
-      keccak256(encodePacked(["address", "bytes32"], [proposer, salt]))
-    );
+  getTurnPlayersSalt = async ({
+    gameId,
+    turn,
+    player,
+    verifierAddress,
+    size,
+  }: {
+    gameId: bigint;
+    turn: bigint;
+    player: Address;
+    verifierAddress: Address;
+    size: number;
+  }) => {
+    log(`Generating vote salt for player ${player} in game ${gameId}, turn ${turn}`);
+    const result = await this.generateDeterministicPermutation({
+      gameId,
+      turn: turn - 1n,
+      verifierAddress,
+      size,
+    }).then((perm) => {
+      return keccak256(encodePacked(["address", "uint256"], [player, perm.secret]));
+    });
+    log(`Generated vote salt for player ${player}`);
+    return result;
   };
 
   /**
@@ -305,6 +395,110 @@ export class GameMaster {
     );
   };
 
+  private proposalTypes = {
+    SubmitProposal: [
+      { type: "uint256", name: "gameId" },
+      { type: "address", name: "proposer" },
+      { type: "string", name: "encryptedProposal" },
+      { type: "uint256", name: "commitment" },
+    ],
+  };
+
+  private signProposal = async ({
+    verifierAddress,
+    proposer,
+    gameId,
+    encryptedProposal,
+    commitment,
+    eip712,
+  }: {
+    verifierAddress: Address;
+    proposer: Address;
+    gameId: bigint;
+    encryptedProposal: string;
+    commitment: bigint;
+    eip712: {
+      name: string;
+      version: string;
+    };
+  }): Promise<`0x${string}`> => {
+    // Generate typed data hash matching Solidity's keccak256(abi.encode(...))
+    if (!this.walletClient.account) throw new Error("No account");
+    return this.walletClient.signTypedData({
+      domain: {
+        name: eip712.name,
+        version: eip712.version,
+        chainId: this.chainId,
+        verifyingContract: verifierAddress,
+      },
+      types: this.proposalTypes,
+      message: {
+        gameId,
+        proposer,
+        encryptedProposal,
+        commitment,
+      },
+      primaryType: "SubmitProposal",
+      account: this.walletClient.account,
+    });
+  };
+
+  attestProposal = async ({
+    instanceAddress,
+    gameId,
+    proposal,
+    proposerPubKey,
+  }: {
+    instanceAddress: Address;
+    gameId: bigint;
+    proposal: string;
+    proposerPubKey: Hex;
+  }) => {
+    const proposerAddress = publicKeyToAddress(proposerPubKey);
+    logger(`Creating proposal secrets for player ${proposerAddress} in game ${gameId}`);
+    const poseidon = await buildPoseidon();
+    const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
+    const sharedKey = instance.sharedSigner({
+      publicKey: proposerPubKey,
+      privateKey: await this.gameKey({ gameId, contractAddress: instanceAddress }),
+      gameId,
+      turn: 0n,
+      contractAddress: instanceAddress,
+      chainId: this.chainId,
+    });
+    const encryptedProposal = aes.encrypt(proposal, sharedKey).toString();
+    const proposalValue = BigInt(keccak256(encodePacked(["string"], [proposal])));
+    const randomnessValue = BigInt(keccak256(encodePacked(["string"], [sharedKey])));
+    // Calculate commitment using poseidon
+    const hash = poseidon([proposalValue, randomnessValue]);
+    const poseidonCommitment = BigInt(poseidon.F.toObject(hash));
+    const eip712 = await instance.getEIP712Domain();
+    const signature = await this.signProposal({
+      verifierAddress: instanceAddress,
+      proposer: proposerAddress,
+      gameId,
+      encryptedProposal,
+      commitment: poseidonCommitment,
+      eip712,
+    });
+    const params: GmProposalParams = {
+      gameId,
+      encryptedProposal,
+      commitment: poseidonCommitment,
+      proposer: proposerAddress,
+      gmSignature: signature,
+    };
+
+    logger(`Generated proposal secrets with commitment ${poseidonCommitment}`);
+    return {
+      submissionParams: params,
+      proposal,
+      proposerAddress,
+      proposalValue,
+      randomnessValue,
+    };
+  };
+
   /**
    * Submits a proposal to the game
    * @param gameId - ID of the game
@@ -315,21 +509,21 @@ export class GameMaster {
    */
   submitProposal = async ({
     instanceAddress,
-    gameId,
-    commitmentHash,
-    proposal,
-    proposer,
+    submissionParams,
+    proposerSignature,
   }: {
     instanceAddress: Address;
-    gameId: bigint;
-    commitmentHash: Hex;
-    proposal: string;
-    proposer: Address;
+    submissionParams: GmProposalParams;
+    proposerSignature: Hex;
   }) => {
     // let proposalData: GetAbiItemParameters<typeof RankifyDiamondInstanceAbi, "submitProposal">["args"];
     // proposalData[0].
-    const encryptedProposal = await this.encryptionCallback(proposal);
-    console.log("submitting proposal tx..", gameId, commitmentHash, proposal, proposer);
+    const txParams: GetAbiItemParameters<typeof RankifyDiamondInstanceAbi, "submitProposal">["args"] = [
+      {
+        ...submissionParams,
+        voterSignature: proposerSignature,
+      },
+    ];
 
     try {
       const { request } = await this.publicClient.simulateContract({
@@ -337,7 +531,7 @@ export class GameMaster {
         address: instanceAddress,
         abi: RankifyDiamondInstanceAbi,
         functionName: "submitProposal",
-        args: [{ gameId, commitmentHash, encryptedProposal, proposer }],
+        args: txParams,
       });
       return this.walletClient.writeContract(request);
     } catch (e) {
@@ -558,5 +752,16 @@ export class GameMaster {
     } catch (e) {
       throw await handleRPCError(e);
     }
+  };
+
+  gameKey = async ({ gameId, contractAddress }: { gameId: bigint; contractAddress: Address }): Promise<Hex> => {
+    const message = encodePacked(["uint256", "address", "string"], [gameId, contractAddress, "gameKey"]);
+    if (!this.walletClient.account) throw new Error("No account");
+    return this.walletClient
+      .signMessage({
+        message,
+        account: this.walletClient.account,
+      })
+      .then((sig) => keccak256(sig));
   };
 }
