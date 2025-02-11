@@ -87,10 +87,10 @@ export class GameMaster {
 
     const proposals = await Promise.all(
       evts.map(async (log) => {
-        if (!log.args.proposalEncryptedByGM) throw new Error("No proposalEncryptedByGM");
+        if (!log.args.encryptedProposal) throw new Error("No proposalEncryptedByGM");
         return {
           proposer: log.args.proposer,
-          proposal: await this.decryptionCallback(log.args.proposalEncryptedByGM),
+          proposal: await this.decryptionCallback(log.args.encryptedProposal),
         };
       })
     );
@@ -217,7 +217,7 @@ export class GameMaster {
     verifierAddress: Address;
     size: number;
   }) => {
-    log(`Generating vote salt for player ${player} in game ${gameId}, turn ${turn}`);
+    logger(`Generating vote salt for player ${player} in game ${gameId}, turn ${turn}`);
     const result = await this.generateDeterministicPermutation({
       gameId,
       turn: turn - 1n,
@@ -226,7 +226,7 @@ export class GameMaster {
     }).then((perm) => {
       return keccak256(encodePacked(["address", "uint256"], [player, perm.secret]));
     });
-    log(`Generated vote salt for player ${player}`);
+    logger(`Generated vote salt for player ${player}`);
     return result;
   };
 
