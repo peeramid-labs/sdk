@@ -1,7 +1,12 @@
-import { Address, WalletClient, PublicClient, keccak256, encodePacked, Hex } from "viem";
+import { Address, WalletClient, PublicClient, keccak256, encodePacked, Hex, GetAbiItemParameters } from "viem";
 import { RankifyDiamondInstanceAbi } from "../abis";
 import InstanceBase from "./InstanceBase";
 import { handleRPCError } from "../utils";
+import { publicKeyToAddress } from "viem/accounts";
+import { logger } from "../utils/log";
+import { buildPoseidon } from "circomlibjs";
+import aes from "crypto-js/aes";
+import { GmProposalParams } from "../types/contracts";
 
 /**
  * GameMaster class for managing game state and cryptographic operations in Rankify
@@ -222,6 +227,110 @@ export class GameMaster {
     );
   };
 
+  private proposalTypes = {
+    SubmitProposal: [
+      { type: "uint256", name: "gameId" },
+      { type: "address", name: "proposer" },
+      { type: "string", name: "encryptedProposal" },
+      { type: "uint256", name: "commitment" },
+    ],
+  };
+
+  private signProposal = async ({
+    verifierAddress,
+    proposer,
+    gameId,
+    encryptedProposal,
+    commitment,
+    eip712,
+  }: {
+    verifierAddress: Address;
+    proposer: Address;
+    gameId: bigint;
+    encryptedProposal: string;
+    commitment: bigint;
+    eip712: {
+      name: string;
+      version: string;
+    };
+  }): Promise<`0x${string}`> => {
+    // Generate typed data hash matching Solidity's keccak256(abi.encode(...))
+    if (!this.walletClient.account) throw new Error("No account");
+    return this.walletClient.signTypedData({
+      domain: {
+        name: eip712.name,
+        version: eip712.version,
+        chainId: this.chainId,
+        verifyingContract: verifierAddress,
+      },
+      types: this.proposalTypes,
+      message: {
+        gameId,
+        proposer,
+        encryptedProposal,
+        commitment,
+      },
+      primaryType: "SubmitProposal",
+      account: this.walletClient.account,
+    });
+  };
+
+  attestProposal = async ({
+    instanceAddress,
+    gameId,
+    proposal,
+    proposerPubKey,
+  }: {
+    instanceAddress: Address;
+    gameId: bigint;
+    proposal: string;
+    proposerPubKey: Hex;
+  }) => {
+    const proposerAddress = publicKeyToAddress(proposerPubKey);
+    logger(`Creating proposal secrets for player ${proposerAddress} in game ${gameId}`);
+    const poseidon = await buildPoseidon();
+    const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
+    const sharedKey = instance.sharedSigner({
+      publicKey: proposerPubKey,
+      privateKey: await this.gameKey({ gameId, contractAddress: instanceAddress }),
+      gameId,
+      turn: 0n,
+      contractAddress: instanceAddress,
+      chainId: this.chainId,
+    });
+    const encryptedProposal = aes.encrypt(proposal, sharedKey).toString();
+    const proposalValue = BigInt(keccak256(encodePacked(["string"], [proposal])));
+    const randomnessValue = BigInt(keccak256(encodePacked(["string"], [sharedKey])));
+    // Calculate commitment using poseidon
+    const hash = poseidon([proposalValue, randomnessValue]);
+    const poseidonCommitment = BigInt(poseidon.F.toObject(hash));
+    const eip712 = await instance.getEIP712Domain();
+    const signature = await this.signProposal({
+      verifierAddress: instanceAddress,
+      proposer: proposerAddress,
+      gameId,
+      encryptedProposal,
+      commitment: poseidonCommitment,
+      eip712,
+    });
+    const params: GmProposalParams = {
+      gameId,
+      encryptedProposal,
+      commitment: poseidonCommitment,
+      proposer: proposerAddress,
+      gmSignature: signature,
+    };
+
+    logger(`Generated proposal secrets with commitment ${poseidonCommitment}`);
+    return {
+      submissionParams: params,
+      proposal,
+      proposerAddress,
+      proposalValue,
+      randomnessValue,
+    };
+  };
+
   /**
    * Submits a proposal to the game
    * @param gameId - ID of the game
@@ -232,21 +341,21 @@ export class GameMaster {
    */
   submitProposal = async ({
     instanceAddress,
-    gameId,
-    commitmentHash,
-    proposal,
-    proposer,
+    submissionParams,
+    proposerSignature,
   }: {
     instanceAddress: Address;
-    gameId: bigint;
-    commitmentHash: Hex;
-    proposal: string;
-    proposer: Address;
+    submissionParams: GmProposalParams;
+    proposerSignature: Hex;
   }) => {
     // let proposalData: GetAbiItemParameters<typeof RankifyDiamondInstanceAbi, "submitProposal">["args"];
     // proposalData[0].
-    const encryptedProposal = await this.encryptionCallback(proposal);
-    console.log("submitting proposal tx..", gameId, commitmentHash, proposal, proposer);
+    const txParams: GetAbiItemParameters<typeof RankifyDiamondInstanceAbi, "submitProposal">["args"] = [
+      {
+        ...submissionParams,
+        voterSignature: proposerSignature,
+      },
+    ];
 
     try {
       const { request } = await this.publicClient.simulateContract({
@@ -254,7 +363,7 @@ export class GameMaster {
         address: instanceAddress,
         abi: RankifyDiamondInstanceAbi,
         functionName: "submitProposal",
-        args: [{ gameId, commitmentHash, encryptedProposal, proposer }],
+        args: txParams,
       });
       return this.walletClient.writeContract(request);
     } catch (e) {
@@ -475,5 +584,16 @@ export class GameMaster {
     } catch (e) {
       throw await handleRPCError(e);
     }
+  };
+
+  gameKey = async ({ gameId, contractAddress }: { gameId: bigint; contractAddress: Address }): Promise<Hex> => {
+    const message = encodePacked(["uint256", "address", "string"], [gameId, contractAddress, "gameKey"]);
+    if (!this.walletClient.account) throw new Error("No account");
+    return this.walletClient
+      .signMessage({
+        message,
+        account: this.walletClient.account,
+      })
+      .then((sig) => keccak256(sig));
   };
 }
