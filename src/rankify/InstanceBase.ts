@@ -5,8 +5,12 @@ import {
   type Block,
   zeroAddress,
   ContractFunctionReturnType,
+  keccak256,
+  encodePacked,
+  Hex
 } from "viem";
 import { ApiError, findContractDeploymentBlock, handleRPCError } from "../utils/index";
+import { getSharedSecret } from "@noble/secp256k1";
 
 import instanceAbi from "../abis/RankifyDiamondInstance";
 
@@ -622,6 +626,56 @@ export default class InstanceBase {
       name: domain[6],
       version: domain[7],
     };
+  };
+
+  pkdf = ({
+    chainId,
+    privateKey,
+    gameId,
+    turn,
+    contractAddress,
+  }: {
+    chainId: number;
+    privateKey: Hex;
+    gameId: bigint;
+    turn: bigint;
+    contractAddress: Address;
+  }) => {
+    const derivedPrivateKey = keccak256(
+      encodePacked(
+        ["bytes32", "uint256", "uint256", "address", "uint256"],
+        [privateKey, gameId, turn, contractAddress, BigInt(chainId)]
+      )
+    );
+    return derivedPrivateKey;
+  };
+
+  sharedSigner = ({
+    publicKey,
+    privateKey,
+    gameId,
+    turn,
+    contractAddress,
+    chainId,
+  }: {
+    publicKey: Hex;
+    privateKey: Hex;
+    gameId: bigint;
+    turn: bigint;
+    contractAddress: Address;
+    chainId: number;
+  }) => {
+    const sharedSecret = getSharedSecret(privateKey, publicKey, true);
+    const sharedKey = keccak256(sharedSecret);
+
+    const derivedPrivateKey = this.pkdf({
+      privateKey: sharedKey,
+      gameId,
+      turn,
+      contractAddress,
+      chainId,
+    });
+    return derivedPrivateKey;
   };
 }
 
