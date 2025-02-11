@@ -1,6 +1,6 @@
 import chalk from "chalk";
 
-export function logger(message: string, level: number = 0) {
+export function logger(message: string | object, level: number = 0) {
   const printTimestamp = process.env.VERBOSE_TIMESTAMP;
   const printLevel = Number(process.env.VERBOSE_LEVEL ?? 0);
   const timestampMessage = printTimestamp ? chalk.greenBright(`[${new Date().toISOString()}]`) : "";

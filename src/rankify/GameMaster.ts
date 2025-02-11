@@ -1,4 +1,13 @@
-import { Address, WalletClient, PublicClient, keccak256, encodePacked, Hex, stringToHex, GetAbiItemParameters } from "viem";
+import {
+  Address,
+  WalletClient,
+  PublicClient,
+  keccak256,
+  encodePacked,
+  Hex,
+  stringToHex,
+  GetAbiItemParameters,
+} from "viem";
 import { RankifyDiamondInstanceAbi } from "../abis";
 import InstanceBase, { gameStatusEnum } from "./InstanceBase";
 import { handleRPCError } from "../utils";
@@ -265,10 +274,14 @@ export class GameMaster {
     return playersProposal ? proposals.findIndex((p) => p === playersProposal) : -1;
   };
 
-  validateJoinGame = async (props: JoinGameProps): Promise<{ result: boolean, errorMessage: string }> => {
+  validateJoinGame = async (props: JoinGameProps): Promise<{ result: boolean; errorMessage: string }> => {
     const { gameId, participant, instanceAddress } = props;
     try {
-      const baseInstance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
+      const baseInstance = new InstanceBase({
+        instanceAddress,
+        publicClient: this.publicClient,
+        chainId: this.chainId,
+      });
       const gameState = await baseInstance.getGameStateDetails(gameId);
       if (gameState.gamePhase !== gameStatusEnum.open) {
         return { result: false, errorMessage: "Game is not open for registration" };
@@ -293,26 +306,44 @@ export class GameMaster {
    * @param instanceAddress - Address of the game instance
    * @returns Signature and gmCommitment
    */
-  signJoiningGame = async (props: JoinGameProps) => {
+  signJoiningGame = async (props: JoinGameProps, timeToJoin: number = 60 * 10) => {
+    logger(`Signing joining game..`);
     const { gameId, participant, instanceAddress } = props;
     const baseInstance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
     const eip712 = await baseInstance.getEIP712Domain();
+    logger(
+      {
+        gameId: props.gameId,
+        participant: props.participant,
+        instanceAddress: props.instanceAddress,
+        chainId: this.chainId,
+        name: eip712.name,
+        version: eip712.version,
+      },
+      2
+    );
 
-    const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 10);
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + timeToJoin);
+
+    //ToDo This is placeholder for now, we will need it later in staking
     const gmCommitment = stringToHex("0x123131231311", { size: 32 });
-   
-    console.log({
-      name: eip712.name,
-      version: eip712.version,
-      chainId: this.chainId,
-      verifyingContract: instanceAddress,
-    }, {
-      instance: instanceAddress,
-      participant,
-      gameId,
-      gmCommitment,
-      deadline,
-    });
+
+    console.log(
+      {
+        name: eip712.name,
+        version: eip712.version,
+        chainId: this.chainId,
+        verifyingContract: instanceAddress,
+      },
+      {
+        instance: instanceAddress,
+        participant,
+        gameId,
+        gmCommitment,
+        deadline,
+      }
+    );
+    if (!this.walletClient.account) throw new Error("No account");
     const signature = await this.walletClient.signTypedData({
       domain: {
         name: eip712.name,
@@ -337,7 +368,7 @@ export class GameMaster {
         deadline,
       },
       primaryType: "AttestJoiningGame",
-      account: participant,
+      account: this.walletClient.account,
     });
 
     return { signature, gmCommitment, deadline };
