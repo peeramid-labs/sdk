@@ -307,6 +307,7 @@ export class GameMaster {
    * @returns Signature and gmCommitment
    */
   signJoiningGame = async (props: JoinGameProps, timeToJoin: number = 60 * 10) => {
+    if (!this.walletClient.account) throw new Error("No account");
     logger(`Signing joining game..`);
     const { gameId, participant, instanceAddress } = props;
     const baseInstance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
@@ -319,6 +320,7 @@ export class GameMaster {
         chainId: this.chainId,
         name: eip712.name,
         version: eip712.version,
+        gameMaster: this.walletClient.account?.address,
       },
       2
     );
@@ -343,7 +345,7 @@ export class GameMaster {
         deadline,
       }
     );
-    if (!this.walletClient.account) throw new Error("No account");
+
     const signature = await this.walletClient.signTypedData({
       domain: {
         name: eip712.name,
