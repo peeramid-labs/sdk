@@ -30,9 +30,8 @@ export interface VoteAttestation {
   ballotHash: string;
   ballot: {
     vote: bigint[];
-    salt: bigint;
+    salt: Hex;
   };
   ballotId: string;
   gmSignature: Hex;
-  voterSignature: Hex;
 }
