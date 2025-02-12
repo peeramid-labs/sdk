@@ -24,3 +24,14 @@ export interface GmProposalParams {
   proposer: Address;
   gmSignature: Hex;
 }
+
+export interface VoteAttestation {
+  vote: bigint[];
+  ballotHash: string;
+  ballot: {
+    vote: bigint[];
+    salt: Hex;
+  };
+  ballotId: string;
+  gmSignature: Hex;
+}

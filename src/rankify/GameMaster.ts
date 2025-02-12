@@ -7,6 +7,7 @@ import {
   Hex,
   stringToHex,
   GetAbiItemParameters,
+  zeroHash,
 } from "viem";
 import { RankifyDiamondInstanceAbi } from "../abis";
 import InstanceBase, { gameStatusEnum } from "./InstanceBase";
@@ -15,8 +16,8 @@ import { publicKeyToAddress } from "viem/accounts";
 import { logger } from "../utils/log";
 import { buildPoseidon } from "circomlibjs";
 import aes from "crypto-js/aes";
-import { GmProposalParams } from "../types/contracts";
-
+import { GmProposalParams, VoteAttestation } from "../types/contracts";
+import cryptoJs from "crypto-js";
 interface JoinGameProps {
   gameId: bigint;
   participant: Address;
@@ -113,6 +114,42 @@ export class GameMaster {
     return proposals;
   };
 
+  getPermutation = async ({
+    gameId,
+    turn,
+    size,
+    verifierAddress,
+  }: {
+    gameId: bigint;
+    turn: bigint;
+    size: number;
+    verifierAddress: Address;
+  }) => {
+    const maxSize = 15;
+    const turnSalt = await this.getTurnSalt({ gameId, turn, verifierAddress });
+    // Create deterministic seed from game parameters and GM's signature
+
+    // Use the seed to generate permutation
+    const permutation: number[] = Array.from({ length: maxSize }, (_, i) => i);
+
+    // Fisher-Yates shuffle with deterministic randomness
+    for (let i = size - 1; i >= 0; i--) {
+      // Generate deterministic random number for this position
+      const randHash = keccak256(encodePacked(["uint256", "uint256"], [turnSalt, BigInt(i)]));
+      const rand = BigInt(randHash);
+      const j = Number(rand % BigInt(i + 1));
+
+      // Swap elements
+      [permutation[i], permutation[j]] = [permutation[j], permutation[i]];
+    }
+
+    // Ensure inactive slots map to themselves
+    for (let i = size; i < maxSize; i++) {
+      permutation[i] = i;
+    }
+
+    return { permutation, turnSalt };
+  };
   /**
    * Generates a deterministic permutation for a specific game turn
    * @param gameId - ID of the game
@@ -136,30 +173,10 @@ export class GameMaster {
     secret: bigint;
     commitment: bigint;
   }> => {
-    const maxSize = 15;
-    // Create deterministic seed from game parameters and GM's signature
-
-    // Use the seed to generate permutation
-    const permutation: number[] = Array.from({ length: maxSize }, (_, i) => i);
-
     // This is kept secret to generate witness
-    const secret = await this.getTurnSalt({ gameId, turn, verifierAddress });
 
-    // Fisher-Yates shuffle with deterministic randomness
-    for (let i = size - 1; i >= 0; i--) {
-      // Generate deterministic random number for this position
-      const randHash = keccak256(encodePacked(["uint256", "uint256"], [secret, BigInt(i)]));
-      const rand = BigInt(randHash);
-      const j = Number(rand % BigInt(i + 1));
-
-      // Swap elements
-      [permutation[i], permutation[j]] = [permutation[j], permutation[i]];
-    }
-
-    // Ensure inactive slots map to themselves
-    for (let i = size; i < maxSize; i++) {
-      permutation[i] = i;
-    }
+    // Create deterministic seed from game parameters and GM's signature
+    const { permutation, turnSalt } = await this.getPermutation({ gameId, turn, size, verifierAddress });
 
     // Generate commitment
     const poseidon = await buildPoseidon();
@@ -177,14 +194,33 @@ export class GameMaster {
       )
     );
 
-    const commitment = BigInt(poseidon.F.toObject(poseidon([PoseidonThird, secret])));
+    const commitment = BigInt(poseidon.F.toObject(poseidon([PoseidonThird, turnSalt])));
 
     return {
       permutation,
-      secret,
+      secret: turnSalt,
       commitment,
     };
   };
+
+  reversePermutation = async <T>({
+    permutedArray,
+    gameId,
+    turn,
+    verifierAddress,
+  }: {
+    permutedArray: T[];
+    gameId: bigint;
+    turn: bigint;
+    verifierAddress: Address;
+  }): Promise<T[]> => {
+    // This is kept secret to generate witness
+    const { permutation } = await this.getPermutation({ gameId, turn, size: permutedArray.length, verifierAddress });
+    const restoredArray = permutedArray.map((value, idx) => ({ value, idx }));
+    restoredArray.sort((a, b) => permutation[a.idx] - permutation[b.idx]);
+    return restoredArray.map((a) => a.value);
+  };
+
   /**
    * Generates a salt for a specific game turn
    * @param gameId - ID of the game
@@ -201,12 +237,20 @@ export class GameMaster {
     turn: bigint;
     verifierAddress: Address;
   }): Promise<bigint> => {
-    const message = keccak256(
-      encodePacked(["uint256", "uint256", "address", "uint256"], [gameId, turn, verifierAddress, BigInt(this.chainId)])
-    );
-    if (!this.walletClient.account) throw new Error("No account found");
-    const signature = await this.walletClient.signMessage({ message, account: this.walletClient.account });
-    const seed = keccak256(signature);
+    const gameKey = await this.gameKey({ gameId, contractAddress: verifierAddress });
+    const instance = new InstanceBase({
+      instanceAddress: verifierAddress,
+      publicClient: this.publicClient,
+      chainId: this.chainId,
+    });
+    const seed = instance.pkdf({
+      privateKey: gameKey,
+      turn,
+      gameId,
+      contractAddress: verifierAddress,
+      chainId: this.chainId,
+      scope: "turnSalt",
+    });
     return BigInt(seed);
   };
 
@@ -245,6 +289,60 @@ export class GameMaster {
     return result;
   };
 
+  getProposalsVotedUpon = async ({
+    instanceAddress,
+    gameId,
+    turn,
+  }: {
+    instanceAddress: Address;
+    gameId: bigint;
+    turn: bigint;
+  }) => {
+    const oldProposals: {
+      proposer: Address;
+      proposal: string;
+    }[] = [];
+    //Proposals sequence is directly corresponding to proposers sequence
+    if (turn != 1n) {
+      const endedEvents = await this.publicClient.getContractEvents({
+        address: instanceAddress,
+        abi: RankifyDiamondInstanceAbi,
+        eventName: "TurnEnded",
+        args: { gameId, turn: turn - 1n },
+      });
+      const evt = endedEvents[0];
+      if (endedEvents.length > 1) throw new Error("Multiple turns ended");
+      const args = evt.args;
+      const decryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn: turn - 1n });
+      if (args.newProposals) {
+        args.newProposals.forEach((proposal, idx) => {
+          const proposer = decryptedProposals.find((p) => p.proposal === proposal)?.proposer;
+          if (!proposer) throw new Error("No proposer found for proposal");
+          oldProposals[idx] = {
+            proposer,
+            proposal: proposal,
+          };
+        });
+      } else {
+        const _players = await this.publicClient.readContract({
+          address: instanceAddress,
+          abi: RankifyDiamondInstanceAbi,
+          functionName: "getPlayers",
+          args: [gameId],
+        });
+
+        // Boundary case if no-one proposed a thing
+        _players.forEach((p, idx) => {
+          oldProposals[idx] = {
+            proposer: p,
+            proposal: "",
+          };
+        });
+      }
+    }
+    return oldProposals;
+  };
+
   /**
    * Finds the index of a player's ongoing proposal
    * @param gameId - ID of the game
@@ -255,23 +353,34 @@ export class GameMaster {
     instanceAddress,
     gameId,
     player,
+    turn,
   }: {
     instanceAddress: Address;
     gameId: bigint;
     player: Address;
+    turn?: bigint;
   }) => {
     const baseInstance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
-    const { currentTurn, proposals } = await baseInstance.getOngoingProposals(gameId);
-    if (currentTurn == 0n) {
-      console.error("No proposals in turn 0");
-      return -1;
+    let currentTurn: bigint = 0n;
+    if (!turn) {
+      const r = await baseInstance.getOngoingProposals(gameId);
+      currentTurn = r.currentTurn;
+      if (currentTurn == 0n) {
+        console.error("No proposals in turn 0");
+        return -1;
+      }
+    } else {
+      currentTurn = turn;
     }
 
-    const turn = currentTurn - 1n;
-    const playersProposal = await this.decryptProposals({ instanceAddress, gameId, turn, proposer: player }).then(
-      (ps) => (ps.length > 0 ? ps[0].proposal : undefined)
-    );
-    return playersProposal ? proposals.findIndex((p) => p === playersProposal) : -1;
+    const proposalsVotedUpon = await this.getProposalsVotedUpon({ instanceAddress, gameId, turn: currentTurn });
+    const orderedProposals = await this.reversePermutation({
+      permutedArray: proposalsVotedUpon,
+      gameId,
+      turn: currentTurn - 1n,
+      verifierAddress: instanceAddress,
+    });
+    return orderedProposals.findIndex((p) => p.proposer === player);
   };
 
   validateJoinGame = async (props: JoinGameProps): Promise<{ result: boolean; errorMessage: string }> => {
@@ -388,17 +497,22 @@ export class GameMaster {
     gameId,
     vote,
     voter,
+    voterSignature,
+    ballotHash,
   }: {
     instanceAddress: Address;
     gameId: bigint;
     vote: bigint[];
     voter: Address;
+    voterSignature: Hex;
+    ballotHash: Hex;
   }) => {
     if (!gameId) throw new Error("No gameId");
     if (!vote) throw new Error("No votesHidden");
     if (!voter) throw new Error("No voter");
     const proposerIdx = await this.findPlayerOngoingProposalIndex({ instanceAddress, gameId, player: voter });
-    if (proposerIdx != -1 && vote[proposerIdx] !== 0n) throw new Error("You cannot vote for your own proposal");
+    if (proposerIdx == -1) throw new Error("You are not a proposer in this game");
+    if (vote[proposerIdx] !== 0n) throw new Error("You cannot vote for your own proposal");
     const votesHidden = await this.encryptionCallback(JSON.stringify(vote.map((vi) => vi.toString())));
     if (!this.walletClient?.account?.address) throw new Error("No account address found");
     try {
@@ -407,7 +521,7 @@ export class GameMaster {
         address: instanceAddress,
         abi: RankifyDiamondInstanceAbi,
         functionName: "submitVote",
-        args: [gameId, votesHidden, voter],
+        args: [gameId, votesHidden, voter, zeroHash, voterSignature, ballotHash],
       });
       return this.walletClient.writeContract(request);
     } catch (e) {
@@ -554,7 +668,7 @@ export class GameMaster {
     const txParams: GetAbiItemParameters<typeof RankifyDiamondInstanceAbi, "submitProposal">["args"] = [
       {
         ...submissionParams,
-        voterSignature: proposerSignature,
+        proposerSignature,
       },
     ];
 
@@ -596,9 +710,38 @@ export class GameMaster {
 
     const votes = await Promise.all(
       evts.map(async (event) => {
+        const playerJoinedEvt = await this.publicClient.getContractEvents({
+          address: instanceAddress,
+          abi: RankifyDiamondInstanceAbi,
+          eventName: "PlayerJoined",
+          args: { gameId, participant: event.args.player },
+        });
+        const latestEvent = playerJoinedEvt
+          .filter((e) => e.blockNumber === event.blockNumber)
+          .sort((a, b) => a.logIndex - b.logIndex)
+          .sort((a, b) => a.transactionIndex - b.transactionIndex)[0];
+        if (!latestEvent.args.voterPubKey) throw new Error("No voterPubKey found in event data, that is unexpected");
+
         if (!event.args.player) throw new Error("No player found in event data, that is unexpected");
-        if (!event.args.votesHidden) throw new Error("No votesHidden found in event data, that is unexpected");
-        const decryptedVote = await this.decryptionCallback(event.args.votesHidden);
+        if (!event.args.sealedBallotId) throw new Error("No sealedBallotId found in event data, that is unexpected");
+
+        const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
+        const sharedKey = instance.sharedSigner({
+          publicKey: latestEvent.args.voterPubKey as Hex,
+          privateKey: await this.gameKey({ gameId, contractAddress: instanceAddress }),
+          gameId,
+          turn,
+          contractAddress: instanceAddress,
+          chainId: this.chainId,
+        });
+        const turnKey = instance.pkdf({
+          privateKey: sharedKey,
+          turn,
+          gameId,
+          contractAddress: instanceAddress,
+          chainId: this.chainId,
+        });
+        const decryptedVote = this.decryptVote(event.args.sealedBallotId, turnKey);
         const parsedVotes = JSON.parse(decryptedVote) as string[];
         return {
           player: event.args.player,
@@ -705,59 +848,8 @@ export class GameMaster {
         throw new Error("Expected players to be an array");
       }
 
-      const oldProposals: {
-        proposer: Address;
-        proposal: string;
-      }[] = [];
       const proposerIndices: bigint[] = [];
-      let votes: { player: Address; votes: bigint[] }[] = [];
-      //Proposals sequence is directly corresponding to proposers sequence
-      if (turn != 1n) {
-        const endedEvents = await this.publicClient.getContractEvents({
-          address: instanceAddress,
-          abi: RankifyDiamondInstanceAbi,
-          eventName: "TurnEnded",
-          args: { gameId, turn: turn - 1n },
-        });
-        const evt = endedEvents[0];
-        if (endedEvents.length > 1) throw new Error("Multiple turns ended");
-        const args = evt.args;
-        const decryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn: turn - 1n });
-        if (args.newProposals) {
-          args.newProposals.forEach((proposal, idx) => {
-            const proposer = decryptedProposals.find((p) => p.proposal === proposal)?.proposer;
-            if (!proposer) throw new Error("No proposer found for proposal");
-            oldProposals[idx] = {
-              proposer,
-              proposal: proposal,
-            };
-          });
-        } else {
-          // Boundary case if no-one proposed a thing
-          players.forEach((p, idx) => {
-            oldProposals[idx] = {
-              proposer: p,
-              proposal: "",
-            };
-          });
-        }
-        votes = await this.decryptTurnVotes({ instanceAddress, gameId, turn }).then((voteSubmissions) => {
-          const orderedVotes: { player: Address; votes: bigint[] }[] = players.map((player) => ({
-            player,
-            votes: new Array(players.length).fill(0n) as bigint[],
-          }));
-          players.forEach((player, playerIdx) => {
-            const vote = voteSubmissions.find((v) => v.player === player);
-            if (vote) orderedVotes[playerIdx] = vote;
-            else
-              orderedVotes[playerIdx] = {
-                player,
-                votes: new Array(players.length).fill(0n) as bigint[],
-              };
-          });
-          return orderedVotes;
-        });
-      }
+      const oldProposals = await this.getProposalsVotedUpon({ instanceAddress, gameId, turn });
 
       const newProposals = await this.decryptProposals({ instanceAddress, gameId, turn });
       players.forEach((player) => {
@@ -796,5 +888,140 @@ export class GameMaster {
         account: this.walletClient.account,
       })
       .then((sig) => keccak256(sig));
+  };
+
+  private decryptVote = (vote: string, privateKey: Hex) => {
+    let voteDecrypted;
+    try {
+      voteDecrypted = JSON.parse(aes.decrypt(vote, privateKey).toString(cryptoJs.enc.Utf8));
+      logger(`Decrypted vote:`, 2);
+      logger(voteDecrypted, 2);
+    } catch (e) {
+      console.error("Failed to decrypt vote", e);
+    }
+    return voteDecrypted;
+  };
+  /**
+   * Creates and signs a vote for testing purposes
+   * @param params - Parameters including voter, game info, and vote configuration
+   * @returns A complete mock vote with signatures
+   */
+  attestVote = async ({
+    // voter,
+    gameId,
+    turn,
+    vote,
+    verifierAddress,
+    gameSize,
+    name,
+    version,
+    voterPublicKey,
+  }: {
+    gameId: bigint;
+    turn: bigint;
+    vote: bigint[];
+    verifierAddress: Address;
+    gameSize: number;
+    name: string;
+    version: string;
+    voterPublicKey: Hex;
+  }): Promise<VoteAttestation> => {
+    const voter = publicKeyToAddress(voterPublicKey);
+    logger(`Attesting vote for player ${voter} in game ${gameId}, turn ${turn}`);
+
+    const playerSalt = await this.getTurnPlayersSalt({
+      gameId,
+      turn,
+      player: voter,
+      verifierAddress,
+      size: gameSize,
+    });
+
+    const ballot = {
+      vote: vote,
+      salt: playerSalt,
+    };
+    const ballotHash: string = keccak256(encodePacked(["uint256[]", "bytes32"], [vote, playerSalt]));
+    const instance = new InstanceBase({
+      instanceAddress: verifierAddress,
+      publicClient: this.publicClient,
+      chainId: this.chainId,
+    });
+    const sharedKey = instance.sharedSigner({
+      publicKey: voterPublicKey,
+      privateKey: await this.gameKey({ gameId, contractAddress: verifierAddress }),
+      gameId,
+      turn,
+      contractAddress: verifierAddress,
+      chainId: this.chainId,
+    });
+    const turnKey = instance.pkdf({
+      privateKey: sharedKey,
+      turn,
+      gameId,
+      contractAddress: verifierAddress,
+      chainId: this.chainId,
+    });
+
+    const ballotId = aes.encrypt(JSON.stringify(ballot.vote), turnKey).toString();
+    const gmSignature = await this.signVote({
+      verifierAddress,
+      voter,
+      gameId,
+      sealedBallotId: ballotId,
+      ballotHash,
+      name,
+      version,
+    });
+
+    const result = { vote, ballotHash, ballot, ballotId, gmSignature };
+    logger(`Vote attested for player ${voter} by ${this.walletClient.account?.address}`);
+    logger({ gameId, turn, vote, verifierAddress, gameSize, name, version, voterPublicKey, chainId: this.chainId }, 2);
+    return result;
+  };
+
+  // Add new function to sign votes
+  signVote = async (params: {
+    verifierAddress: Address;
+    voter: Address;
+    gameId: bigint;
+    sealedBallotId: string;
+    ballotHash: string;
+    name: string;
+    version: string;
+  }): Promise<Hex> => {
+    const { voter, gameId, verifierAddress, sealedBallotId, ballotHash, name, version } = params;
+    logger(`Signing vote for player ${voter} in game ${gameId}`);
+
+    const types = {
+      SubmitVote: [
+        { name: "gameId", type: "uint256" },
+        { name: "voter", type: "address" },
+        { name: "sealedBallotId", type: "string" },
+        { name: "ballotHash", type: "bytes32" },
+      ],
+    };
+
+    if (!this.walletClient.account) throw new Error("No account");
+
+    const signature = await this.walletClient.signTypedData({
+      domain: {
+        name,
+        version,
+        chainId: this.chainId,
+        verifyingContract: verifierAddress,
+      },
+      types,
+      primaryType: "SubmitVote",
+      message: {
+        gameId,
+        voter,
+        sealedBallotId,
+        ballotHash,
+      },
+      account: this.walletClient.account,
+    });
+    logger(`Vote signed for player ${voter}`);
+    return signature;
   };
 }

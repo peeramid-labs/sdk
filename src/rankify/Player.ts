@@ -5,7 +5,7 @@ import {
   type Hex,
   GetAbiItemParameters,
   ContractFunctionArgs,
-  TransactionReceipt
+  TransactionReceipt,
 } from "viem";
 import { getContract } from "../utils/artifacts";
 import instanceAbi from "../abis/RankifyDiamondInstance";
@@ -149,7 +149,19 @@ export default class RankifyPlayer extends InstanceBase {
     }
   };
 
-  joinGame = async ({ gameId, signature, gmCommitment, deadline }: {gameId: bigint, signature: Address, gmCommitment: Hex, deadline: number}) => {
+  joinGame = async ({
+    gameId,
+    signature,
+    gmCommitment,
+    deadline,
+    pubkey,
+  }: {
+    gameId: bigint;
+    signature: Address;
+    gmCommitment: Hex;
+    deadline: number;
+    pubkey: Hex;
+  }) => {
     try {
       const reqs = (await this.publicClient.readContract({
         address: this.instanceAddress,
@@ -165,7 +177,7 @@ export default class RankifyPlayer extends InstanceBase {
         address: this.instanceAddress,
         abi: instanceAbi,
         functionName: "joinGame",
-        args: [gameId, signature, gmCommitment, BigInt(deadline)],
+        args: [gameId, signature, gmCommitment, BigInt(deadline), pubkey],
         value,
         account: this.walletClient.account,
       });
@@ -177,14 +189,14 @@ export default class RankifyPlayer extends InstanceBase {
     }
   };
 
-  startGame = async (gameId: bigint) => {
+  startGame = async (gameId: bigint, permutationCommitment: bigint) => {
     try {
       if (!this.walletClient.account?.address) throw new Error("Account not found");
       const { request } = await this.publicClient.simulateContract({
         address: this.instanceAddress,
         abi: instanceAbi,
         functionName: "startGame",
-        args: [gameId],
+        args: [gameId, permutationCommitment],
         account: this.walletClient.account,
       });
 
