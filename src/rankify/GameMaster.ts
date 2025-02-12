@@ -8,6 +8,7 @@ import {
   stringToHex,
   GetAbiItemParameters,
   zeroHash,
+  ContractFunctionArgs,
 } from "viem";
 import { RankifyDiamondInstanceAbi } from "../abis";
 import InstanceBase, { gameStatusEnum } from "./InstanceBase";
@@ -18,6 +19,24 @@ import { buildPoseidon } from "circomlibjs";
 import aes from "crypto-js/aes";
 import { GmProposalParams, VoteAttestation } from "../types/contracts";
 import cryptoJs from "crypto-js";
+
+export interface ProposalsIntegrity {
+  newProposals: ContractFunctionArgs<typeof RankifyDiamondInstanceAbi, "nonpayable", "endTurn">[2];
+  permutation: bigint[];
+  proposalsNotPermuted: string[];
+  nullifier: bigint;
+}
+
+export type PrivateProposalsIntegrity15Groth16 = {
+  commitments: bigint[];
+  permutedProposals: bigint[];
+  permutationCommitment: bigint;
+  numActive: bigint;
+  permutation: bigint[];
+  randomnesses: bigint[];
+  permutationRandomness: bigint;
+};
+
 interface JoinGameProps {
   gameId: bigint;
   participant: Address;
@@ -103,6 +122,7 @@ export class GameMaster {
 
     const proposals = await Promise.all(
       evts.map(async (log) => {
+        if (!log.args.proposer) throw new Error("No proposer");
         if (!log.args.encryptedProposal) throw new Error("No proposalEncryptedByGM");
         return {
           proposer: log.args.proposer,
@@ -549,18 +569,18 @@ export class GameMaster {
     }
   };
 
-  /**
-   * Gets the hidden proposer hash for a specific game turn
-   * @param gameId - ID of the game
-   * @param turn - Turn number
-   * @param proposer - Address of the proposer
-   * @returns Hidden proposer hash
-   */
-  proposerHidden = ({ gameId, turn, proposer }: { gameId: bigint; turn: bigint; proposer: Address }) => {
-    return this.getTurnPlayersSalt({ gameId, turn, proposer }).then((salt) =>
-      keccak256(encodePacked(["address", "bytes32"], [proposer, salt]))
-    );
-  };
+  // /**
+  //  * Gets the hidden proposer hash for a specific game turn
+  //  * @param gameId - ID of the game
+  //  * @param turn - Turn number
+  //  * @param proposer - Address of the proposer
+  //  * @returns Hidden proposer hash
+  //  */
+  // proposerHidden = ({ gameId, turn, proposer }: { gameId: bigint; turn: bigint; proposer: Address }) => {
+  //   return this.getTurnPlayersSalt({ gameId, turn, proposer }).then((salt) =>
+  //     keccak256(encodePacked(["address", "bytes32"], [proposer, salt]))
+  //   );
+  // };
 
   private proposalTypes = {
     SubmitProposal: [
@@ -610,16 +630,51 @@ export class GameMaster {
     });
   };
 
-  attestProposal = async ({
+  proposalValues = async ({
     instanceAddress,
     gameId,
     proposal,
     proposerPubKey,
+    turn,
   }: {
     instanceAddress: Address;
     gameId: bigint;
     proposal: string;
     proposerPubKey: Hex;
+    turn: bigint;
+  }) => {
+    const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
+    const sharedKey = instance.sharedSigner({
+      publicKey: proposerPubKey,
+      privateKey: await this.gameKey({ gameId, contractAddress: instanceAddress }),
+      gameId,
+      turn,
+      contractAddress: instanceAddress,
+      chainId: this.chainId,
+    });
+    // const poseidon = await buildPoseidon();
+    const proposalValue = BigInt(keccak256(encodePacked(["string"], [proposal])));
+    const randomnessValue = BigInt(keccak256(encodePacked(["string"], [sharedKey])));
+    // Calculate commitment using poseidon
+    return {
+      proposalValue,
+      randomnessValue,
+      proposal,
+    };
+  };
+
+  attestProposal = async ({
+    instanceAddress,
+    gameId,
+    proposal,
+    proposerPubKey,
+    turn,
+  }: {
+    instanceAddress: Address;
+    gameId: bigint;
+    proposal: string;
+    proposerPubKey: Hex;
+    turn: bigint;
   }) => {
     const proposerAddress = publicKeyToAddress(proposerPubKey);
     logger(`Creating proposal secrets for player ${proposerAddress} in game ${gameId}`);
@@ -629,7 +684,7 @@ export class GameMaster {
       publicKey: proposerPubKey,
       privateKey: await this.gameKey({ gameId, contractAddress: instanceAddress }),
       gameId,
-      turn: 0n,
+      turn,
       contractAddress: instanceAddress,
       chainId: this.chainId,
     });
@@ -745,22 +800,13 @@ export class GameMaster {
         if (!event.args.player) throw new Error("No player found in event data, that is unexpected");
         if (!event.args.sealedBallotId) throw new Error("No sealedBallotId found in event data, that is unexpected");
 
-        const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
-        const sharedKey = instance.sharedSigner({
-          publicKey: latestEvent.args.voterPubKey as Hex,
-          privateKey: await this.gameKey({ gameId, contractAddress: instanceAddress }),
+        const turnKey = await this.calculateSharedTurnKey({
+          instanceAddress,
           gameId,
           turn,
-          contractAddress: instanceAddress,
-          chainId: this.chainId,
+          voterPublicKey: latestEvent.args.voterPubKey as Hex,
         });
-        const turnKey = instance.pkdf({
-          privateKey: sharedKey,
-          turn,
-          gameId,
-          contractAddress: instanceAddress,
-          chainId: this.chainId,
-        });
+
         const decryptedVote = this.decryptVote(event.args.sealedBallotId, turnKey);
         const parsedVotes = JSON.parse(decryptedVote) as string[];
         return {
@@ -871,27 +917,45 @@ export class GameMaster {
       const proposerIndices: bigint[] = [];
       const oldProposals = await this.getProposalsVotedUpon({ instanceAddress, gameId, turn });
 
-      const newProposals = await this.decryptProposals({ instanceAddress, gameId, turn });
+      const proposals = await this.decryptProposals({ instanceAddress, gameId, turn });
       players.forEach((player) => {
         let proposerIdx = oldProposals.findIndex((p) => player === p.proposer);
         if (proposerIdx === -1) proposerIdx = players.length; //Did not propose
         proposerIndices.push(BigInt(proposerIdx));
       });
+      const voteDecrypted = await this.decryptTurnVotes({ instanceAddress, gameId, turn });
+
+      const votes = await Promise.all(
+        players.map(async (player) => {
+          const vote = voteDecrypted.find((v) => v.player === player);
+          if (!vote) return players.map(() => 0n);
+          return vote.votes;
+        })
+      );
+
       const tableData = players.map((player, idx) => ({
         player,
         proposerIndex: proposerIndices[idx],
         proposer: oldProposals[Number(proposerIndices[idx])].proposer,
       }));
       console.table(tableData);
-      const shuffled = await this.permuteArray(newProposals.map((x) => x.proposal));
-      console.log(votes.map((v) => v.votes));
+      const attested = await this.getProposalsIntegrity({
+        gameId,
+        turn,
+        verifierAddress: instanceAddress,
+        size: players.length,
+        proposals,
+      });
+
+      logger(`votes:`);
+      logger(votes);
 
       const { request } = await this.publicClient.simulateContract({
         abi: RankifyDiamondInstanceAbi,
         account: this.walletClient.account,
         address: instanceAddress,
         functionName: "endTurn",
-        args: [gameId, votes.map((v) => v.votes), shuffled, proposerIndices],
+        args: [gameId, votes, attested.newProposals, attested.permutation, attested.nullifier],
       });
       return this.walletClient.writeContract(request);
     } catch (e) {
@@ -908,6 +972,36 @@ export class GameMaster {
         account: this.walletClient.account,
       })
       .then((sig) => keccak256(sig));
+  };
+
+  private calculateSharedTurnKey = async ({
+    instanceAddress,
+    gameId,
+    turn,
+    voterPublicKey,
+  }: {
+    instanceAddress: Address;
+    gameId: bigint;
+    turn: bigint;
+    voterPublicKey: Hex;
+  }) => {
+    const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
+    const sharedKey = instance.sharedSigner({
+      publicKey: voterPublicKey,
+      privateKey: await this.gameKey({ gameId, contractAddress: instanceAddress }),
+      gameId,
+      turn,
+      contractAddress: instanceAddress,
+      chainId: this.chainId,
+    });
+    const turnKey = instance.pkdf({
+      privateKey: sharedKey,
+      turn,
+      gameId,
+      contractAddress: instanceAddress,
+      chainId: this.chainId,
+    });
+    return turnKey;
   };
 
   private decryptVote = (vote: string, privateKey: Hex) => {
@@ -962,25 +1056,12 @@ export class GameMaster {
       salt: playerSalt,
     };
     const ballotHash: string = keccak256(encodePacked(["uint256[]", "bytes32"], [vote, playerSalt]));
-    const instance = new InstanceBase({
+
+    const turnKey = await this.calculateSharedTurnKey({
       instanceAddress: verifierAddress,
-      publicClient: this.publicClient,
-      chainId: this.chainId,
-    });
-    const sharedKey = instance.sharedSigner({
-      publicKey: voterPublicKey,
-      privateKey: await this.gameKey({ gameId, contractAddress: verifierAddress }),
       gameId,
       turn,
-      contractAddress: verifierAddress,
-      chainId: this.chainId,
-    });
-    const turnKey = instance.pkdf({
-      privateKey: sharedKey,
-      turn,
-      gameId,
-      contractAddress: verifierAddress,
-      chainId: this.chainId,
+      voterPublicKey,
     });
 
     const ballotId = aes.encrypt(JSON.stringify(ballot.vote), turnKey).toString();
@@ -1043,5 +1124,198 @@ export class GameMaster {
     });
     logger(`Vote signed for player ${voter}`);
     return signature;
+  };
+
+  generateEndTurnIntegrity = async ({
+    gameId,
+    turn,
+    verifierAddress,
+    size = 15,
+    proposals,
+  }: {
+    gameId: bigint;
+    turn: bigint;
+    verifierAddress: Address;
+    size?: number;
+    proposals: { proposal: string; proposer: Address }[];
+  }) => {
+    const maxSize = 15;
+
+    const { permutation, secret: nullifier } = await this.generateDeterministicPermutation({
+      gameId,
+      turn: turn - 1n,
+      verifierAddress,
+      size,
+    });
+
+    const values = await Promise.all(
+      proposals.map((p) =>
+        this.proposalValues({
+          instanceAddress: verifierAddress,
+          gameId,
+          proposal: p.proposal,
+          proposerPubKey: p.proposer,
+          turn,
+        })
+      )
+    );
+
+    const inputs = await this.createInputs({
+      numActive: size,
+      proposals: values.map((v) => v.proposalValue),
+      commitmentRandomnesses: values.map((v) => v.randomnessValue),
+      gameId,
+      turn,
+      verifierAddress,
+    });
+    logger(inputs, 2);
+
+    // Apply permutation to proposals array
+    const permutedProposals = [...proposals];
+    for (let i = 0; i < maxSize; i++) {
+      if (i < size) {
+        permutedProposals[Number(inputs.permutation[i])] = proposals[i];
+      }
+    }
+
+    // const circuit = await hre.zkit.getCircuit("ProposalsIntegrity15");
+    // const inputsKey = ethers.utils.solidityKeccak256(["string"], [JSON.stringify(inputs) + "groth16"]);
+
+    // let cached = loadFromCache(inputsKey);
+    // if (cached) {
+    // log(`Loaded proof from cache for inputsKey ${inputsKey}`, 2);
+    // } else {
+    // log(`Generating proof for inputsKey ${inputsKey}`, 2);
+    // const proof = await circuit.generateProof(inputs);
+    // saveToCache(inputsKey, proof);
+    // cached = proof;
+    // }
+
+    const proof = "0x00";
+    if (!proof) {
+      throw new Error("Proof not found");
+    }
+    // const callData = await circuit.generateCalldata(proof);
+    const a: readonly [bigint, bigint] = [0n, 0n];
+    const b: readonly [readonly [bigint, bigint], readonly [bigint, bigint]] = [
+      [0n, 0n],
+      [0n, 0n],
+    ];
+    const c: readonly [bigint, bigint] = [0n, 0n];
+    return {
+      commitment: inputs.permutationCommitment,
+      nullifier,
+      permutation: permutation.slice(0, size),
+      permutedProposals: permutedProposals.map((proposal) => proposal.proposal),
+      a,
+      b,
+      c,
+    };
+  };
+
+  /**
+   * Gets proposal integrity data for testing
+   * @param params - Parameters including game info and proposal data
+   * @returns Proposal integrity information including permutations and proofs
+   */
+  async getProposalsIntegrity({
+    size,
+    gameId,
+    turn,
+    proposals,
+    verifierAddress,
+  }: {
+    size: number;
+    gameId: bigint;
+    turn: bigint;
+    verifierAddress: Address;
+    idlers?: number[];
+    proposals: { proposal: string; proposer: Address }[];
+  }): Promise<ProposalsIntegrity> {
+    logger(`Generating proposals integrity for game ${gameId}, turn ${turn} with ${size} players.`);
+
+    const { commitment, nullifier, permutation, permutedProposals, a, b, c } = await this.generateEndTurnIntegrity({
+      gameId,
+      turn,
+      verifierAddress,
+      size,
+      proposals,
+    });
+
+    logger(`Generated proposals integrity with commitment ${commitment}`);
+    return {
+      newProposals: {
+        a,
+        b,
+        c,
+        proposals: permutedProposals,
+        permutationCommitment: commitment,
+      },
+      permutation: permutation.map((p) => BigInt(p)),
+      proposalsNotPermuted: proposals.map((proposal) => proposal.proposal),
+      nullifier,
+    };
+  }
+
+  // Helper to create test inputs
+  createInputs = async ({
+    numActive,
+    proposals,
+    commitmentRandomnesses,
+    gameId,
+    turn,
+    verifierAddress,
+  }: {
+    numActive: number;
+    proposals: bigint[];
+    commitmentRandomnesses: bigint[];
+    gameId: bigint;
+    turn: bigint;
+    verifierAddress: Address;
+  }): Promise<PrivateProposalsIntegrity15Groth16> => {
+    const poseidon = await buildPoseidon();
+    const maxSize = 15;
+
+    // Initialize arrays with zeros
+    const commitments: bigint[] = Array(maxSize).fill(0n);
+    const randomnesses: bigint[] = Array(maxSize).fill(0n);
+    const permutedProposals: bigint[] = Array(maxSize).fill(0n);
+
+    // Generate deterministic permutation
+    const { permutation, secret, commitment } = await this.generateDeterministicPermutation({
+      gameId,
+      turn,
+      verifierAddress,
+      size: numActive,
+    });
+
+    // Fill arrays with values
+    for (let i = 0; i < maxSize; i++) {
+      if (i < numActive) {
+        // Active slots
+        const proposal = proposals[i];
+        const randomness = commitmentRandomnesses[i];
+        const hash = poseidon([proposal, randomness]);
+        commitments[i] = BigInt(poseidon.F.toObject(hash));
+        randomnesses[i] = randomness;
+        // Store proposal in permuted position
+        permutedProposals[permutation[i]] = proposal;
+      } else {
+        // Inactive slots
+        const hash = poseidon([0n, 0n]);
+        commitments[i] = BigInt(poseidon.F.toObject(hash));
+        randomnesses[i] = 0n;
+        // permutedProposals already 0n
+      }
+    }
+    return {
+      numActive: BigInt(numActive),
+      commitments,
+      permutedProposals,
+      permutationCommitment: commitment,
+      permutation: permutation.map((p) => BigInt(p)),
+      randomnesses,
+      permutationRandomness: secret,
+    };
   };
 }

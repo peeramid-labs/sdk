@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
-import { type PublicClient, type WalletClient, type GetContractEventsReturnType, type Hex, type TypedData } from "viem";
+import { type PublicClient, type WalletClient, type GetContractEventsReturnType, type Hex } from "viem";
 import { GameMaster } from "../GameMaster";
 import { MOCK_ADDRESSES, MOCK_HASHES, createMockPublicClient, createMockWalletClient } from "../../__tests__/utils";
-import InstanceBase from "../InstanceBase";
 
 // Mock viem
 jest.mock("viem", () => ({
@@ -16,7 +15,12 @@ jest.mock("viem", () => ({
 }));
 
 // Create mock functions with correct return types
-const mockReadContract = jest.fn((): Promise<bigint | readonly [`0x${string}`, bigint, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, string, string]> => Promise.resolve(0n));
+const mockReadContract = jest.fn(
+  (): Promise<
+    | bigint
+    | readonly [`0x${string}`, bigint, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, string, string]
+  > => Promise.resolve(0n)
+);
 const mockSimulateContract = jest.fn(() => Promise.resolve({ request: {} }));
 const mockGetContractEvents = jest.fn(() => Promise.resolve([] as GetContractEventsReturnType));
 
@@ -104,9 +108,16 @@ describe("GameMaster", () => {
 
   describe("signJoiningGame", () => {
     it("should sign joining game event", async () => {
-
-
-      const mockDomainData: readonly [`0x${string}`, bigint, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, string, string] = [
+      const mockDomainData: readonly [
+        `0x${string}`,
+        bigint,
+        `0x${string}`,
+        `0x${string}`,
+        `0x${string}`,
+        `0x${string}`,
+        string,
+        string,
+      ] = [
         "0x1234567890123456789012345678901234567890123456789012345678901234", // domainSeparator
         1n, // chainId
         "0x2345678901234567890123456789012345678901", // verifierContract
@@ -117,15 +128,14 @@ describe("GameMaster", () => {
         "1", // version
       ];
 
-     mockSignTypedData.mockResolvedValueOnce("0xsignedMessage" as `0x${string}`);
+      mockSignTypedData.mockResolvedValueOnce("0xsignedMessage" as `0x${string}`);
 
-     mockReadContract.mockResolvedValueOnce(mockDomainData);
-  
+      mockReadContract.mockResolvedValueOnce(mockDomainData);
 
       // Mock signTypedData on walletClient
       const mockSignature = "0xsignedMessage" as `0x${string}`;
       //const mockSignTypedData = jest.fn<Promise<`0x${string}`>, [any]>().mockResolvedValue(mockSignature);
-      
+
       const gameMasterWithMockedWallet = new GameMaster({
         walletClient: mockWalletClient,
         publicClient: mockPublicClient as PublicClient,
