@@ -9,7 +9,7 @@ export { default as InstanceBase } from "./rankify/InstanceBase";
 export { default as InstancePlayer } from "./rankify/Player";
 export { default as MultipassBase, type NameQuery } from "./multipass/MultipassBase";
 export { default as Registrar } from "./multipass/Registrar";
-export { GameMaster } from "./rankify/GameMaster";
+export { default as GameMaster } from "./rankify/GameMaster";
 
 // Utility exports
 export * from "./utils";
