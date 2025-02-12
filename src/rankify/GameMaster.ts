@@ -203,6 +203,25 @@ export class GameMaster {
     };
   };
 
+  permuteArray = async <T>({
+    array,
+    gameId,
+    turn,
+    verifierAddress,
+  }: {
+    array: T[];
+    gameId: bigint;
+    turn: bigint;
+    verifierAddress: Address;
+  }): Promise<T[]> => {
+    const { permutation } = await this.getPermutation({ gameId, turn, size: array.length, verifierAddress });
+    const permutedArray: T[] = [];
+    for (let i = 0; i < array.length; i++) {
+      permutedArray[permutation[i]] = array[i];
+    }
+    return permutedArray;
+  };
+
   reversePermutation = async <T>({
     permutedArray,
     gameId,
@@ -214,11 +233,12 @@ export class GameMaster {
     turn: bigint;
     verifierAddress: Address;
   }): Promise<T[]> => {
-    // This is kept secret to generate witness
     const { permutation } = await this.getPermutation({ gameId, turn, size: permutedArray.length, verifierAddress });
-    const restoredArray = permutedArray.map((value, idx) => ({ value, idx }));
-    restoredArray.sort((a, b) => permutation[a.idx] - permutation[b.idx]);
-    return restoredArray.map((a) => a.value);
+    const originalArray: T[] = [];
+    for (let i = 0; i < permutedArray.length; i++) {
+      originalArray[permutation[i]] = permutedArray[i];
+    }
+    return originalArray;
   };
 
   /**
@@ -863,7 +883,7 @@ export class GameMaster {
         proposer: oldProposals[Number(proposerIndices[idx])].proposer,
       }));
       console.table(tableData);
-      const shuffled = await this.shuffle(newProposals.map((x) => x.proposal));
+      const shuffled = await this.permuteArray(newProposals.map((x) => x.proposal));
       console.log(votes.map((v) => v.votes));
 
       const { request } = await this.publicClient.simulateContract({
