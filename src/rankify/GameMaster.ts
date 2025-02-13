@@ -424,7 +424,7 @@ export class GameMaster {
     return orderedProposals.findIndex((p) => p.proposer === player);
   };
 
-  validateJoinGame = async (props: JoinGameProps): Promise<{ result: boolean; errorMessage: string }> => {
+  validateJoinGame = async (props: {gameId: bigint; participant: Address; instanceAddress: Address;}): Promise<{ result: boolean; errorMessage: string }> => {
     const { gameId, participant, instanceAddress } = props;
     try {
       const baseInstance = new InstanceBase({

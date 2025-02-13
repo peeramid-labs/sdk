@@ -86,7 +86,7 @@ export async function handleRPCError(e: unknown) {
     );
     const response = await remoteAttempt;
     const data = await response.json();
-    return new Error(data.results[0].text_signature);
+    return new Error(data.result?.[0]?.text_signature ?? (e as unknown as any)?.message);
   }
 
   throw e;
