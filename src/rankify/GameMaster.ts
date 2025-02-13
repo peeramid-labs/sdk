@@ -41,6 +41,7 @@ interface JoinGameProps {
   gameId: bigint;
   participant: Address;
   instanceAddress: Address;
+  participantPubKeyHash: Hex;
 }
 
 /**
@@ -458,7 +459,7 @@ export class GameMaster {
   signJoiningGame = async (props: JoinGameProps, timeToJoin: number = 60 * 10) => {
     if (!this.walletClient.account) throw new Error("No account");
     logger(`Signing joining game..`);
-    const { gameId, participant, instanceAddress } = props;
+    const { gameId, participant, instanceAddress, participantPubKeyHash } = props;
     const baseInstance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
     const eip712 = await baseInstance.getEIP712Domain();
     logger(
@@ -470,6 +471,7 @@ export class GameMaster {
         name: eip712.name,
         version: eip712.version,
         gameMaster: this.walletClient.account?.address,
+        participantPubKeyHash,
       },
       2
     );
@@ -487,11 +489,11 @@ export class GameMaster {
         verifyingContract: instanceAddress,
       },
       {
-        instance: instanceAddress,
         participant,
         gameId,
         gmCommitment,
         deadline,
+        participantPubKeyHash,
       }
     );
 
@@ -504,19 +506,19 @@ export class GameMaster {
       },
       types: {
         AttestJoiningGame: [
-          { type: "address", name: "instance" },
           { type: "address", name: "participant" },
           { type: "uint256", name: "gameId" },
           { type: "bytes32", name: "gmCommitment" },
           { type: "uint256", name: "deadline" },
+          { type: "bytes32", name: "participantPubKeyHash" },
         ],
       },
       message: {
-        instance: instanceAddress,
         participant,
         gameId,
         gmCommitment,
         deadline,
+        participantPubKeyHash,
       },
       primaryType: "AttestJoiningGame",
       account: this.walletClient.account,
