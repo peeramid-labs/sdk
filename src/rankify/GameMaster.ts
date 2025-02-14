@@ -11,7 +11,8 @@ import {
   ContractFunctionArgs,
 } from "viem";
 import { RankifyDiamondInstanceAbi } from "../abis";
-import InstanceBase, { gameStatusEnum } from "./InstanceBase";
+import InstanceBase from "./InstanceBase";
+import { gameStatusEnum } from "./types";
 import { handleRPCError } from "../utils";
 import { publicKeyToAddress } from "viem/accounts";
 import { logger } from "../utils/log";
