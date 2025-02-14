@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
-import * as viem from "viem";
 import {
   type PublicClient,
   type WalletClient,
@@ -14,7 +13,6 @@ import { gameStatusEnum } from "../types";
 import aes from "crypto-js/aes";
 import { RankifyDiamondInstanceAbi } from "../../abis";
 import InstanceBase from "../InstanceBase";
-import { join } from "path";
 
 // Mock viem
 jest.mock("viem", () => ({
@@ -545,9 +543,12 @@ describe("GameMaster", () => {
           voterPubKey: "0x0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798" as Hex,
         },
       }));
-      mockGetContractEvents.mockImplementationOnce((p) => Promise.resolve([joinGameEvents[0]]));
-      mockGetContractEvents.mockImplementationOnce((p) => Promise.resolve([joinGameEvents[1]]));
-      mockGetContractEvents.mockImplementationOnce((p) => Promise.resolve([joinGameEvents[2]]));
+      // eslint-disable-next-line
+      mockGetContractEvents.mockImplementationOnce(() => Promise.resolve([joinGameEvents[0]] as any));
+      // eslint-disable-next-line
+      mockGetContractEvents.mockImplementationOnce(() => Promise.resolve([joinGameEvents[1]] as any));
+      // eslint-disable-next-line
+      mockGetContractEvents.mockImplementationOnce(() => Promise.resolve([joinGameEvents[2]] as any));
 
       const result = await gameMaster.getProposalsIntegrity({
         size: 3,
@@ -622,7 +623,8 @@ describe("GameMaster", () => {
         },
       }));
 
-      mockGetContractEvents.mockImplementation((p) => Promise.resolve([joinGameEvents[0]]));
+      // eslint-disable-next-line
+      mockGetContractEvents.mockImplementation(() => Promise.resolve([joinGameEvents[0]] as any));
 
       const result = await gameMaster.getProposalsIntegrity({
         size: 15,
