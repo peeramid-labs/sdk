@@ -77,7 +77,7 @@ setup_repo() {
     if [ -f "playbook/utils/deploy-to-local-anvil.sh" ]; then
         echo "Deploying $repo_name contracts..."
         pnpm hardhat clean
-        pnpm hardhat compile && rm -rf deployments/localhost
+        pnpm build && rm -rf deployments/localhost
         bash playbook/utils/deploy-to-local-anvil.sh
     else
         echo "Warning: deployment script not found for $repo_name"
