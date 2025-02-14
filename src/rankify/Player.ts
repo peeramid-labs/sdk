@@ -6,6 +6,8 @@ import {
   GetAbiItemParameters,
   ContractFunctionArgs,
   TransactionReceipt,
+  keccak256,
+  encodePacked,
 } from "viem";
 import { getContract } from "../utils/artifacts";
 import instanceAbi from "../abis/RankifyDiamondInstance";
@@ -303,6 +305,42 @@ export default class RankifyPlayer extends InstanceBase {
         gameId: params.gameId,
         encryptedProposal: params.encryptedProposal,
         commitment: params.commitment,
+      },
+      account: this.account,
+    });
+  };
+
+  authorizeVoteSubmission = async (params: {
+    gameId: bigint;
+    vote: bigint[];
+    verifierAddress: Address;
+    playerSalt: Hex;
+    ballotId: string;
+  }) => {
+    const voteTypes = {
+      AuthorizeVoteSubmission: [
+        { name: "gameId", type: "uint256" },
+        { name: "sealedBallotId", type: "string" },
+        { name: "ballotHash", type: "bytes32" },
+      ],
+    };
+    const { gameId, vote, verifierAddress, playerSalt, ballotId } = params;
+    const eip712 = await this.getEIP712Domain();
+
+    const ballotHash: string = keccak256(encodePacked(["uint256[]", "bytes32"], [vote, playerSalt]));
+    return this.walletClient.signTypedData({
+      domain: {
+        name: eip712.name,
+        version: eip712.version,
+        chainId: this.chainId,
+        verifyingContract: verifierAddress,
+      },
+      types: voteTypes,
+      primaryType: "AuthorizeVoteSubmission",
+      message: {
+        gameId,
+        sealedBallotId: ballotId,
+        ballotHash,
       },
       account: this.account,
     });

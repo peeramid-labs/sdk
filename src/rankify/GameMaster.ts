@@ -538,6 +538,7 @@ export class GameMaster {
     instanceAddress,
     gameId,
     vote,
+    turn,
     voter,
     voterSignature,
     ballotHash,
@@ -546,6 +547,7 @@ export class GameMaster {
     gameId: bigint;
     vote: bigint[];
     voter: Address;
+    turn: bigint;
     voterSignature: Hex;
     ballotHash: Hex;
   }) => {
@@ -555,7 +557,14 @@ export class GameMaster {
     const proposerIdx = await this.findPlayerOngoingProposalIndex({ instanceAddress, gameId, player: voter });
     if (proposerIdx == -1) throw new Error("You are not a proposer in this game");
     if (vote[proposerIdx] !== 0n) throw new Error("You cannot vote for your own proposal");
-    const votesHidden = await this.encryptionCallback(JSON.stringify(vote.map((vi) => vi.toString())));
+    const { ballotId, ballotHash: attestedBallotHash } = await this.attestVote({
+      gameId,
+      turn,
+      vote,
+      verifierAddress: instanceAddress,
+      voter,
+    });
+    if (attestedBallotHash !== ballotHash) throw new Error("Ballot hash mismatch");
     if (!this.walletClient?.account?.address) throw new Error("No account address found");
     try {
       const { request } = await this.publicClient.simulateContract({
@@ -563,7 +572,7 @@ export class GameMaster {
         address: instanceAddress,
         abi: RankifyDiamondInstanceAbi,
         functionName: "submitVote",
-        args: [gameId, votesHidden, voter, zeroHash, voterSignature, ballotHash],
+        args: [gameId, ballotId, voter, zeroHash, voterSignature, ballotHash],
       });
       return this.walletClient.writeContract(request);
     } catch (e) {
@@ -784,39 +793,28 @@ export class GameMaster {
       eventName: "VoteSubmitted",
       args: { gameId, turn },
     });
+    logger(`Found ${evts.length} events`);
+    if (evts.length === 0) return [];
 
-    const votes = await Promise.all(
-      evts.map(async (event) => {
-        const playerJoinedEvt = await this.publicClient.getContractEvents({
-          address: instanceAddress,
-          abi: RankifyDiamondInstanceAbi,
-          eventName: "PlayerJoined",
-          args: { gameId, participant: event.args.player },
-        });
-        const latestEvent = playerJoinedEvt
-          .filter((e) => e.blockNumber === event.blockNumber)
-          .sort((a, b) => a.logIndex - b.logIndex)
-          .sort((a, b) => a.transactionIndex - b.transactionIndex)[0];
-        if (!latestEvent.args.voterPubKey) throw new Error("No voterPubKey found in event data, that is unexpected");
+    // Process events one by one to allow errors to propagate
+    const votes = [];
+    for (const event of evts) {
+      if (!event.args.player) throw new Error("No player in event");
+      if (!event.args.sealedBallotId) throw new Error("No sealedBallotId in event");
 
-        if (!event.args.player) throw new Error("No player found in event data, that is unexpected");
-        if (!event.args.sealedBallotId) throw new Error("No sealedBallotId found in event data, that is unexpected");
+      const turnKey = await this.calculateSharedTurnKey({
+        instanceAddress,
+        gameId,
+        turn,
+        player: event.args.player,
+      });
 
-        const turnKey = await this.calculateSharedTurnKey({
-          instanceAddress,
-          gameId,
-          turn,
-          voterPublicKey: latestEvent.args.voterPubKey as Hex,
-        });
-
-        const decryptedVote = this.decryptVote(event.args.sealedBallotId, turnKey);
-        const parsedVotes = JSON.parse(decryptedVote) as string[];
-        return {
-          player: event.args.player,
-          votes: parsedVotes.map((v) => BigInt(v)),
-        };
-      })
-    );
+      const decryptedVotes = await this.decryptVote(event.args.sealedBallotId, turnKey);
+      votes.push({
+        player: event.args.player,
+        votes: decryptedVotes,
+      });
+    }
 
     return votes;
   };
@@ -930,7 +928,7 @@ export class GameMaster {
       const votes = await Promise.all(
         players.map(async (player) => {
           const vote = voteDecrypted.find((v) => v.player === player);
-          if (!vote) return players.map(() => 0n);
+          if (!vote?.votes) return players.map(() => 0n);
           return vote.votes;
         })
       );
@@ -976,46 +974,52 @@ export class GameMaster {
       .then((sig) => keccak256(sig));
   };
 
+  // this.calculateSharedTurnKey({
+  //   instanceAddress,
+  //   gameId,
+  //   turn,
+  //   voterPublicKey: latestEvent.args.voterPubKey as Hex,
+  // });
+
   private calculateSharedTurnKey = async ({
     instanceAddress,
     gameId,
     turn,
-    voterPublicKey,
+    player,
   }: {
     instanceAddress: Address;
     gameId: bigint;
     turn: bigint;
-    voterPublicKey: Hex;
+    player: Address;
   }) => {
     const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
-    const sharedKey = instance.sharedSigner({
-      publicKey: voterPublicKey,
+    const playerPubKey = await instance.getPlayerPubKey({ instanceAddress, gameId, player });
+    logger(`Player public key: ${playerPubKey}`, 2);
+
+    return instance.sharedSigner({
+      publicKey: playerPubKey,
       privateKey: await this.gameKey({ gameId, contractAddress: instanceAddress }),
       gameId,
       turn,
       contractAddress: instanceAddress,
       chainId: this.chainId,
     });
-    const turnKey = instance.pkdf({
-      privateKey: sharedKey,
-      turn,
-      gameId,
-      contractAddress: instanceAddress,
-      chainId: this.chainId,
-    });
-    return turnKey;
   };
 
-  private decryptVote = (vote: string, privateKey: Hex) => {
-    let voteDecrypted;
-    try {
-      voteDecrypted = JSON.parse(aes.decrypt(vote, privateKey).toString(cryptoJs.enc.Utf8));
-      logger(`Decrypted vote:`, 2);
-      logger(voteDecrypted, 2);
-    } catch (e) {
-      console.error("Failed to decrypt vote", e);
+  private decryptVote = async (vote: string, privateKey: Hex): Promise<bigint[]> => {
+    const decrypted = aes.decrypt(vote, privateKey).toString(cryptoJs.enc.Utf8);
+    if (!decrypted) {
+      throw new Error("Failed to decrypt vote");
     }
-    return voteDecrypted;
+
+    try {
+      const parsed = JSON.parse(decrypted) as string[];
+      logger(`Decrypted vote:`, 2);
+      logger(parsed, 2);
+      return parsed.map((v) => BigInt(v));
+    } catch (e) {
+      throw new Error("Unexpected token");
+    }
   };
   /**
    * Creates and signs a vote for testing purposes
@@ -1023,27 +1027,27 @@ export class GameMaster {
    * @returns A complete mock vote with signatures
    */
   attestVote = async ({
-    // voter,
+    voter,
     gameId,
     turn,
     vote,
     verifierAddress,
-    gameSize,
-    name,
-    version,
-    voterPublicKey,
   }: {
     gameId: bigint;
     turn: bigint;
     vote: bigint[];
     verifierAddress: Address;
-    gameSize: number;
-    name: string;
-    version: string;
-    voterPublicKey: Hex;
+    voter: Address;
   }): Promise<VoteAttestation> => {
-    const voter = publicKeyToAddress(voterPublicKey);
     logger(`Attesting vote for player ${voter} in game ${gameId}, turn ${turn}`);
+
+    const gameSize = (await this.getPlayers({ instanceAddress: verifierAddress, gameId })).length;
+    const instance = new InstanceBase({
+      instanceAddress: verifierAddress,
+      publicClient: this.publicClient,
+      chainId: this.chainId,
+    });
+    const eip712 = await instance.getEIP712Domain();
 
     const playerSalt = await this.getTurnPlayersSalt({
       gameId,
@@ -1063,24 +1067,35 @@ export class GameMaster {
       instanceAddress: verifierAddress,
       gameId,
       turn,
-      voterPublicKey,
+      player: voter,
     });
 
-    const ballotId = aes.encrypt(JSON.stringify(ballot.vote), turnKey).toString();
+    const ballotId = aes.encrypt(JSON.stringify(ballot.vote.map((v) => v.toString())), turnKey).toString();
     const gmSignature = await this.signVote({
       verifierAddress,
       voter,
       gameId,
       sealedBallotId: ballotId,
       ballotHash,
-      name,
-      version,
+      name: eip712.name,
+      version: eip712.version,
     });
 
-    const result = { vote, ballotHash, ballot, ballotId, gmSignature };
     logger(`Vote attested for player ${voter} by ${this.walletClient.account?.address}`);
-    logger({ gameId, turn, vote, verifierAddress, gameSize, name, version, voterPublicKey, chainId: this.chainId }, 2);
-    return result;
+    logger(
+      {
+        gameId,
+        turn,
+        vote,
+        verifierAddress,
+        gameSize,
+        name: eip712.name,
+        version: eip712.version,
+        chainId: this.chainId,
+      },
+      2
+    );
+    return { vote, ballotHash, ballot, ballotId, gmSignature };
   };
 
   // Add new function to sign votes

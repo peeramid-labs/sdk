@@ -12,7 +12,7 @@ import {
 import { ApiError, findContractDeploymentBlock, handleRPCError } from "../utils/index";
 import { getSharedSecret } from "@noble/secp256k1";
 
-import instanceAbi from "../abis/RankifyDiamondInstance";
+import instanceAbi, { RankifyDiamondInstanceAbi } from "../abis/RankifyDiamondInstance";
 
 /**
  * Enum representing different states of a game instance
@@ -667,7 +667,11 @@ export default class InstanceBase {
     contractAddress: Address;
     chainId: number;
   }) => {
-    const sharedSecret = getSharedSecret(privateKey, publicKey, true);
+    // Remove '0x' prefix if present
+    const privKeyHex = privateKey.startsWith("0x") ? privateKey.slice(2) : privateKey;
+    const pubKeyHex = publicKey.startsWith("0x") ? publicKey.slice(2) : publicKey;
+
+    const sharedSecret = getSharedSecret(privKeyHex, pubKeyHex, true);
     const sharedKey = keccak256(sharedSecret);
 
     const derivedPrivateKey = this.pkdf({
@@ -678,6 +682,32 @@ export default class InstanceBase {
       chainId,
     });
     return derivedPrivateKey;
+  };
+
+  getPlayerPubKey = async ({
+    instanceAddress,
+    gameId,
+    player,
+  }: {
+    instanceAddress: Address;
+    gameId: bigint;
+    player: Address;
+  }): Promise<Hex> => {
+    const playerJoinedEvt = await this.publicClient.getContractEvents({
+      address: instanceAddress,
+      abi: instanceAbi,
+      eventName: "PlayerJoined",
+      args: { gameId, participant: player },
+    });
+    const latestEvent = playerJoinedEvt
+      .sort((a, b) => Number(a.blockNumber) - Number(b.blockNumber))
+      .sort((a, b) => a.transactionIndex - b.transactionIndex)
+      .sort((a, b) => a.logIndex - b.logIndex)[0];
+    if (!latestEvent.args.voterPubKey) throw new Error("No voterPubKey found in event data, that is unexpected");
+
+    if (!player) throw new Error("No player found in event data, that is unexpected");
+
+    return latestEvent.args.voterPubKey as Hex;
   };
 }
 
