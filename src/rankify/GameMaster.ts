@@ -20,6 +20,8 @@ import { buildPoseidon } from "circomlibjs";
 import aes from "crypto-js/aes";
 import { GmProposalParams, VoteAttestation } from "../types/contracts";
 import cryptoJs from "crypto-js";
+import { CircuitZKit, Groth16Implementer } from "@solarity/zkit";
+import path from "path";
 
 export interface ProposalsIntegrity {
   newProposals: ContractFunctionArgs<typeof RankifyDiamondInstanceAbi, "nonpayable", "endTurn">[2];
@@ -237,7 +239,7 @@ export class GameMaster {
     verifierAddress: Address;
   }): Promise<T[]> => {
     const { permutation } = await this.getPermutation({ gameId, turn, size: array.length, verifierAddress });
-    const permutedArray: T[] = [];
+    const permutedArray: T[] = [...array];
     for (let i = 0; i < array.length; i++) {
       permutedArray[permutation[i]] = array[i];
     }
@@ -258,7 +260,7 @@ export class GameMaster {
     const { permutation } = await this.getPermutation({ gameId, turn, size: permutedArray.length, verifierAddress });
     const originalArray: T[] = [];
     for (let i = 0; i < permutedArray.length; i++) {
-      originalArray[permutation[i]] = permutedArray[i];
+      originalArray[i] = permutedArray[permutation[i]];
     }
     return originalArray;
   };
@@ -650,16 +652,21 @@ export class GameMaster {
     instanceAddress,
     gameId,
     proposal,
-    proposerPubKey,
+    proposer,
     turn,
   }: {
     instanceAddress: Address;
     gameId: bigint;
     proposal: string;
-    proposerPubKey: Hex;
+    proposer: Address;
     turn: bigint;
   }) => {
     const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
+    const proposerPubKey = await instance.getPlayerPubKey({
+      instanceAddress,
+      gameId,
+      player: proposer,
+    });
     const sharedKey = instance.sharedSigner({
       publicKey: proposerPubKey,
       privateKey: await this.gameKey({ gameId, contractAddress: instanceAddress }),
@@ -1177,8 +1184,8 @@ export class GameMaster {
           instanceAddress: verifierAddress,
           gameId,
           proposal: p.proposal,
-          proposerPubKey: p.proposer,
           turn,
+          proposer: p.proposer,
         })
       )
     );
@@ -1201,6 +1208,19 @@ export class GameMaster {
       }
     }
 
+    const config = {
+      circuitName: "ProposalsIntegrity15",
+      // node_modules/rankify-contracts/zk_artifacts
+      circuitArtifactsPath: path.join(
+        "./node_modules/rankify-contracts/zk_artifacts/circuits/proposals_integrity_15.circom/"
+      ),
+      verifierDirPath: path.join(__dirname, "./node_modules/rankify-contracts/src/verifiers"),
+    };
+    const implementer = new Groth16Implementer();
+    const circuit = new CircuitZKit<"groth16">(config, implementer);
+    const proof = await circuit.generateProof(inputs);
+    const callData = await circuit.generateCalldata(proof);
+
     // const circuit = await hre.zkit.getCircuit("ProposalsIntegrity15");
     // const inputsKey = ethers.utils.solidityKeccak256(["string"], [JSON.stringify(inputs) + "groth16"]);
 
@@ -1214,17 +1234,17 @@ export class GameMaster {
     // cached = proof;
     // }
 
-    const proof = "0x00";
+    // const proof = "0x00";
     if (!proof) {
       throw new Error("Proof not found");
     }
+
     // const callData = await circuit.generateCalldata(proof);
-    const a: readonly [bigint, bigint] = [0n, 0n];
-    const b: readonly [readonly [bigint, bigint], readonly [bigint, bigint]] = [
-      [0n, 0n],
-      [0n, 0n],
-    ];
-    const c: readonly [bigint, bigint] = [0n, 0n];
+    const a: readonly [bigint, bigint] = callData[0].map((a) => BigInt(a)) as [bigint, bigint];
+    const b: readonly [readonly [bigint, bigint], readonly [bigint, bigint]] = callData[1].map((b) =>
+      b.map((b) => BigInt(b))
+    ) as unknown as [readonly [bigint, bigint], readonly [bigint, bigint]];
+    const c: readonly [bigint, bigint] = callData[2].map((c) => BigInt(c)) as [bigint, bigint];
     return {
       commitment: inputs.permutationCommitment,
       nullifier,

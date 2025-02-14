@@ -1,11 +1,20 @@
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
-import { type PublicClient, type WalletClient, type GetContractEventsReturnType, type Hex, type Log } from "viem";
+import * as viem from "viem";
+import {
+  type PublicClient,
+  type WalletClient,
+  type GetContractEventsReturnType,
+  type Hex,
+  type Log,
+  type Address,
+} from "viem";
 import { GameMaster } from "../GameMaster";
 import { MOCK_ADDRESSES, MOCK_HASHES, createMockPublicClient, createMockWalletClient } from "../../__tests__/utils";
 import { gameStatusEnum } from "../types";
 import aes from "crypto-js/aes";
 import { RankifyDiamondInstanceAbi } from "../../abis";
 import InstanceBase from "../InstanceBase";
+import { join } from "path";
 
 // Mock viem
 jest.mock("viem", () => ({
@@ -510,6 +519,181 @@ describe("GameMaster", () => {
           turn: 1n,
         })
       ).rejects.toThrow("No account");
+    });
+  });
+
+  describe("proposals integrity", () => {
+    it("should generate valid proposals integrity with real zkit proofs and verify permutations", async () => {
+      // Test with 3 proposals to keep test runtime reasonable
+      const testProposals = [
+        { proposal: "proposal1", proposer: MOCK_ADDRESSES.PLAYER },
+        { proposal: "proposal2", proposer: MOCK_ADDRESSES.GAME_MASTER },
+        { proposal: "proposal3", proposer: "0x3456789012345678901234567890123456789012" as Address },
+      ];
+
+      //mock join game events for the players
+      const joinGameEvents = testProposals.map((p) => ({
+        address: MOCK_ADDRESSES.INSTANCE,
+        blockHash: MOCK_HASHES.BLOCK,
+        blockNumber: 1n,
+        transactionIndex: 0,
+        logIndex: 0,
+        transactionHash: MOCK_HASHES.TRANSACTION,
+        data: "0x" as const,
+        args: {
+          player: p.proposer,
+          voterPubKey: "0x0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798" as Hex,
+        },
+      }));
+      mockGetContractEvents.mockImplementationOnce((p) => Promise.resolve([joinGameEvents[0]]));
+      mockGetContractEvents.mockImplementationOnce((p) => Promise.resolve([joinGameEvents[1]]));
+      mockGetContractEvents.mockImplementationOnce((p) => Promise.resolve([joinGameEvents[2]]));
+
+      const result = await gameMaster.getProposalsIntegrity({
+        size: 3,
+        gameId: 1n,
+        turn: 1n,
+        verifierAddress: MOCK_ADDRESSES.INSTANCE,
+        proposals: testProposals,
+      });
+
+      // Verify structure and types
+      expect(result).toMatchObject({
+        newProposals: {
+          a: expect.any(Array),
+          b: expect.any(Array),
+          c: expect.any(Array),
+          proposals: expect.any(Array),
+          permutationCommitment: expect.any(BigInt),
+        },
+        permutation: expect.any(Array),
+        proposalsNotPermuted: expect.any(Array),
+        nullifier: expect.any(BigInt),
+      });
+
+      // Verify permutation properties
+      expect(result.permutation).toHaveLength(3);
+      expect(result.permutation.every((p) => typeof p === "bigint")).toBe(true);
+      expect(new Set(result.permutation).size).toBe(3); // All elements should be unique
+
+      // Test permuteArray matches the result
+      const permutedByMethod = await gameMaster.permuteArray<string>({
+        array: testProposals.map((p) => p.proposal) as string[],
+        gameId: 1n,
+        turn: 1n, // The permutation is generated with turn - 1n
+        verifierAddress: MOCK_ADDRESSES.INSTANCE,
+      });
+      expect(permutedByMethod).toEqual(result.newProposals.proposals);
+
+      // Test reversePermutation recovers original order
+      const recoveredOrder = await gameMaster.reversePermutation<string>({
+        permutedArray: result.newProposals.proposals as string[],
+        gameId: 1n,
+        turn: 1n, // The permutation is generated with turn - 1n
+        verifierAddress: MOCK_ADDRESSES.INSTANCE,
+      });
+      expect(recoveredOrder).toEqual(testProposals.map((p) => p.proposal));
+
+      // Verify proof structure
+      expect(result.newProposals.a).toHaveLength(2); // Groth16 proof format
+      expect(result.newProposals.b[0]).toHaveLength(2);
+      expect(result.newProposals.b[1]).toHaveLength(2);
+      expect(result.newProposals.c).toHaveLength(2);
+    });
+
+    it("should handle maximum number of proposals and verify permutations", async () => {
+      // Test with max size (15 proposals)
+      const maxProposals = Array.from({ length: 15 }, (_, i) => ({
+        proposal: `proposal${i + 1}`,
+        proposer: `0x${(i + 1).toString().padStart(40, "0")}` as Address,
+      }));
+
+      const joinGameEvents = maxProposals.map((p) => ({
+        address: MOCK_ADDRESSES.INSTANCE,
+        blockHash: MOCK_HASHES.BLOCK,
+        blockNumber: 1n,
+        transactionIndex: 0,
+        logIndex: 0,
+        transactionHash: MOCK_HASHES.TRANSACTION,
+        data: "0x" as const,
+        args: {
+          player: p.proposer,
+          voterPubKey: "0x0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798" as Hex,
+        },
+      }));
+
+      mockGetContractEvents.mockImplementation((p) => Promise.resolve([joinGameEvents[0]]));
+
+      const result = await gameMaster.getProposalsIntegrity({
+        size: 15,
+        gameId: 1n,
+        turn: 1n,
+        verifierAddress: MOCK_ADDRESSES.INSTANCE,
+        proposals: maxProposals,
+      });
+
+      // Verify permutation size
+      expect(result.permutation).toHaveLength(15);
+      expect(new Set(result.permutation).size).toBe(15); // All elements should be unique
+
+      // Test permuteArray matches the result
+      const permutedByMethod = await gameMaster.permuteArray<string>({
+        array: maxProposals.map((p) => p.proposal) as string[],
+        gameId: 1n,
+        turn: 1n, // The permutation is generated with turn - 1n
+        verifierAddress: MOCK_ADDRESSES.INSTANCE,
+      });
+      expect(permutedByMethod).toEqual(result.newProposals.proposals);
+
+      // Test reversePermutation recovers original order
+      const recoveredOrder = await gameMaster.reversePermutation<string>({
+        permutedArray: result.newProposals.proposals as string[],
+        gameId: 1n,
+        turn: 1n, // The permutation is generated with turn - 1n
+        verifierAddress: MOCK_ADDRESSES.INSTANCE,
+      });
+      expect(recoveredOrder).toEqual(maxProposals.map((p) => p.proposal));
+
+      // Verify that permuted proposals contain all original proposals
+      const sortedOriginal = Array.from(maxProposals.map((p) => p.proposal)).sort();
+      const sortedPermuted = Array.from(result.newProposals.proposals).sort();
+      expect(sortedPermuted).toEqual(sortedOriginal);
+    });
+
+    it("should maintain permutation consistency across multiple calls", async () => {
+      const testProposals = [
+        { proposal: "proposal1", proposer: MOCK_ADDRESSES.PLAYER },
+        { proposal: "proposal2", proposer: MOCK_ADDRESSES.GAME_MASTER },
+        { proposal: "proposal3", proposer: "0x3456789012345678901234567890123456789012" as Address },
+      ];
+
+      // Get permutation results from multiple methods
+      const integrityResult = await gameMaster.getProposalsIntegrity({
+        size: 3,
+        gameId: 1n,
+        turn: 1n,
+        verifierAddress: MOCK_ADDRESSES.INSTANCE,
+        proposals: testProposals,
+      });
+
+      const permutedArray1 = await gameMaster.permuteArray<string>({
+        array: testProposals.map((p) => p.proposal) as string[],
+        gameId: 1n,
+        turn: 1n,
+        verifierAddress: MOCK_ADDRESSES.INSTANCE,
+      });
+
+      const permutedArray2 = await gameMaster.permuteArray<string>({
+        array: testProposals.map((p) => p.proposal) as string[],
+        gameId: 1n,
+        turn: 1n,
+        verifierAddress: MOCK_ADDRESSES.INSTANCE,
+      });
+
+      // Verify all permutations are consistent
+      expect(permutedArray1).toEqual(integrityResult.newProposals.proposals);
+      expect(permutedArray2).toEqual(integrityResult.newProposals.proposals);
+      expect(permutedArray1).toEqual(permutedArray2);
     });
   });
 

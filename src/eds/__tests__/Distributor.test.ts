@@ -105,7 +105,9 @@ describe("DistributorClient", () => {
       // eslint-disable-next-line
       mockGetContract.mockReturnValue(mockContract as any);
 
-      const result = await distributor.getInstances("0x123");
+      const result = await distributor.getInstances(
+        "0x0000000000000000000000000000000000000000000000000000000000000001"
+      );
       expect(result).toEqual([
         { addresses: mockInstances[0], version: 1n, newInstanceId: 1n },
         { addresses: mockInstances[1], version: 1n, newInstanceId: 2n },
@@ -117,7 +119,7 @@ describe("DistributorClient", () => {
       });
       expect(mockContract.getEvents.Instantiated).toHaveBeenCalledWith(
         {
-          distributionId: "0x123",
+          distributionId: "0x0000000000000000000000000000000000000000000000000000000000000001",
         },
         { fromBlock: 1n, toBlock: "latest" }
       );
@@ -151,7 +153,10 @@ describe("DistributorClient", () => {
       // eslint-disable-next-line
       mockGetContract.mockReturnValue(mockContract as any);
 
-      const result = await distributor.getInstance("0x123", 1n);
+      const result = await distributor.getInstance(
+        "0x0000000000000000000000000000000000000000000000000000000000000001",
+        1n
+      );
       expect(result).toEqual(mockInstance);
       expect(mockGetContract).toHaveBeenCalledWith({
         address: mockDistributorAddress,
@@ -160,7 +165,7 @@ describe("DistributorClient", () => {
       });
       expect(mockContract.getEvents.Instantiated).toHaveBeenCalledWith(
         {
-          distributionId: "0x123",
+          distributionId: "0x0000000000000000000000000000000000000000000000000000000000000001",
           newInstanceId: 1n,
         },
         { fromBlock: 1n, toBlock: "latest" }
@@ -205,8 +210,10 @@ describe("DistributorClient", () => {
       // eslint-disable-next-line
       mockGetContract.mockReturnValue(mockContract as any);
 
-      await expect(distributor.getInstance("0x123", 1n)).rejects.toThrow(
-        "Multiple instances found for distributor 0x123 and instance 1"
+      await expect(
+        distributor.getInstance("0x0000000000000000000000000000000000000000000000000000000000000001", 1n)
+      ).rejects.toThrow(
+        "Multiple instances found for distributor 0x0000000000000000000000000000000000000000000000000000000000000001 and instance 1"
       );
     });
 
