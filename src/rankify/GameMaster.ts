@@ -425,7 +425,11 @@ export class GameMaster {
     return orderedProposals.findIndex((p) => p.proposer === player);
   };
 
-  validateJoinGame = async (props: {gameId: bigint; participant: Address; instanceAddress: Address;}): Promise<{ result: boolean; errorMessage: string }> => {
+  validateJoinGame = async (props: {
+    gameId: bigint;
+    participant: Address;
+    instanceAddress: Address;
+  }): Promise<{ result: boolean; errorMessage: string }> => {
     const { gameId, participant, instanceAddress } = props;
     try {
       const baseInstance = new InstanceBase({
@@ -1018,7 +1022,8 @@ export class GameMaster {
       logger(`Decrypted vote:`, 2);
       logger(parsed, 2);
       return parsed.map((v) => BigInt(v));
-    } catch (e) {
+      // eslint-disable-next-line
+    } catch (e: any) {
       throw new Error("Unexpected token");
     }
   };

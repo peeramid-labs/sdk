@@ -1,9 +1,7 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { type PublicClient, type GetContractEventsReturnType, type Hex } from "viem";
 import InstanceBase from "../InstanceBase";
-import { gameStatusEnum } from "../types";
 import { MOCK_ADDRESSES, MOCK_HASHES, createMockPublicClient } from "../../__tests__/utils";
-import { getSharedSecret } from "@noble/secp256k1";
 
 // Mock viem
 jest.mock("viem", () => ({

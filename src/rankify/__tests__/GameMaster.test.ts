@@ -88,40 +88,6 @@ const mockWalletClient = createMockWalletClient({
   signMessage: mockSignMessage,
 });
 
-interface SharedSignerParams {
-  publicKey: Hex;
-  privateKey: Hex;
-  gameId: bigint;
-  turn: bigint;
-  contractAddress: string;
-  chainId: number;
-}
-
-interface GetPlayerPubKeyParams {
-  instanceAddress: string;
-  gameId: bigint;
-  player: string;
-}
-
-type MockedInstanceBase = {
-  sharedSigner: jest.MockedFunction<
-    (params: {
-      publicKey: Hex;
-      privateKey: Hex;
-      gameId: bigint;
-      turn: bigint;
-      contractAddress: string;
-      chainId: number;
-    }) => Hex
-  >;
-  getPlayerPubKey: jest.MockedFunction<
-    (params: { instanceAddress: string; gameId: bigint; player: string }) => Promise<Hex>
-  >;
-};
-
-const mockSharedKey = "0x0123456789abcdef" as const;
-const mockPubKey = "0x0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798" as const;
-
 // Test vectors from secp256k1 test suite
 const mockPrivateKey = "0000000000000000000000000000000000000000000000000000000000000001";
 const mockPublicKey = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";

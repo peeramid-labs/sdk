@@ -12,7 +12,7 @@ import {
 import { ApiError, findContractDeploymentBlock, handleRPCError } from "../utils/index";
 import { getSharedSecret } from "@noble/secp256k1";
 import { gameStatusEnum } from "./types";
-import instanceAbi, { RankifyDiamondInstanceAbi } from "../abis/RankifyDiamondInstance";
+import instanceAbi from "../abis/RankifyDiamondInstance";
 
 interface GameState extends ContractFunctionReturnType<typeof instanceAbi, "view", "getGameState"> {
   joinRequirements: ContractFunctionReturnType<typeof instanceAbi, "view", "getJoinRequirements">;

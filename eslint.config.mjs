@@ -1,46 +1,74 @@
 import js from "@eslint/js";
-import tseslint from "typescript-eslint";
+import * as parser from "@typescript-eslint/parser";
+import * as pluginTs from "@typescript-eslint/eslint-plugin";
+import globals from "globals";
+import jestPlugin from "eslint-plugin-jest";
 import prettierConfig from "eslint-config-prettier";
 
-export default tseslint.config(
+export default [
   js.configs.recommended,
-  ...tseslint.configs.recommended,
-  prettierConfig,
   {
-    // Base configuration for all files
     ignores: ["**/node_modules/**", "**/dist/**", "src/abis/*.ts", "scripts", "copyPackageFile.js"],
   },
   {
-    plugins: {
-      "@typescript-eslint": tseslint.plugin,
-    },
-    // TypeScript files configuration
     files: ["**/*.ts"],
     languageOptions: {
+      parser: parser,
       parserOptions: {
         project: ["./tsconfig.json", "./tsconfig.test.json"],
         tsconfigRootDir: ".",
       },
+      globals: {
+        ...globals.node,
+        ...globals.browser,
+      },
+    },
+    plugins: {
+      "@typescript-eslint": pluginTs,
+      jest: jestPlugin,
     },
     rules: {
+      ...pluginTs.configs.recommended.rules,
+      ...jestPlugin.configs.recommended.rules,
       "@typescript-eslint/no-unused-vars": "warn",
       "@typescript-eslint/no-unsafe-member-access": "off",
       "@typescript-eslint/no-unsafe-call": "off",
       "@typescript-eslint/await-thenable": "warn",
       "@typescript-eslint/no-unsafe-assignment": "off",
       "@typescript-eslint/no-require-imports": "off",
+      "no-undef": "error",
     },
   },
   {
-    // JavaScript files configuration
+    files: ["**/__tests__/**/*.ts", "**/*.test.ts"],
+    languageOptions: {
+      globals: {
+        ...globals.jest,
+      },
+    },
+    rules: {
+      ...jestPlugin.configs.recommended.rules,
+    },
+  },
+  {
+    // Override for test utilities files
+    files: ["**/test-utils.ts", "**/test-helpers.ts", "src/__tests__/utils.ts"],
+    rules: {
+      "jest/no-export": "off",
+    },
+  },
+  {
     files: ["**/*.js", "**/*.mjs", "**/*.cjs"],
     ignores: ["src/**/*.ts", "**/node_modules/**", "**/dist/**"],
-    extends: [tseslint.configs.disableTypeChecked],
     languageOptions: {
       sourceType: "module",
+      globals: {
+        ...globals.node,
+      },
     },
     rules: {
       // Add JavaScript-specific rules here if needed
     },
-  }
-);
+  },
+  prettierConfig,
+];

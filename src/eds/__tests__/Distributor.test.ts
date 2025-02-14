@@ -1,6 +1,6 @@
 import { describe, expect, test, jest } from "@jest/globals";
 import * as viem from "viem";
-import { type Address } from "viem";
+import { GetContractEventsReturnType, type Address } from "viem";
 import { DistributorAbi } from "../../abis/Distributor";
 import { DistributorClient } from "../Distributor";
 
@@ -32,18 +32,24 @@ describe("DistributorClient", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Setup default mock for getContract
-    mockGetContract.mockImplementation(() => ({
+    // eslint-disable-next-line
+    (mockGetContract as any).mockImplementation(() => ({
       getEvents: {
-        Instantiated: jest.fn().mockResolvedValue([]),
+        // eslint-disable-next-line
+        Instantiated: jest
+          .fn<() => Promise<GetContractEventsReturnType<typeof DistributorAbi, "Instantiated">>>()
+          .mockResolvedValue([]),
       },
     }));
     // Setup default mock for readContract
-    mockReadContract.mockResolvedValue([]);
+    // eslint-disable-next-line
+    (mockReadContract as any).mockResolvedValue([]);
   });
 
   describe("getDistributions", () => {
     test("should return distributions", async () => {
-      mockReadContract.mockResolvedValueOnce([1n, 2n, 3n]);
+      // eslint-disable-next-line
+      (mockReadContract as any).mockResolvedValueOnce([1n, 2n, 3n]);
 
       const result = await distributor.getDistributions();
       expect(result.map((v) => v.toString())).toEqual(["1", "2", "3"]);
@@ -96,7 +102,8 @@ describe("DistributorClient", () => {
             .mockResolvedValue(resolved),
         },
       };
-      mockGetContract.mockReturnValue(mockContract);
+      // eslint-disable-next-line
+      mockGetContract.mockReturnValue(mockContract as any);
 
       const result = await distributor.getInstances("0x123");
       expect(result).toEqual([
@@ -141,7 +148,8 @@ describe("DistributorClient", () => {
             ]),
         },
       };
-      mockGetContract.mockReturnValue(mockContract);
+      // eslint-disable-next-line
+      mockGetContract.mockReturnValue(mockContract as any);
 
       const result = await distributor.getInstance("0x123", 1n);
       expect(result).toEqual(mockInstance);
@@ -194,7 +202,8 @@ describe("DistributorClient", () => {
             ]),
         },
       };
-      mockGetContract.mockReturnValue(mockContract);
+      // eslint-disable-next-line
+      mockGetContract.mockReturnValue(mockContract as any);
 
       await expect(distributor.getInstance("0x123", 1n)).rejects.toThrow(
         "Multiple instances found for distributor 0x123 and instance 1"
@@ -202,7 +211,8 @@ describe("DistributorClient", () => {
     });
 
     test("should throw error when no instances found", async () => {
-      mockGetContract.mockReturnValueOnce({
+      // eslint-disable-next-line
+      (mockGetContract as any).mockReturnValueOnce({
         getEvents: {
           Instantiated: jest
             .fn<() => Promise<GetContractEventsReturnType<typeof DistributorAbi, "Instantiated">>>()
@@ -243,7 +253,8 @@ describe("DistributorClient", () => {
             ]),
         },
       };
-      mockGetContract.mockReturnValue(mockContract);
+      // eslint-disable-next-line
+      mockGetContract.mockReturnValue(mockContract as any);
 
       const result = await distributor.getNamedDistributionInstances({ namedDistribution: "test" });
       expect(result).toEqual(mockInstances);
@@ -279,7 +290,8 @@ describe("DistributorClient", () => {
             ]),
         },
       };
-      mockGetContract.mockReturnValue(mockContract);
+      // eslint-disable-next-line
+      mockGetContract.mockReturnValue(mockContract as any);
 
       const result = await distributor.getNamedDistributionInstance("test", 1n);
       expect(result).toEqual(mockInstances);

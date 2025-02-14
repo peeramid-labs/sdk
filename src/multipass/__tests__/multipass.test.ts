@@ -13,9 +13,9 @@ jest.mock("../../utils", () => ({
 
 import { describe, expect, test, jest } from "@jest/globals";
 import Multipass from "../Registrar";
-import { createPublicClient, createWalletClient, Hex, type WalletClient } from "viem";
 import { RegisterMessage } from "../../types";
 import { MOCK_ADDRESSES, createMockPublicClient, createMockWalletClient } from "../../__tests__/utils";
+import { Hex, WalletClient } from "viem";
 
 // Mock viem
 const mockCreatePublicClient = jest.fn();
