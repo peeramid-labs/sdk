@@ -23,6 +23,10 @@ const copyPackageFile = () => {
     import: "./lib.esm/index.js",
     default: "./lib.esm/index.js",
   };
+  if (packageJson.dependencies["rankify-contracts"].startsWith("file")) {
+    const split = packageJson.dependencies["rankify-contracts"].split("file:");
+    packageJson.dependencies["rankify-contracts"] = `file:../${split[1]}`;
+  }
   const tsconfig = require("../tsconfig.json");
   writeFileSync(path.join(tsconfig.compilerOptions.outDir, "package.json"), JSON.stringify(packageJson, null, 2));
 };
