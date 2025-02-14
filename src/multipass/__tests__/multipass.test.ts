@@ -18,16 +18,19 @@ import { RegisterMessage } from "../../types";
 import { MOCK_ADDRESSES, createMockPublicClient, createMockWalletClient } from "../../__tests__/utils";
 
 // Mock viem
+const mockCreatePublicClient = jest.fn();
+const mockCreateWalletClient = jest.fn();
+
 jest.mock("viem", () => ({
   ...(jest.requireActual("viem") as object),
   getContract: jest.fn(),
-  createPublicClient: jest.fn(),
-  createWalletClient: jest.fn(),
+  createPublicClient: mockCreatePublicClient,
+  createWalletClient: mockCreateWalletClient,
   http: jest.fn(),
 }));
 
 describe("Multipass", () => {
-  const mockChainId = 1;
+  const mockChainId = 97113;
   const mockPublicClient = createMockPublicClient({
     request: jest.fn(),
     readContract: jest.fn(),
@@ -41,8 +44,8 @@ describe("Multipass", () => {
     signTypedData: mockSignTypedData,
   });
 
-  (createPublicClient as jest.Mock).mockReturnValue(mockPublicClient);
-  (createWalletClient as jest.Mock).mockReturnValue(mockWalletClient);
+  mockCreatePublicClient.mockReturnValue(mockPublicClient);
+  mockCreateWalletClient.mockReturnValue(mockWalletClient);
 
   const multipass = new Multipass({
     chainId: mockChainId,
@@ -88,8 +91,8 @@ describe("Multipass", () => {
       expect(mockSignTypedData).toHaveBeenCalledWith({
         account: mockWalletClient.account,
         domain: {
-          name: "TestMultipass",
-          version: "1.0.0",
+          name: "MultipassDNS",
+          version: "0.0.1",
           chainId: mockChainId,
           verifyingContract: verifierAddress,
         },

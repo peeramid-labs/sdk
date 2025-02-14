@@ -37,14 +37,6 @@ jest.mock("../../utils/artifacts", () => ({
   }),
 }));
 
-// Mock the chain mapping
-jest.mock("../../utils/chainMapping", () => ({
-  getChainPath: jest.fn().mockReturnValue("localhost"),
-  chainToPath: {
-    42161: "localhost",
-  },
-}));
-
 // Create mock functions with correct return types
 const mockReadContract = jest.fn(() => Promise.resolve(0n));
 const mockSimulateContract = jest.fn(() => Promise.resolve({ request: {} }));
@@ -68,6 +60,7 @@ const mockPublicClient = {
   getContractEvents: mockGetContractEvents,
   getBlockNumber: jest.fn(() => Promise.resolve(1000n)),
   getBytecode: jest.fn(({ blockNumber }) => Promise.resolve(blockNumber >= 100n ? "0x1234" : "0x")),
+  chain: { id: 97113 },
 } as unknown as PublicClient;
 
 const mockWalletClient = {
@@ -79,7 +72,7 @@ const mockWalletClient = {
 
 const mockInstanceAddress = "0x456" as Address;
 const mockAccount = "0x789" as Address;
-const mockChainId = 42161; // Arbitrum One chain ID
+const mockChainId = 97113; // Arbitrum One chain ID
 
 describe("RankifyPlayer", () => {
   let player: RankifyPlayer;

@@ -4,10 +4,23 @@ import { SUBMISSION_TYPES, CONTENT_STORAGE, FellowshipMetadata } from "../../typ
 import { createPublicClient, http } from "viem";
 import { mainnet } from "viem/chains";
 
+// Mock fetch globally
+global.fetch = jest.fn(() =>
+  Promise.resolve(
+    new Response(JSON.stringify({}), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    })
+  )
+);
+
 describe("RankTokenClient", () => {
   let rankToken: RankTokenClient;
   let mockFetch: jest.Mock;
-
+  // Clean up mocks after each test
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
   beforeEach(() => {
     // Create a new instance before each test
     const publicClient = createPublicClient({
