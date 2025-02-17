@@ -9,7 +9,7 @@ import {
 } from "viem";
 import { GameMaster } from "../GameMaster";
 import { MOCK_ADDRESSES, MOCK_HASHES, createMockPublicClient, createMockWalletClient } from "../../__tests__/utils";
-import { gameStatusEnum } from "../types";
+import { gameStatusEnum } from "../../types";
 import aes from "crypto-js/aes";
 import { RankifyDiamondInstanceAbi } from "../../abis";
 import InstanceBase from "../InstanceBase";

@@ -11,7 +11,7 @@ import {
 } from "viem";
 import { ApiError, findContractDeploymentBlock, handleRPCError } from "../utils/index";
 import { getSharedSecret } from "@noble/secp256k1";
-import { gameStatusEnum } from "./types";
+import { gameStatusEnum } from "../types";
 import instanceAbi from "../abis/RankifyDiamondInstance";
 
 interface GameState extends ContractFunctionReturnType<typeof instanceAbi, "view", "getGameState"> {

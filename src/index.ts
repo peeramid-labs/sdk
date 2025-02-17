@@ -18,7 +18,6 @@ export * from "./rankify/MAODistributor";
 export { default as RankTokenClient } from "./rankify/RankToken";
 
 // Type exports
-export { gameStatusEnum } from "./rankify/InstanceBase";
 export { type MAOInstances } from "./types/contracts";
 
 // Re-export the abis object
