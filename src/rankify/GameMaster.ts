@@ -414,15 +414,18 @@ export class GameMaster {
       const evt = endedEvents[0];
       if (endedEvents.length > 1) throw new Error("Multiple turns ended");
       const args = evt.args;
+      args.newProposals = args?.newProposals?.slice(0, args?.players?.length);
       const decryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn: turn - 1n });
       if (args.newProposals) {
         args.newProposals.forEach((proposal, idx) => {
-          const proposer = decryptedProposals.find((p) => p.proposal === proposal)?.proposer;
-          if (!proposer) throw new Error("No proposer found for proposal");
-          oldProposals[idx] = {
-            proposer,
-            proposal: proposal,
-          };
+          if (proposal !== "") {
+            const proposer = decryptedProposals.find((p) => p.proposal === proposal)?.proposer;
+            if (!proposer) throw new Error("No proposer found for proposal");
+            oldProposals[idx] = {
+              proposer,
+              proposal: proposal,
+            };
+          }
         });
       } else {
         const _players = await this.publicClient.readContract({

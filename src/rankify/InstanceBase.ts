@@ -80,6 +80,7 @@ export default class InstanceBase {
         turn: turnId,
       },
     });
+    logs[0].args.newProposals = logs[0].args?.newProposals?.slice(0, logs[0].args?.players?.length);
 
     if (logs.length !== 1) {
       console.error("getHistoricTurn", gameId, turnId, "failed:", logs.length);
@@ -198,6 +199,7 @@ export default class InstanceBase {
         eventName: "TurnEnded",
         args: { turn: currentTurn - 1n, gameId },
       });
+      lastTurnEndedEvent[0].args.newProposals = lastTurnEndedEvent[0]?.args?.newProposals?.slice(0, lastTurnEndedEvent[0]?.args?.players?.length);
 
       if (lastTurnEndedEvent.length !== 1) {
         console.error("getOngoingProposals", gameId, "failed:", lastTurnEndedEvent.length);

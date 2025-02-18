@@ -18,7 +18,7 @@ export * from "./rankify/MAODistributor";
 export { default as RankTokenClient } from "./rankify/RankToken";
 
 // Type exports
-export { type MAOInstances } from "./types/contracts";
+export { type MAOInstances, type GmProposalParams } from "./types/contracts";
 
 // Re-export the abis object
 export { abis } from "./abis/index";
