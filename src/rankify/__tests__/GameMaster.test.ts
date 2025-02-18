@@ -7,13 +7,10 @@ import {
   type Log,
   type Address,
 } from "viem";
-import { GameMaster } from "../GameMaster";
 import { MOCK_ADDRESSES, MOCK_HASHES, createMockPublicClient, createMockWalletClient } from "../../__tests__/utils";
 import { gameStatusEnum } from "../../types";
 import aes from "crypto-js/aes";
 import { RankifyDiamondInstanceAbi } from "../../abis";
-import InstanceBase from "../InstanceBase";
-
 // Mock viem
 jest.mock("viem", () => ({
   ...(jest.requireActual("viem") as object),
@@ -26,18 +23,23 @@ jest.mock("viem", () => ({
 }));
 
 // Mock InstanceBase
+// Test vectors from secp256k1 test suite
+const mockPrivateKey = "0000000000000000000000000000000000000000000000000000000000000001";
+
+const mockPublicKey = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
 const mockSharedSigner = jest.fn().mockImplementation(() => "0x0123456789abcdef" as Hex);
 const mockGetPlayerPubKey = jest.fn().mockImplementation(async () => `0x${mockPublicKey}` as Hex);
-
 jest.mock("../InstanceBase", () => {
   return {
     __esModule: true,
-    default: jest.fn(() => ({
-      sharedSigner: mockSharedSigner,
-      getPlayerPubKey: mockGetPlayerPubKey,
-    })),
+    default: MockInstanceBase,
   };
 });
+
+class MockInstanceBase {
+  sharedSigner = mockSharedSigner;
+  getPlayerPubKey = mockGetPlayerPubKey;
+}
 
 // Create mock functions with correct return types
 const mockReadContract = jest.fn(
@@ -95,9 +97,9 @@ const mockWalletClient = createMockWalletClient({
   signMessage: mockSignMessage,
 });
 
-// Test vectors from secp256k1 test suite
-const mockPrivateKey = "0000000000000000000000000000000000000000000000000000000000000001";
-const mockPublicKey = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
+import InstanceBase from "../InstanceBase";
+import { GameMaster } from "../GameMaster";
+import { publicKeyToAddress } from "viem/accounts";
 
 describe("GameMaster", () => {
   let gameMaster: GameMaster;
@@ -108,12 +110,6 @@ describe("GameMaster", () => {
       walletClient: mockWalletClient as WalletClient,
       publicClient: mockPublicClient as PublicClient,
       chainId: 1,
-      encryptionCallback: jest.fn((data: string) => Promise.resolve("encrypted_" + data)),
-      decryptionCallback: jest.fn((data: string) => {
-        return Promise.resolve(data === "encrypted_test_proposal" ? "test_proposal" : data.split("_")[1]);
-      }),
-      randomnessCallback: jest.fn(() => Promise.resolve(0.1)),
-      turnSaltCallback: jest.fn(() => Promise.resolve("0x123" as `0x${string}`)),
     });
   });
 
@@ -131,14 +127,39 @@ describe("GameMaster", () => {
           removed: false,
           topics: [] as [`0x${string}`, ...`0x${string}`[]] | [],
           args: {
-            encryptedProposal: "encrypted_test_proposal",
-            proposer: MOCK_ADDRESSES.PLAYER,
+            encryptedProposal: await gameMaster.encryptProposal({
+              proposal: "test_proposal",
+              turn: 1n,
+              instanceAddress: MOCK_ADDRESSES.INSTANCE,
+              gameId: 1n,
+              proposerPubKey: ("0x" + mockPublicKey) as Hex,
+            }).then((encryptedProposal) => encryptedProposal.encryptedProposal),
+            proposer: publicKeyToAddress(`0x${mockPublicKey}`) as Hex as Address,
             gameId: 1n,
             turn: 1n,
           },
         },
       ];
+
+      //mock join game events for the players
+      const joinGameEvent = {
+        address: MOCK_ADDRESSES.INSTANCE,
+        blockHash: MOCK_HASHES.BLOCK,
+        blockNumber: 1n,
+        transactionIndex: 0,
+        logIndex: 0,
+        transactionHash: MOCK_HASHES.TRANSACTION,
+        data: "0x" as const,
+        args: {
+          player: MOCK_ADDRESSES.PLAYER,
+          voterPubKey: ("0x" + mockPublicKey) as Hex,
+        },
+      };
+      // eslint-disable-next-line
       mockGetContractEvents.mockResolvedValueOnce(mockEvents);
+
+      // eslint-disable-next-line
+      mockGetContractEvents.mockResolvedValueOnce([joinGameEvent] as any);
 
       const result = await gameMaster.decryptProposals({
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
@@ -147,10 +168,11 @@ describe("GameMaster", () => {
       });
       expect(result).toEqual([
         {
-          proposer: MOCK_ADDRESSES.PLAYER,
+          proposer: publicKeyToAddress(`0x${mockPublicKey}`) as Hex as Address,
           proposal: "test_proposal",
         },
       ]);
+      mockGetContractEvents.mockClear();
     });
 
     it("should return empty array when no proposals exist", async () => {
@@ -198,12 +220,6 @@ describe("GameMaster", () => {
         walletClient: mockWalletClient,
         publicClient: mockPublicClient as PublicClient,
         chainId: 1,
-        encryptionCallback: jest.fn((data: string) => Promise.resolve("encrypted_" + data)),
-        decryptionCallback: jest.fn((data: string) => {
-          return Promise.resolve(data === "encrypted_test_proposal" ? "test_proposal" : data.split("_")[1]);
-        }),
-        randomnessCallback: jest.fn(() => Promise.resolve(0.1)),
-        turnSaltCallback: jest.fn(() => Promise.resolve("0x123" as `0x${string}`)),
       });
 
       const result = await gameMasterWithMockedWallet.signJoiningGame({
@@ -502,10 +518,6 @@ describe("GameMaster", () => {
         walletClient: { ...mockWalletClient, account: undefined } as WalletClient,
         publicClient: mockPublicClient as PublicClient,
         chainId: 1,
-        encryptionCallback: jest.fn(() => Promise.resolve("encrypted_test")),
-        decryptionCallback: jest.fn(() => Promise.resolve("decrypted_test")),
-        randomnessCallback: jest.fn(() => Promise.resolve(0.5)),
-        turnSaltCallback: jest.fn(() => Promise.resolve("0x123" as `0x${string}`)),
       });
 
       await expect(

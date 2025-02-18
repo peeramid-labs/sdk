@@ -55,10 +55,6 @@ interface JoinGameProps {
 export class GameMaster {
   walletClient: WalletClient;
   publicClient: PublicClient;
-  encryptionCallback: (data: string) => Promise<string>;
-  decryptionCallback: (data: string) => Promise<string>;
-  randomnessCallback: () => Promise<number>;
-  turnSaltCallback: ({ gameId, turn }: { gameId: bigint; turn: bigint }) => Promise<Hex>;
   chainId: number;
   /**
    * Creates a new GameMaster instance
@@ -66,36 +62,65 @@ export class GameMaster {
    * @param walletClient - Viem wallet client for transactions
    * @param publicClient - Viem public client for reading state
    * @param chainId - Chain ID of the network
-   * @param encryptionCallback - Callback function for encrypting data
-   * @param decryptionCallback - Callback function for decrypting data
-   * @param randomnessCallback - Callback function for generating random numbers
-   * @param turnSaltCallback - Callback function for generating turn salts
    */
   constructor({
     walletClient,
     chainId,
     publicClient,
-    encryptionCallback,
-    decryptionCallback,
-    randomnessCallback,
-    turnSaltCallback,
   }: {
     walletClient: WalletClient;
     publicClient: PublicClient;
     chainId: number;
-    encryptionCallback: (data: string) => Promise<string>;
-    decryptionCallback: (data: string) => Promise<string>;
-    randomnessCallback: () => Promise<number>;
-    turnSaltCallback: ({ gameId, turn }: { gameId: bigint; turn: bigint }) => Promise<Hex>;
   }) {
     this.chainId = chainId;
     this.publicClient = publicClient;
     this.walletClient = walletClient;
-    this.encryptionCallback = encryptionCallback;
-    this.decryptionCallback = decryptionCallback;
-    this.randomnessCallback = randomnessCallback;
-    this.turnSaltCallback = turnSaltCallback;
   }
+
+  /**
+   * Decrypts a proposal for a specific game turn
+   * @param proposal - The encrypted proposal
+   * @param turn - The turn number
+   * @param instanceAddress - The address of the instance
+   * @param gameId - The ID of the game
+   * @param proposer - The address of the proposer
+   * @returns The decrypted proposal
+   */
+  decryptProposal = async ({
+    proposal,
+    turn,
+    instanceAddress,
+    gameId,
+    proposer,
+    instance,
+  }: {
+    proposal: string;
+    turn: bigint;
+    instanceAddress: Address;
+    proposer: Address;
+    gameId: bigint;
+    instance?: InstanceBase;
+  }) => {
+    const _instance =
+      instance ?? new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
+    const proposerPubKey = await _instance.getPlayerPubKey({
+      instanceAddress,
+      gameId,
+      player: proposer,
+    });
+    const sharedKey = _instance.sharedSigner({
+      publicKey: proposerPubKey,
+      privateKey: await this.gameKey({ gameId, contractAddress: instanceAddress }),
+      gameId,
+      turn,
+      contractAddress: instanceAddress,
+      chainId: this.chainId,
+    });
+    logger(`Decrypting proposal ${proposal} with shared key (hashed value: ${keccak256(sharedKey)})`);
+    const encryptedProposal = aes.decrypt(proposal, sharedKey).toString(cryptoJs.enc.Utf8);
+    logger(`Decrypted proposal ${encryptedProposal}`);
+    return encryptedProposal;
+  };
 
   /**
    * Decrypts proposals for a specific game turn
@@ -121,16 +146,24 @@ export class GameMaster {
       eventName: "ProposalSubmitted",
       args: { gameId: gameId, turn: turn, proposer: proposer },
     });
-
+    const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
     if (evts.length == 0) return [];
-
+    logger(`Decrypting ${evts.length} proposals`);
     const proposals = await Promise.all(
       evts.map(async (log) => {
+        logger(`Decrypting proposal ${log.args.proposer}`);
         if (!log.args.proposer) throw new Error("No proposer");
         if (!log.args.encryptedProposal) throw new Error("No proposalEncryptedByGM");
         return {
           proposer: log.args.proposer,
-          proposal: await this.decryptionCallback(log.args.encryptedProposal),
+          proposal: await this.decryptProposal({
+            proposal: log.args.encryptedProposal,
+            turn: turn,
+            instanceAddress: instanceAddress,
+            gameId: gameId,
+            proposer: log.args.proposer,
+            instance,
+          }),
         };
       })
     );
@@ -686,6 +719,34 @@ export class GameMaster {
     };
   };
 
+  encryptProposal = async ({
+    proposal,
+    turn,
+    instanceAddress,
+    gameId,
+    proposerPubKey,
+  }: {
+    proposal: string;
+    turn: bigint;
+    instanceAddress: Address;
+    gameId: bigint;
+    proposerPubKey: Hex;
+  }) => {
+    const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
+    const sharedKey = instance.sharedSigner({
+      publicKey: proposerPubKey,
+      privateKey: await this.gameKey({ gameId, contractAddress: instanceAddress }),
+      gameId,
+      turn,
+      contractAddress: instanceAddress,
+      chainId: this.chainId,
+    });
+    logger(`Encrypting proposal ${proposal} with shared key (hashed value: ${keccak256(sharedKey)})`);
+    const encryptedProposal = aes.encrypt(proposal, sharedKey).toString();
+    logger(`Encrypted proposal ${encryptedProposal}`);
+    return { encryptedProposal, sharedKey };
+  };
+
   attestProposal = async ({
     instanceAddress,
     gameId,
@@ -703,15 +764,13 @@ export class GameMaster {
     logger(`Creating proposal secrets for player ${proposerAddress} in game ${gameId}`);
     const poseidon = await buildPoseidon();
     const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
-    const sharedKey = instance.sharedSigner({
-      publicKey: proposerPubKey,
-      privateKey: await this.gameKey({ gameId, contractAddress: instanceAddress }),
-      gameId,
+    const { encryptedProposal, sharedKey } = await this.encryptProposal({
+      proposal,
       turn,
-      contractAddress: instanceAddress,
-      chainId: this.chainId,
+      instanceAddress,
+      gameId,
+      proposerPubKey,
     });
-    const encryptedProposal = aes.encrypt(proposal, sharedKey).toString();
     const proposalValue = BigInt(keccak256(encodePacked(["string"], [proposal])));
     const randomnessValue = BigInt(keccak256(encodePacked(["string"], [sharedKey])));
     // Calculate commitment using poseidon
