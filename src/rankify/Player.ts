@@ -191,6 +191,24 @@ export default class RankifyPlayer extends InstanceBase {
     }
   };
 
+  estimateGamePrice = async (minimumGameTime: bigint): Promise<bigint> => {
+    try {
+      const estimationArgs: ContractFunctionArgs<typeof instanceAbi, "pure" | "view", "estimateGamePrice"> = [
+        minimumGameTime,
+      ];
+      const price = await this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "estimateGamePrice",
+        args: estimationArgs,
+      });
+
+      return price;
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
   startGame = async (gameId: bigint, permutationCommitment: bigint) => {
     try {
       if (!this.walletClient.account?.address) throw new Error("Account not found");
