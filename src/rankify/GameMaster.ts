@@ -1067,14 +1067,18 @@ export class GameMaster {
   };
 
   gameKey = async ({ gameId, contractAddress }: { gameId: bigint; contractAddress: Address }): Promise<Hex> => {
+    logger(`Signing game key for game ${gameId} at address ${contractAddress}`);
     const message = encodePacked(["uint256", "address", "string"], [gameId, contractAddress, "gameKey"]);
+    logger(`Signing message: ${message}`, 2);
     if (!this.walletClient.account) throw new Error("No account");
-    return this.walletClient
+    const gameKey = await this.walletClient
       .signMessage({
         message,
         account: this.walletClient.account,
       })
       .then((sig) => keccak256(sig));
+    logger(`Game key: ${gameKey}`, 2);
+    return gameKey;
   };
 
   private calculateSharedTurnKey = async ({
@@ -1088,6 +1092,7 @@ export class GameMaster {
     turn: bigint;
     player: Address;
   }) => {
+    logger(`Calculating shared turn key for player ${player} in game ${gameId} at address ${instanceAddress}`);
     const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
     const playerPubKey = await instance.getPlayerPubKey({ instanceAddress, gameId, player });
     logger(`Player public key: ${playerPubKey}`, 2);
