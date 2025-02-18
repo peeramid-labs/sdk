@@ -171,6 +171,14 @@ export class GameMaster {
     return proposals;
   };
 
+  /**
+   * Generates a deterministic permutation for a specific game turn
+   * @param gameId - ID of the game
+   * @param turn - Turn number
+   * @param size - Size of the permutation
+   * @param verifierAddress - Address of the verifier
+   * @returns The generated permutation, secret, and commitment
+   */
   getPermutation = async ({
     gameId,
     turn,
@@ -260,6 +268,14 @@ export class GameMaster {
     };
   };
 
+  /**
+   * Permutes an array based on a deterministic permutation
+   * @param array - Array to permute
+   * @param gameId - ID of the game
+   * @param turn - Turn number
+   * @param verifierAddress - Address of the verifier
+   * @returns The permuted array
+   */
   permuteArray = async <T>({
     array,
     gameId,
@@ -279,6 +295,14 @@ export class GameMaster {
     return permutedArray;
   };
 
+  /**
+   * Reverses a permutation of an array
+   * @param permutedArray - Array to reverse
+   * @param gameId - ID of the game
+   * @param turn - Turn number
+   * @param verifierAddress - Address of the verifier
+   * @returns The original array
+   */
   reversePermutation = async <T>({
     permutedArray,
     gameId,
@@ -620,19 +644,9 @@ export class GameMaster {
     }
   };
 
-  // /**
-  //  * Gets the hidden proposer hash for a specific game turn
-  //  * @param gameId - ID of the game
-  //  * @param turn - Turn number
-  //  * @param proposer - Address of the proposer
-  //  * @returns Hidden proposer hash
-  //  */
-  // proposerHidden = ({ gameId, turn, proposer }: { gameId: bigint; turn: bigint; proposer: Address }) => {
-  //   return this.getTurnPlayersSalt({ gameId, turn, proposer }).then((salt) =>
-  //     keccak256(encodePacked(["address", "bytes32"], [proposer, salt]))
-  //   );
-  // };
-
+  /**
+   * Types for proposal submission
+   */
   private proposalTypes = {
     SubmitProposal: [
       { type: "uint256", name: "gameId" },
@@ -719,6 +733,15 @@ export class GameMaster {
     };
   };
 
+  /**
+   * Encrypts a proposal
+   * @param proposal - Proposal to encrypt
+   * @param turn - Turn number
+   * @param instanceAddress - Address of the game instance
+   * @param gameId - ID of the game
+   * @param proposerPubKey - Public key of the proposer
+   * @returns Encrypted proposal and shared key
+   */
   encryptProposal = async ({
     proposal,
     turn,
@@ -747,6 +770,15 @@ export class GameMaster {
     return { encryptedProposal, sharedKey };
   };
 
+  /**
+   * Attests a proposal
+   * @param instanceAddress - Address of the game instance
+   * @param gameId - ID of the game
+   * @param proposal - Proposal to attest
+   * @param proposerPubKey - Public key of the proposer
+   * @param turn - Turn number
+   * @returns The attested proposal
+   */
   attestProposal = async ({
     instanceAddress,
     gameId,
@@ -1045,13 +1077,6 @@ export class GameMaster {
       .then((sig) => keccak256(sig));
   };
 
-  // this.calculateSharedTurnKey({
-  //   instanceAddress,
-  //   gameId,
-  //   turn,
-  //   voterPublicKey: latestEvent.args.voterPubKey as Hex,
-  // });
-
   private calculateSharedTurnKey = async ({
     instanceAddress,
     gameId,
@@ -1170,7 +1195,11 @@ export class GameMaster {
     return { vote, ballotHash, ballot, ballotId, gmSignature };
   };
 
-  // Add new function to sign votes
+  /**
+   * Signs a vote
+   * @param params - Parameters including voter, game info, and vote configuration
+   * @returns The signed vote
+   */
   signVote = async (params: {
     verifierAddress: Address;
     voter: Address;
@@ -1215,6 +1244,11 @@ export class GameMaster {
     return signature;
   };
 
+  /**
+   * Generates integrity data for the end of a game turn
+   * @param params - Parameters including game info, turn, and proposal data
+   * @returns Integrity data including permutation, secret, and proof
+   */
   generateEndTurnIntegrity = async ({
     gameId,
     turn,
@@ -1359,7 +1393,11 @@ export class GameMaster {
     };
   }
 
-  // Helper to create test inputs
+  /**
+   * Creates inputs for the proposal integrity circuit
+   * @param params - Parameters including number of active proposals, proposals, commitment random numbers, game ID, turn, and verifier address
+   * @returns The inputs for the proposal integrity circuit
+   */
   createInputs = async ({
     numActive,
     proposals,
