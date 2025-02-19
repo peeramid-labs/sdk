@@ -624,14 +624,6 @@ export class GameMaster {
     const proposerIdx = await this.findPlayerOngoingProposalIndex({ instanceAddress, gameId, player: voter });
     if (proposerIdx == -1) throw new Error("You are not a proposer in this game");
     if (vote[proposerIdx] !== 0n) throw new Error("You cannot vote for your own proposal");
-    const { ballotId, ballotHash: attestedBallotHash } = await this.attestVote({
-      gameId,
-      turn,
-      vote,
-      verifierAddress: instanceAddress,
-      voter,
-    });
-    if (attestedBallotHash !== ballotHash) throw new Error("Ballot hash mismatch");
     if (!this.walletClient?.account?.address) throw new Error("No account address found");
     try {
       const { request } = await this.publicClient.simulateContract({
