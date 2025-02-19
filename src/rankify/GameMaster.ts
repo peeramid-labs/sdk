@@ -605,18 +605,18 @@ export class GameMaster {
     instanceAddress,
     gameId,
     vote,
-    turn,
     voter,
     voterSignature,
     ballotHash,
+    ballotId,
   }: {
     instanceAddress: Address;
     gameId: bigint;
     vote: bigint[];
     voter: Address;
-    turn: bigint;
     voterSignature: Hex;
     ballotHash: Hex;
+    ballotId: string;
   }) => {
     if (!gameId) throw new Error("No gameId");
     if (!vote) throw new Error("No votesHidden");
