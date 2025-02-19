@@ -1326,9 +1326,13 @@ export class GameMaster {
       circuitName: "ProposalsIntegrity15",
       // node_modules/rankify-contracts/zk_artifacts
       circuitArtifactsPath: path.join(
-        "./node_modules/rankify-contracts/zk_artifacts/circuits/proposals_integrity_15.circom/"
+        __dirname,
+        "../../node_modules/rankify-contracts/zk_artifacts/circuits/proposals_integrity_15.circom/"
       ),
-      verifierDirPath: path.join(__dirname, "./node_modules/rankify-contracts/src/verifiers"),
+      verifierDirPath: path.join(
+        __dirname,
+        "../../node_modules/rankify-contracts/src/verifiers"
+      ),
     };
     const implementer = new Groth16Implementer();
     const circuit = new CircuitZKit<"groth16">(config, implementer);
