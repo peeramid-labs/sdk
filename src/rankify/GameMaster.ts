@@ -117,9 +117,9 @@ export class GameMaster {
       chainId: this.chainId,
     });
     logger(`Decrypting proposal ${proposal} with shared key (hashed value: ${keccak256(sharedKey)})`);
-    const encryptedProposal = aes.decrypt(proposal, sharedKey).toString(cryptoJs.enc.Utf8);
-    logger(`Decrypted proposal ${encryptedProposal}`);
-    return encryptedProposal;
+    const decryptedProposal = aes.decrypt(proposal, sharedKey).toString(cryptoJs.enc.Utf8);
+    logger(`Decrypted proposal ${decryptedProposal}`);
+    return decryptedProposal;
   };
 
   /**
@@ -1023,7 +1023,14 @@ export class GameMaster {
       const proposerIndices: bigint[] = [];
       const oldProposals = await this.getProposalsVotedUpon({ instanceAddress, gameId, turn });
 
-      const proposals = await this.decryptProposals({ instanceAddress, gameId, turn });
+      const decryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn });
+      const proposals = players.map((player) => {
+        const proposal = decryptedProposals.find((p) => p.proposer === player)?.proposal ?? "";
+        return {
+          proposer: player,
+          proposal,
+        };
+      });
       players.forEach((player) => {
         let proposerIdx = oldProposals.findIndex((p) => player === p.proposer);
         if (proposerIdx === -1) proposerIdx = players.length; //Did not propose
@@ -1281,13 +1288,19 @@ export class GameMaster {
 
     const values = await Promise.all(
       proposals.map((p) =>
-        this.proposalValues({
-          instanceAddress: verifierAddress,
-          gameId,
-          proposal: p.proposal,
-          turn,
-          proposer: p.proposer,
-        })
+        p.proposal === ""
+          ? {
+              proposalValue: 0n,
+              randomnessValue: 0n,
+              proposer: p.proposer,
+            }
+          : this.proposalValues({
+              instanceAddress: verifierAddress,
+              gameId,
+              proposal: p.proposal,
+              turn,
+              proposer: p.proposer,
+            })
       )
     );
 
