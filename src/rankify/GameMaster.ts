@@ -22,6 +22,7 @@ import { GmProposalParams, VoteAttestation } from "../types/contracts";
 import cryptoJs from "crypto-js";
 import { CircuitZKit, Groth16Implementer } from "@solarity/zkit";
 import path from "path";
+import { permuteArray, reversePermutation } from "../utils/permutations";
 
 export interface ProposalsIntegrity {
   newProposals: ContractFunctionArgs<typeof RankifyDiamondInstanceAbi, "nonpayable", "endTurn">[2];
@@ -288,11 +289,7 @@ export class GameMaster {
     verifierAddress: Address;
   }): Promise<T[]> => {
     const { permutation } = await this.getPermutation({ gameId, turn, size: array.length, verifierAddress });
-    const permutedArray: T[] = [...array];
-    for (let i = 0; i < array.length; i++) {
-      permutedArray[permutation[i]] = array[i];
-    }
-    return permutedArray;
+    return permuteArray({ array, permutation });
   };
 
   /**
@@ -315,11 +312,7 @@ export class GameMaster {
     verifierAddress: Address;
   }): Promise<T[]> => {
     const { permutation } = await this.getPermutation({ gameId, turn, size: permutedArray.length, verifierAddress });
-    const originalArray: T[] = [];
-    for (let i = 0; i < permutedArray.length; i++) {
-      originalArray[i] = permutedArray[permutation[i]];
-    }
-    return originalArray;
+    return reversePermutation({ array: permutedArray, permutation });
   };
 
   /**
@@ -414,10 +407,9 @@ export class GameMaster {
       const evt = endedEvents[0];
       if (endedEvents.length > 1) throw new Error("Multiple turns ended");
       const args = evt.args;
-      args.newProposals = args?.newProposals?.slice(0, args?.players?.length);
       const decryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn: turn - 1n });
       if (args.newProposals) {
-        args.newProposals.forEach((proposal, idx) => {
+        args.newProposals.slice(0, args?.players?.length).forEach((proposal, idx) => {
           if (proposal !== "") {
             const proposer = decryptedProposals.find((p) => p.proposal === proposal)?.proposer;
             if (!proposer) throw new Error("No proposer found for proposal");
@@ -478,13 +470,7 @@ export class GameMaster {
     }
 
     const proposalsVotedUpon = await this.getProposalsVotedUpon({ instanceAddress, gameId, turn: currentTurn });
-    const orderedProposals = await this.reversePermutation({
-      permutedArray: proposalsVotedUpon,
-      gameId,
-      turn: currentTurn - 1n,
-      verifierAddress: instanceAddress,
-    });
-    return orderedProposals.findIndex((p) => p.proposer === player);
+    return proposalsVotedUpon.findIndex((p) => p.proposer === player);
   };
 
   validateJoinGame = async (props: {

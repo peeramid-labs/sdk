@@ -13,6 +13,7 @@ import { ApiError, findContractDeploymentBlock, handleRPCError } from "../utils/
 import { getSharedSecret } from "@noble/secp256k1";
 import { gameStatusEnum } from "../types";
 import instanceAbi from "../abis/RankifyDiamondInstance";
+import { reversePermutation } from "../utils/permutations";
 
 interface GameState extends ContractFunctionReturnType<typeof instanceAbi, "view", "getGameState"> {
   joinRequirements: ContractFunctionReturnType<typeof instanceAbi, "view", "getJoinRequirements">;
@@ -80,17 +81,67 @@ export default class InstanceBase {
         turn: turnId,
       },
     });
-    logs[0].args.newProposals = logs[0].args?.newProposals?.slice(0, logs[0].args?.players?.length);
+    let logsReorganized = {...logs[0]};
+    logsReorganized.args.newProposals = logsReorganized.args?.newProposals?.slice(0, logsReorganized.args?.players?.length);
+
+    if (logsReorganized.args && logsReorganized.args.newProposals) {
+      logsReorganized.args.newProposals = await this.reorganizeProposals(logsReorganized.args.newProposals, turnId, gameId);
+    }
+
+    if (logsReorganized.args.votes && logsReorganized.args.proposerIndices) {
+      logsReorganized.args.votes = this.reorganizeVotes(logsReorganized.args.votes, logsReorganized.args.proposerIndices);
+    }
+
 
     if (logs.length !== 1) {
       console.error("getHistoricTurn", gameId, turnId, "failed:", logs.length);
       throw new ApiError("Game not found", { status: 404 });
     }
 
-    return logs[0];
+    return logsReorganized;
   };
 
+
+  /**
+   * Reorganizes votes array based on proposerIndices mapping
+   * @param votes - Array of votes for each player
+   * @param proposerIndices - Array of indices mapping shuffled order to original order
+   * @returns Reorganized votes array
+   */
+  reorganizeVotes = (votes: readonly (readonly bigint[])[], proposerIndices: readonly bigint[]): bigint[][] => {
+    return votes.map(playerVotes => {
+      return reversePermutation({ array: playerVotes, permutation: proposerIndices });
+    });
+  };
+
+  /**
+   * Reorganizes proposals array based on proposerIndices mapping
+   * @param proposals - Array of proposals for each player
+   * @param proposerIndices - Array of indices mapping shuffled order to original order
+   * @returns Reorganized proposals array
+   */
+  reorganizeProposals = async (proposals: readonly string[], turnId: bigint, gameId: bigint): Promise<readonly string[]> => {
+    const logs = await this.publicClient.getContractEvents({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      fromBlock: await this.getCreationBlock(),
+      eventName: "TurnEnded",
+      args: {
+        gameId,
+        turn: turnId + 1n,
+      },
+    });
+
+    if (logs.length === 0 || logs[0].args === undefined || logs[0].args.proposerIndices === undefined) {
+      return proposals;
+    }
+
+    return reversePermutation({ array: proposals, permutation: logs[0].args.proposerIndices });
+  };
+
+
   getCreationBlock = async () => {
+    return 0n;
     if (this.creationBlock == 0n)
       this.creationBlock = await findContractDeploymentBlock(this.publicClient, this.instanceAddress);
     return this.creationBlock;
@@ -679,6 +730,7 @@ export default class InstanceBase {
       abi: instanceAbi,
       eventName: "PlayerJoined",
       args: { gameId, participant: player },
+      fromBlock: 0n,
     });
     const latestEvent = playerJoinedEvt
       .sort((a, b) => Number(a.blockNumber) - Number(b.blockNumber))
