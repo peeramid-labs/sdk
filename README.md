@@ -65,7 +65,8 @@ To set up your local development environment:
 
 1. Create your environment file:
    ```bash
-   cp .env.example .env
+   mkdir -p .secrets
+   cp samples/<network>.env.example .secrets/<network>.env
    ```
    Then edit `.env` to set your local repository paths.
 
@@ -82,8 +83,7 @@ To set up your local development environment:
 
 4. Run the setup script:
    ```bash
-   source .env && source .secrets/<network>.env
-   ./scripts/deploy-contracts.sh <network> clean # set last argument to clean to clean the deployments & artifacts
+   ./scripts/deploy-contracts.sh <network> clean # set last argument to clean the deployments & artifacts
    ```
 
 This will:
