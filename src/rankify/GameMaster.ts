@@ -146,6 +146,7 @@ export class GameMaster {
       address: instanceAddress,
       eventName: "ProposalSubmitted",
       args: { gameId: gameId, turn: turn, proposer: proposer },
+      fromBlock: 0n,
     });
     const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
     if (evts.length == 0) return [];
@@ -403,6 +404,7 @@ export class GameMaster {
         abi: RankifyDiamondInstanceAbi,
         eventName: "TurnEnded",
         args: { gameId, turn: turn - 1n },
+        fromBlock: 0n
       });
       const evt = endedEvents[0];
       if (endedEvents.length > 1) throw new Error("Multiple turns ended");
