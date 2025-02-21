@@ -65,7 +65,8 @@ To set up your local development environment:
 
 1. Create your environment file:
    ```bash
-   cp .env.example .env
+   mkdir -p .secrets
+   cp samples/<network>.env.example .secrets/<network>.env
    ```
    Then edit `.env` to set your local repository paths.
 
@@ -77,16 +78,16 @@ To set up your local development environment:
 
 3. Make the setup script executable:
    ```bash
-   chmod +x scripts/setup-local-dev.sh
+   chmod +x scripts/deploy-contracts.sh
    ```
 
 4. Run the setup script:
    ```bash
-   source .env && ./scripts/setup-local-dev.sh
+   ./scripts/deploy-contracts.sh <network> clean # set last argument to clean the deployments & artifacts
    ```
 
 This will:
-- Start a local Anvil development network in a tmux session (or use existing one if running)
+- Start a local Anvil development network in a tmux session (for localhost network)
 - Install dependencies for all repositories
 - Run local deployment scripts (`playbook/utils/deploy-to-local-anvil.sh`) in each repository
 - Set up local pnpm links between packages
