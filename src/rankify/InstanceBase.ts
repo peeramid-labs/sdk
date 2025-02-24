@@ -9,7 +9,7 @@ import {
   encodePacked,
   Hex,
 } from "viem";
-import { ApiError, findContractDeploymentBlock, handleRPCError } from "../utils/index";
+import { ApiError, handleRPCError } from "../utils/index";
 import { getSharedSecret } from "@noble/secp256k1";
 import { gameStatusEnum } from "../types";
 import instanceAbi from "../abis/RankifyDiamondInstance";
