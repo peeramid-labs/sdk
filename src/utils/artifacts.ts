@@ -141,6 +141,7 @@ export const getContract = <TArtifactName extends ArtifactTypes, TClient extends
  * @param endBlock The block to end searching at (defaults to 'latest')
  * @returns The block number where the contract was first deployed
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const findContractDeploymentBlock = async (
   client: PublicClient,
   address: Address,
