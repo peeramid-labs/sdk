@@ -72,6 +72,15 @@ export type FellowshipMetadata = {
   }[];
 };
 
+export interface GameMetadata {
+  //Represents game. Can be issued as unique NFT in theory
+  name: string;
+  description: string;
+  image: string;
+  banner_image?: string;
+  featured_image?: string;
+}
+
 export type MediaFormat = {
   mimeTypes: string[];
   maxSizeBytes?: number;
