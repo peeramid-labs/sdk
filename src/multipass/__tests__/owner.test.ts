@@ -26,7 +26,7 @@ jest.mock("../../utils", () => ({
 }));
 
 describe("MultipassOwner", () => {
-  const mockChainId = 1;
+  const mockChainId = 97113;
   const mockAccount = {
     address: "0x1234567890123456789012345678901234567890" as Address,
   } as Account;

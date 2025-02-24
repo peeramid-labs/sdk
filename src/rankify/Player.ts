@@ -6,11 +6,14 @@ import {
   GetAbiItemParameters,
   ContractFunctionArgs,
   TransactionReceipt,
+  keccak256,
+  encodePacked,
 } from "viem";
 import { getContract } from "../utils/artifacts";
 import instanceAbi from "../abis/RankifyDiamondInstance";
 import InstanceBase from "./InstanceBase";
 import { handleRPCError } from "../utils";
+import { GmProposalParams } from "../types/contracts";
 type stateMutability = "nonpayable" | "payable";
 export type NewGameParams = {
   minGameTime: bigint;
@@ -60,6 +63,12 @@ export default class RankifyPlayer extends InstanceBase {
     this.account = account;
   }
 
+  /**
+   * Approves the necessary tokens if needed
+   * @param value - The amount of tokens to approve
+   * @returns A promise that resolves when the tokens are approved
+   * @throws If the account is not found or the tokens cannot be approved
+   */
   approveTokensIfNeeded = async (value: bigint) => {
     const tokenContract = getContract(this.chainId, "Rankify", this.walletClient);
     if (!this.walletClient.account?.address) throw new Error("Account not found");
@@ -81,6 +90,13 @@ export default class RankifyPlayer extends InstanceBase {
     }
   };
 
+  /**
+   * Creates a new game
+   * @param creationArgs - The arguments for creating a new game
+   * @param openNow - Whether to open the game registration immediately
+   * @returns A promise that resolves to the game ID and receipt
+   * @throws If the account is not found or the game cannot be created
+   */
   createGame = async ({
     creationArgs,
     openNow,
@@ -148,7 +164,25 @@ export default class RankifyPlayer extends InstanceBase {
     }
   };
 
-  joinGame = async (gameId: bigint) => {
+  /**
+   * Joins a game
+   * @param params - The parameters for joining a game
+   * @returns A promise that resolves to the transaction receipt
+   * @throws If the account is not found or the game cannot be joined
+   */
+  joinGame = async ({
+    gameId,
+    signature,
+    gmCommitment,
+    deadline,
+    pubkey,
+  }: {
+    gameId: bigint;
+    signature: Address;
+    gmCommitment: Hex;
+    deadline: number;
+    pubkey: Hex;
+  }) => {
     try {
       const reqs = (await this.publicClient.readContract({
         address: this.instanceAddress,
@@ -164,7 +198,7 @@ export default class RankifyPlayer extends InstanceBase {
         address: this.instanceAddress,
         abi: instanceAbi,
         functionName: "joinGame",
-        args: [gameId],
+        args: [gameId, signature, gmCommitment, BigInt(deadline), pubkey],
         value,
         account: this.walletClient.account,
       });
@@ -176,14 +210,39 @@ export default class RankifyPlayer extends InstanceBase {
     }
   };
 
-  startGame = async (gameId: bigint) => {
+  estimateGamePrice = async (minimumGameTime: bigint): Promise<bigint> => {
+    try {
+      const estimationArgs: ContractFunctionArgs<typeof instanceAbi, "pure" | "view", "estimateGamePrice"> = [
+        minimumGameTime,
+      ];
+      const price = await this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "estimateGamePrice",
+        args: estimationArgs,
+      });
+
+      return price;
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
+  /**
+   * Starts a game
+   * @param gameId - The ID of the game to start
+   * @param permutationCommitment - The permutation commitment for the game
+   * @returns A promise that resolves to the transaction receipt
+   * @throws If the account is not found or the game cannot be started
+   */
+  startGame = async (gameId: bigint, permutationCommitment: bigint) => {
     try {
       if (!this.walletClient.account?.address) throw new Error("Account not found");
       const { request } = await this.publicClient.simulateContract({
         address: this.instanceAddress,
         abi: instanceAbi,
         functionName: "startGame",
-        args: [gameId],
+        args: [gameId, permutationCommitment],
         account: this.walletClient.account,
       });
 
@@ -194,6 +253,12 @@ export default class RankifyPlayer extends InstanceBase {
     }
   };
 
+  /**
+   * Cancels a game
+   * @param gameId - The ID of the game to cancel
+   * @returns A promise that resolves to the transaction receipt
+   * @throws If the account is not found or the game cannot be canceled
+   */
   cancelGame = async (gameId: bigint) => {
     try {
       if (!this.walletClient.account?.address) throw new Error("Account not found");
@@ -212,6 +277,12 @@ export default class RankifyPlayer extends InstanceBase {
     }
   };
 
+  /**
+   * Leaves a game
+   * @param gameId - The ID of the game to leave
+   * @returns A promise that resolves to the transaction receipt
+   * @throws If the account is not found or the game cannot be left
+   */
   leaveGame = async (gameId: bigint) => {
     try {
       if (!this.walletClient.account?.address) throw new Error("Account not found");
@@ -230,6 +301,12 @@ export default class RankifyPlayer extends InstanceBase {
     }
   };
 
+  /**
+   * Opens the registration for a game
+   * @param gameId - The ID of the game to open registration for
+   * @returns A promise that resolves to the transaction receipt
+   * @throws If the account is not found or the registration cannot be opened
+   */
   openRegistration = async (gameId: bigint) => {
     try {
       if (!this.walletClient.account?.address) throw new Error("Account not found");
@@ -248,6 +325,12 @@ export default class RankifyPlayer extends InstanceBase {
     }
   };
 
+  /**
+   * Sets the join requirements for a game
+   * @param params - The parameters for setting the join requirements
+   * @returns A promise that resolves to the transaction receipt
+   * @throws If the account is not found or the join requirements cannot be set
+   */
   setJoinRequirements = async (params: GetAbiItemParameters<typeof instanceAbi, "setJoinRequirements">["args"]) => {
     if (!this.walletClient.account?.address) throw new Error("Account not found");
     if (!params) throw new Error("params is required");
@@ -265,5 +348,81 @@ export default class RankifyPlayer extends InstanceBase {
     } catch (e) {
       await handleRPCError(e);
     }
+  };
+
+  /**
+   * Signs a proposal commitment
+   * @param params - The parameters for signing a proposal commitment
+   * @returns A promise that resolves to the signed proposal commitment
+   * @throws If the account is not found or the proposal commitment cannot be signed
+   */
+  signProposalCommitment = async (params: GmProposalParams) => {
+    const proposalTypes = {
+      AuthorizeProposalSubmission: [
+        { type: "uint256", name: "gameId" },
+        { type: "string", name: "encryptedProposal" },
+        { type: "uint256", name: "commitment" },
+      ],
+    };
+    const eip712 = await this.getEIP712Domain();
+
+    return this.walletClient.signTypedData({
+      domain: {
+        name: eip712.name,
+        version: eip712.version,
+        chainId: eip712.chainId,
+        verifyingContract: this.instanceAddress,
+      },
+      types: proposalTypes,
+      primaryType: "AuthorizeProposalSubmission",
+      message: {
+        gameId: params.gameId,
+        encryptedProposal: params.encryptedProposal,
+        commitment: params.commitment,
+      },
+      account: this.account,
+    });
+  };
+
+  /**
+   * Signs an authorize vote submission
+   * @param params - The parameters for signing an authorize vote submission
+   * @returns A promise that resolves to the signed authorize vote submission
+   * @throws If the account is not found or the authorize vote submission cannot be signed
+   */
+  authorizeVoteSubmission = async (params: {
+    gameId: bigint;
+    vote: bigint[];
+    verifierAddress: Address;
+    playerSalt: Hex;
+    ballotId: string;
+  }) => {
+    const voteTypes = {
+      AuthorizeVoteSubmission: [
+        { name: "gameId", type: "uint256" },
+        { name: "sealedBallotId", type: "string" },
+        { name: "ballotHash", type: "bytes32" },
+      ],
+    };
+    const { gameId, vote, verifierAddress, playerSalt, ballotId } = params;
+    const eip712 = await this.getEIP712Domain();
+
+    const ballotHash: string = keccak256(encodePacked(["uint256[]", "bytes32"], [vote, playerSalt]));
+    return this.walletClient.signTypedData({
+      domain: {
+        name: eip712.name,
+        version: eip712.version,
+        chainId: this.chainId,
+        verifyingContract: verifierAddress,
+      },
+      types: voteTypes,
+      primaryType: "AuthorizeVoteSubmission",
+      message: {
+        gameId,
+        sealedBallotId: ballotId,
+        ballotHash,
+      },
+      account: this.account,
+    });
   };
 }

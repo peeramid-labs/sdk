@@ -5,31 +5,15 @@ import {
   type Block,
   zeroAddress,
   ContractFunctionReturnType,
+  keccak256,
+  encodePacked,
+  Hex,
 } from "viem";
-import { ApiError, findContractDeploymentBlock, handleRPCError } from "../utils/index";
-
+import { ApiError, handleRPCError } from "../utils/index";
+import { getSharedSecret } from "@noble/secp256k1";
+import { gameStatusEnum } from "../types";
 import instanceAbi from "../abis/RankifyDiamondInstance";
-
-/**
- * Enum representing different states of a game instance
- * @public
- */
-export enum gameStatusEnum {
-  /** Game has been created but not opened for registration */
-  created = "Game created",
-  /** Game is open for player registration */
-  open = "Registration open",
-  /** Game is in progress */
-  started = "In progress",
-  /** Game is in its final turn */
-  lastTurn = "Playing last turn",
-  /** Game is in overtime */
-  overtime = "PLaying in overtime",
-  /** Game has finished */
-  finished = "Finished",
-  /** Game was not found */
-  notFound = "not found",
-}
+import { reversePermutation } from "../utils/permutations";
 
 interface GameState extends ContractFunctionReturnType<typeof instanceAbi, "view", "getGameState"> {
   joinRequirements: ContractFunctionReturnType<typeof instanceAbi, "view", "getJoinRequirements">;
@@ -97,19 +81,81 @@ export default class InstanceBase {
         turn: turnId,
       },
     });
+    let logsReorganized = { ...logs[0] };
+    logsReorganized.args.newProposals = logsReorganized.args?.newProposals?.slice(
+      0,
+      logsReorganized.args?.players?.length
+    );
+
+    if (logsReorganized.args && logsReorganized.args.newProposals) {
+      logsReorganized.args.newProposals = await this.reorganizeProposals(
+        logsReorganized.args.newProposals,
+        turnId,
+        gameId
+      );
+    }
+
+    if (logsReorganized.args.votes && logsReorganized.args.proposerIndices) {
+      logsReorganized.args.votes = this.reorganizeVotes(
+        logsReorganized.args.votes,
+        logsReorganized.args.proposerIndices
+      );
+    }
 
     if (logs.length !== 1) {
       console.error("getHistoricTurn", gameId, turnId, "failed:", logs.length);
       throw new ApiError("Game not found", { status: 404 });
     }
 
-    return logs[0];
+    return logsReorganized;
+  };
+
+  /**
+   * Reorganizes votes array based on proposerIndices mapping
+   * @param votes - Array of votes for each player
+   * @param proposerIndices - Array of indices mapping shuffled order to original order
+   * @returns Reorganized votes array
+   */
+  reorganizeVotes = (votes: readonly (readonly bigint[])[], proposerIndices: readonly bigint[]): bigint[][] => {
+    return votes.map((playerVotes) => {
+      return reversePermutation({ array: playerVotes, permutation: proposerIndices });
+    });
+  };
+
+  /**
+   * Reorganizes proposals array based on proposerIndices mapping
+   * @param proposals - Array of proposals for each player
+   * @param proposerIndices - Array of indices mapping shuffled order to original order
+   * @returns Reorganized proposals array
+   */
+  reorganizeProposals = async (
+    proposals: readonly string[],
+    turnId: bigint,
+    gameId: bigint
+  ): Promise<readonly string[]> => {
+    const logs = await this.publicClient.getContractEvents({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      fromBlock: await this.getCreationBlock(),
+      eventName: "TurnEnded",
+      args: {
+        gameId,
+        turn: turnId + 1n,
+      },
+    });
+
+    if (logs.length === 0 || logs[0].args === undefined || logs[0].args.proposerIndices === undefined) {
+      return proposals;
+    }
+
+    return reversePermutation({ array: proposals, permutation: logs[0].args.proposerIndices });
   };
 
   getCreationBlock = async () => {
-    if (this.creationBlock == 0n)
-      this.creationBlock = await findContractDeploymentBlock(this.publicClient, this.instanceAddress);
-    return this.creationBlock;
+    return 0n;
+    // if (this.creationBlock == 0n)
+    //   this.creationBlock = await findContractDeploymentBlock(this.publicClient, this.instanceAddress);
+    // return this.creationBlock;
   };
 
   /**
@@ -215,6 +261,10 @@ export default class InstanceBase {
         eventName: "TurnEnded",
         args: { turn: currentTurn - 1n, gameId },
       });
+      lastTurnEndedEvent[0].args.newProposals = lastTurnEndedEvent[0]?.args?.newProposals?.slice(
+        0,
+        lastTurnEndedEvent[0]?.args?.players?.length
+      );
 
       if (lastTurnEndedEvent.length !== 1) {
         console.error("getOngoingProposals", gameId, "failed:", lastTurnEndedEvent.length);
@@ -622,6 +672,89 @@ export default class InstanceBase {
       name: domain[6],
       version: domain[7],
     };
+  };
+
+  pkdf = ({
+    chainId,
+    privateKey,
+    gameId,
+    turn,
+    contractAddress,
+    scope = "default",
+  }: {
+    chainId: number;
+    privateKey: Hex;
+    gameId: bigint;
+    turn: bigint;
+    contractAddress: Address;
+    scope?: "default" | "turnSalt";
+  }) => {
+    const derivedPrivateKey = keccak256(
+      encodePacked(
+        ["bytes32", "uint256", "uint256", "address", "uint256", "bytes32"],
+        [privateKey, gameId, turn, contractAddress, BigInt(chainId), keccak256(encodePacked(["string"], [scope]))]
+      )
+    );
+    return derivedPrivateKey;
+  };
+
+  sharedSigner = ({
+    publicKey,
+    privateKey,
+    gameId,
+    turn,
+    contractAddress,
+    chainId,
+  }: {
+    publicKey: Hex;
+    privateKey: Hex;
+    gameId: bigint;
+    turn: bigint;
+    contractAddress: Address;
+    chainId: number;
+  }) => {
+    // Remove '0x' prefix if present
+    const privKeyHex = privateKey.startsWith("0x") ? privateKey.slice(2) : privateKey;
+    const pubKeyHex = publicKey.startsWith("0x") ? publicKey.slice(2) : publicKey;
+
+    const sharedSecret = getSharedSecret(privKeyHex, pubKeyHex, true);
+    const sharedKey = keccak256(sharedSecret);
+
+    const derivedPrivateKey = this.pkdf({
+      privateKey: sharedKey,
+      gameId,
+      turn,
+      contractAddress,
+      chainId,
+    });
+    return derivedPrivateKey;
+  };
+
+  getPlayerPubKey = async ({
+    instanceAddress,
+    gameId,
+    player,
+  }: {
+    instanceAddress: Address;
+    gameId: bigint;
+    player: Address;
+  }): Promise<Hex> => {
+    const playerJoinedEvt = await this.publicClient.getContractEvents({
+      address: instanceAddress,
+      abi: instanceAbi,
+      eventName: "PlayerJoined",
+      args: { gameId, participant: player },
+      fromBlock: 0n,
+    });
+    const latestEvent = playerJoinedEvt
+      .sort((a, b) => Number(a.blockNumber) - Number(b.blockNumber))
+      .sort((a, b) => a.transactionIndex - b.transactionIndex)
+      .sort((a, b) => a.logIndex - b.logIndex)[0];
+    if (!latestEvent.args.voterPubKey) throw new Error("No voterPubKey found in event data, that is unexpected");
+
+    if (!player) throw new Error("No player found in event data, that is unexpected");
+
+    return latestEvent.args.voterPubKey as Hex;
   };
 }
 

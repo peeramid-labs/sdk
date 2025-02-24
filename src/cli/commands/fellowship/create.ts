@@ -93,7 +93,6 @@ export const createFellowshipCommand = new Command("create")
           rankifySettings: {
             principalCost: BigInt(principalCost),
             principalTimeConstant: BigInt(timeConstant),
-            metadata,
             rankTokenURI: rankTokenUri,
             rankTokenContractURI: metadata, // Using same URI for contract metadata
           },

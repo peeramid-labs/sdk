@@ -57,7 +57,7 @@ export const addCommand = new Command("add")
             type: "input",
             name: "address",
             message: "Input distribution address to add to the distributor contract",
-            default: getArtifact(chainId, "DAODistributor").address,
+            default: getArtifact(chainId, "MAODistribution").address,
             validate: (input: string) => {
               if (!input.trim()) return "Address cannot be empty";
               return true;
@@ -82,7 +82,9 @@ export const addCommand = new Command("add")
       spinner.succeed("Distribution added successfully!");
       console.log(chalk.green(`\nTransaction hash: ${receipt.transactionHash}`));
       console.log(
-        chalk.green(`Distribution ID: ${distributionAddedEvent.args.distribution} (${distributionAddedEvent.args.id})`)
+        chalk.green(
+          `Distribution ID: ${distributionAddedEvent.args.distribution} (${distributionAddedEvent.args.id}), address ${distributionAddress}`
+        )
       );
 
       // Verify the distribution was added
