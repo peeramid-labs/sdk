@@ -81,17 +81,26 @@ export default class InstanceBase {
         turn: turnId,
       },
     });
-    let logsReorganized = {...logs[0]};
-    logsReorganized.args.newProposals = logsReorganized.args?.newProposals?.slice(0, logsReorganized.args?.players?.length);
+    let logsReorganized = { ...logs[0] };
+    logsReorganized.args.newProposals = logsReorganized.args?.newProposals?.slice(
+      0,
+      logsReorganized.args?.players?.length
+    );
 
     if (logsReorganized.args && logsReorganized.args.newProposals) {
-      logsReorganized.args.newProposals = await this.reorganizeProposals(logsReorganized.args.newProposals, turnId, gameId);
+      logsReorganized.args.newProposals = await this.reorganizeProposals(
+        logsReorganized.args.newProposals,
+        turnId,
+        gameId
+      );
     }
 
     if (logsReorganized.args.votes && logsReorganized.args.proposerIndices) {
-      logsReorganized.args.votes = this.reorganizeVotes(logsReorganized.args.votes, logsReorganized.args.proposerIndices);
+      logsReorganized.args.votes = this.reorganizeVotes(
+        logsReorganized.args.votes,
+        logsReorganized.args.proposerIndices
+      );
     }
-
 
     if (logs.length !== 1) {
       console.error("getHistoricTurn", gameId, turnId, "failed:", logs.length);
@@ -101,7 +110,6 @@ export default class InstanceBase {
     return logsReorganized;
   };
 
-
   /**
    * Reorganizes votes array based on proposerIndices mapping
    * @param votes - Array of votes for each player
@@ -109,7 +117,7 @@ export default class InstanceBase {
    * @returns Reorganized votes array
    */
   reorganizeVotes = (votes: readonly (readonly bigint[])[], proposerIndices: readonly bigint[]): bigint[][] => {
-    return votes.map(playerVotes => {
+    return votes.map((playerVotes) => {
       return reversePermutation({ array: playerVotes, permutation: proposerIndices });
     });
   };
@@ -120,7 +128,11 @@ export default class InstanceBase {
    * @param proposerIndices - Array of indices mapping shuffled order to original order
    * @returns Reorganized proposals array
    */
-  reorganizeProposals = async (proposals: readonly string[], turnId: bigint, gameId: bigint): Promise<readonly string[]> => {
+  reorganizeProposals = async (
+    proposals: readonly string[],
+    turnId: bigint,
+    gameId: bigint
+  ): Promise<readonly string[]> => {
     const logs = await this.publicClient.getContractEvents({
       address: this.instanceAddress,
       abi: instanceAbi,
@@ -139,12 +151,11 @@ export default class InstanceBase {
     return reversePermutation({ array: proposals, permutation: logs[0].args.proposerIndices });
   };
 
-
   getCreationBlock = async () => {
     return 0n;
-    if (this.creationBlock == 0n)
-      this.creationBlock = await findContractDeploymentBlock(this.publicClient, this.instanceAddress);
-    return this.creationBlock;
+    // if (this.creationBlock == 0n)
+    //   this.creationBlock = await findContractDeploymentBlock(this.publicClient, this.instanceAddress);
+    // return this.creationBlock;
   };
 
   /**
@@ -250,7 +261,10 @@ export default class InstanceBase {
         eventName: "TurnEnded",
         args: { turn: currentTurn - 1n, gameId },
       });
-      lastTurnEndedEvent[0].args.newProposals = lastTurnEndedEvent[0]?.args?.newProposals?.slice(0, lastTurnEndedEvent[0]?.args?.players?.length);
+      lastTurnEndedEvent[0].args.newProposals = lastTurnEndedEvent[0]?.args?.newProposals?.slice(
+        0,
+        lastTurnEndedEvent[0]?.args?.players?.length
+      );
 
       if (lastTurnEndedEvent.length !== 1) {
         console.error("getOngoingProposals", gameId, "failed:", lastTurnEndedEvent.length);

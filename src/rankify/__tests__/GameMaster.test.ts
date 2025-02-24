@@ -127,13 +127,15 @@ describe("GameMaster", () => {
           removed: false,
           topics: [] as [`0x${string}`, ...`0x${string}`[]] | [],
           args: {
-            encryptedProposal: await gameMaster.encryptProposal({
-              proposal: "test_proposal",
-              turn: 1n,
-              instanceAddress: MOCK_ADDRESSES.INSTANCE,
-              gameId: 1n,
-              proposerPubKey: ("0x" + mockPublicKey) as Hex,
-            }).then((encryptedProposal) => encryptedProposal.encryptedProposal),
+            encryptedProposal: await gameMaster
+              .encryptProposal({
+                proposal: "test_proposal",
+                turn: 1n,
+                instanceAddress: MOCK_ADDRESSES.INSTANCE,
+                gameId: 1n,
+                proposerPubKey: ("0x" + mockPublicKey) as Hex,
+              })
+              .then((encryptedProposal) => encryptedProposal.encryptedProposal),
             proposer: publicKeyToAddress(`0x${mockPublicKey}`) as Hex as Address,
             gameId: 1n,
             turn: 1n,

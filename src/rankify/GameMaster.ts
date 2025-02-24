@@ -404,7 +404,7 @@ export class GameMaster {
         abi: RankifyDiamondInstanceAbi,
         eventName: "TurnEnded",
         args: { gameId, turn: turn - 1n },
-        fromBlock: 0n
+        fromBlock: 0n,
       });
       const evt = endedEvents[0];
       if (endedEvents.length > 1) throw new Error("Multiple turns ended");
@@ -1309,10 +1309,7 @@ export class GameMaster {
         __dirname,
         "../../node_modules/rankify-contracts/zk_artifacts/circuits/proposals_integrity_15.circom/"
       ),
-      verifierDirPath: path.join(
-        __dirname,
-        "../../node_modules/rankify-contracts/src/verifiers"
-      ),
+      verifierDirPath: path.join(__dirname, "../../node_modules/rankify-contracts/src/verifiers"),
     };
     const implementer = new Groth16Implementer();
     const circuit = new CircuitZKit<"groth16">(config, implementer);

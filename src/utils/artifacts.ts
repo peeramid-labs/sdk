@@ -25,7 +25,13 @@ export const chainIdMapping: { [key in SupportedChains]: string } = {
   localhost: "42161",
 };
 
-export type ArtifactTypes = "Rankify" | "Multipass" | "SimpleAccessManager" | "DAODistributor" | "CodeIndex" | "MAODistribution";
+export type ArtifactTypes =
+  | "Rankify"
+  | "Multipass"
+  | "SimpleAccessManager"
+  | "DAODistributor"
+  | "CodeIndex"
+  | "MAODistribution";
 
 export type ArtifactAbi = {
   Rankify: typeof rankifyAbi;

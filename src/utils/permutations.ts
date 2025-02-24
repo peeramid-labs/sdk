@@ -1,9 +1,9 @@
 /**
-   * Permutes an array based on a deterministic permutation
-   * @param array - Array to permute
-   * @param permutation - Permutation of the array
-   * @returns The permuted array
-   */
+ * Permutes an array based on a deterministic permutation
+ * @param array - Array to permute
+ * @param permutation - Permutation of the array
+ * @returns The permuted array
+ */
 export const permuteArray = <T>({
   array,
   permutation,
