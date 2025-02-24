@@ -1,5 +1,25 @@
 # peeramid-labs/sdk
 
+## 3.6.0
+
+### Minor Changes
+
+- [#112](https://github.com/peeramid-labs/sdk/pull/112) [`eed771cc1e6cfe6becc85c1a090763857b622450`](https://github.com/peeramid-labs/sdk/commit/eed771cc1e6cfe6becc85c1a090763857b622450) Thanks [@peersky](https://github.com/peersky)! - adapted gm voting to 0.12 release
+
+- [#112](https://github.com/peeramid-labs/sdk/pull/112) [`eed771cc1e6cfe6becc85c1a090763857b622450`](https://github.com/peeramid-labs/sdk/commit/eed771cc1e6cfe6becc85c1a090763857b622450) Thanks [@peersky](https://github.com/peersky)! - Sign joining game method for game master
+
+- [#112](https://github.com/peeramid-labs/sdk/pull/112) [`eed771cc1e6cfe6becc85c1a090763857b622450`](https://github.com/peeramid-labs/sdk/commit/eed771cc1e6cfe6becc85c1a090763857b622450) Thanks [@peersky](https://github.com/peersky)! - permutation array logic
+
+- [#112](https://github.com/peeramid-labs/sdk/pull/112) [`eed771cc1e6cfe6becc85c1a090763857b622450`](https://github.com/peeramid-labs/sdk/commit/eed771cc1e6cfe6becc85c1a090763857b622450) Thanks [@peersky](https://github.com/peersky)! - Game proposal signature workflows edited to accomodate 0.12 release
+
+- [#112](https://github.com/peeramid-labs/sdk/pull/112) [`eed771cc1e6cfe6becc85c1a090763857b622450`](https://github.com/peeramid-labs/sdk/commit/eed771cc1e6cfe6becc85c1a090763857b622450) Thanks [@peersky](https://github.com/peersky)! - added turnSalt and playerTurnSalt methods to update for 0.12 contracts release
+
+- [#112](https://github.com/peeramid-labs/sdk/pull/112) [`eed771cc1e6cfe6becc85c1a090763857b622450`](https://github.com/peeramid-labs/sdk/commit/eed771cc1e6cfe6becc85c1a090763857b622450) Thanks [@peersky](https://github.com/peersky)! - Added zero knowledge proof generation for end turn integrity
+
+### Patch Changes
+
+- [#98](https://github.com/peeramid-labs/sdk/pull/98) [`70f8a61b88762b33e9063029eb38b9ad2eb35c60`](https://github.com/peeramid-labs/sdk/commit/70f8a61b88762b33e9063029eb38b9ad2eb35c60) Thanks [@peersky](https://github.com/peersky)! - moved viem to peer deps
+
 ## 3.5.0
 
 ### Minor Changes
