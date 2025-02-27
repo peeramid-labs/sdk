@@ -11,9 +11,11 @@ import {
 } from "viem";
 import { ApiError, handleRPCError } from "../utils/index";
 import { getSharedSecret } from "@noble/secp256k1";
-import { gameStatusEnum } from "../types";
+import { CONTENT_STORAGE, FellowshipMetadata, GameMetadata, gameStatusEnum, SUBMISSION_TYPES } from "../types";
 import instanceAbi from "../abis/RankifyDiamondInstance";
 import { reversePermutation } from "../utils/permutations";
+import { MAODistributorClient, MAOInstanceContracts } from "./MAODistributor";
+import RankTokenClient from "./RankToken";
 
 interface GameState extends ContractFunctionReturnType<typeof instanceAbi, "view", "getGameState"> {
   joinRequirements: ContractFunctionReturnType<typeof instanceAbi, "view", "getJoinRequirements">;
@@ -38,8 +40,8 @@ export default class InstanceBase {
   chainId: number;
   /** Address of the Rankify instance contract */
   instanceAddress: Address;
-
   creationBlock: bigint;
+  instanceContracts?: MAOInstanceContracts;
 
   /**
    * Creates a new InstanceBase
@@ -755,6 +757,108 @@ export default class InstanceBase {
     if (!player) throw new Error("No player found in event data, that is unexpected");
 
     return latestEvent.args.voterPubKey as Hex;
+  };
+
+  // Type guard for FellowshipMetadata
+  isGameMetadata(data: unknown, fellowshipMetadata: FellowshipMetadata): data is GameMetadata<FellowshipMetadata> {
+    if (!data || typeof data !== "object") return false;
+    const metadata = data as Record<string, unknown>;
+
+    // Check required fields
+    if (typeof metadata.name !== "string") return false;
+    if (typeof metadata.description !== "string") return false;
+    if (metadata.image !== undefined && typeof metadata.image !== "string") return false;
+
+    // Check optional fields if present
+    if (metadata.banner_image !== undefined && typeof metadata.banner_image !== "string") return false;
+    if (metadata.featured_image !== undefined && typeof metadata.featured_image !== "string") return false;
+    if (metadata.external_link !== undefined && typeof metadata.external_link !== "string") return false;
+
+    // Check tags if present
+    if (metadata.tags !== undefined) {
+      if (!Array.isArray(metadata.tags)) return false;
+      if (!metadata.tags.every((tag) => typeof tag === "string")) return false;
+    }
+
+    // Check submissions
+    if (!Array.isArray(metadata.submissions)) return false;
+
+    return metadata.submissions.every((submission) => {
+      if (!submission || typeof submission !== "object") return false;
+      const r = submission as Record<string, unknown>;
+
+      // Check submission fields
+      const submissionType = r.type as string;
+      const storageType = r.store_at as string | undefined;
+
+      if (!Object.values(SUBMISSION_TYPES).includes(submissionType as SUBMISSION_TYPES)) return false;
+      if (typeof r.rules !== "object" || r.rules === null) return false;
+      if (storageType !== undefined && !Object.values(CONTENT_STORAGE).includes(storageType as CONTENT_STORAGE))
+        return false;
+
+      // Check if submission is included in fellowshipMetadata.submissions
+      if (!fellowshipMetadata.submissions.some((s) => JSON.stringify(s) === JSON.stringify(submission))) return false;
+
+      return true;
+    });
+  }
+
+  private getMAOInstanceContracts = async (): Promise<MAOInstanceContracts> => {
+    if (!this.instanceContracts) {
+      const distributor = new MAODistributorClient(this.chainId, {
+        publicClient: this.publicClient,
+      });
+      const instanceId = await distributor.getInstanceFromAddress(this.instanceAddress);
+      this.instanceContracts = await distributor.getMAOInstance({ instanceId: instanceId as bigint });
+    }
+    return this.instanceContracts;
+  };
+
+  private getFellowshipMetadata = async (ipfsGateway: string): Promise<FellowshipMetadata> => {
+    const rankTokenClient = new RankTokenClient({
+      address: (await this.getMAOInstanceContracts()).rankToken.address,
+      chainId: this.chainId,
+      publicClient: this.publicClient,
+    });
+
+    return await rankTokenClient.getMetadata(ipfsGateway);
+  };
+
+  getGameMetadata = async (
+    ipfsGateway: string,
+    gameId: bigint,
+    fellowshipMetadata?: FellowshipMetadata
+  ): Promise<GameMetadata<FellowshipMetadata>> => {
+    try {
+      const { metadata } = await this.getGameStateDetails(gameId);
+      // Handle different URI formats
+      const processedUri = metadata.startsWith("ipfs://")
+        ? metadata.replace("ipfs://", `${ipfsGateway}`)
+        : metadata.startsWith("ar://")
+          ? `https://arweave.net/${metadata.slice(5)}`
+          : metadata;
+      console.log("fetching from", processedUri);
+      const response = await fetch(processedUri);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const rawData: unknown = await response.json();
+
+      if (typeof rawData !== "object" || rawData === null) {
+        throw new Error("Invalid response: expected JSON object");
+      }
+
+      if (!this.isGameMetadata(rawData, fellowshipMetadata ?? (await this.getFellowshipMetadata(ipfsGateway)))) {
+        throw new Error("Invalid metadata format");
+      }
+
+      return rawData;
+    } catch (error) {
+      console.error("Error fetching metadata:", error);
+      throw error;
+    }
   };
 }
 
