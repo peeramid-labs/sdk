@@ -102,4 +102,13 @@ export class DistributorClient {
     const id = stringToHex(namedDistribution, { size: 32 });
     return this.getInstance(id, instanceId);
   }
+
+  async getInstanceFromAddress(address: Address) {
+    return await this.publicClient.readContract({
+      address: this.address,
+      abi: DistributorAbi,
+      functionName: "getInstanceId",
+      args: [address],
+    });
+  }
 }
