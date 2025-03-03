@@ -18,11 +18,12 @@ import MaoDistributionAbi from "../abis/MAODistribution";
 import { getChainPath } from "./chainMapping";
 import { ERC7744Abi } from "../abis";
 
-export type SupportedChains = "anvil" | "localhost";
+export type SupportedChains = "anvil" | "localhost" | "arbsepolia";
 
 export const chainIdMapping: { [key in SupportedChains]: string } = {
   anvil: "97113",
   localhost: "42161",
+  arbsepolia: "421614",
 };
 
 export type ArtifactTypes =
