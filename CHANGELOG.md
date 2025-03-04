@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.7.1
+
+### Patch Changes
+
+- [#125](https://github.com/peeramid-labs/sdk/pull/125) [`bbd1537e495af2753e833aeaad6f175e1936299c`](https://github.com/peeramid-labs/sdk/commit/bbd1537e495af2753e833aeaad6f175e1936299c) Thanks [@peersky](https://github.com/peersky)! - add mpass arb sepolia package
+
 ## 3.7.0
 
 ### Minor Changes
