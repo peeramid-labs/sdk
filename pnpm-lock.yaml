@@ -15,8 +15,8 @@ importers:
         specifier: ^2.3.2
         version: 2.3.2(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2))
       '@peeramid-labs/multipass':
-        specifier: ^0.3.2
-        version: 0.3.2(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2))
+        specifier: ^0.3.3
+        version: 0.3.3(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2))
       '@solarity/zkit':
         specifier: ^0.3.3
         version: 0.3.3
@@ -971,8 +971,8 @@ packages:
   '@peeramid-labs/eds@2.3.2':
     resolution: {integrity: sha512-jVXwY4kw9Fsfc0aUuUsR3RvMnGh2NjhJ7H2nq1A0INlMWg0iBKeAk0gn8EMM+deMydgPl/bnVVEUR6jv5POi/Q==}
 
-  '@peeramid-labs/multipass@0.3.2':
-    resolution: {integrity: sha512-pux+6crTfTxxyTTtIXbw9m+5aK7+yHWKhFVCBB2ETh9W+yhJW53VKqlxxiav1nANn+WXV6rWGjCKl+R23OiSkA==}
+  '@peeramid-labs/multipass@0.3.3':
+    resolution: {integrity: sha512-3ZqUow4a+lxvOLX6sPUf/BVqj8JL6N6ELON7BEfIKCTFhYGCRjJbr5DbHFeIxRVfyZBGpjBnILHLQVq+txGvgA==}
 
   '@scure/base@1.1.9':
     resolution: {integrity: sha512-8YKhl8GHiNI/pU2VMaofa2Tor7PJRAjwQLBBuilkJ9L5+13yVbC7JO/wS7piioAvPSwR3JKM1IJ/u4xQzbcXKg==}
@@ -4997,7 +4997,7 @@ snapshots:
       - hardhat
       - utf-8-validate
 
-  '@peeramid-labs/multipass@0.3.2(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2))':
+  '@peeramid-labs/multipass@0.3.3(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2))':
     dependencies:
       '@ethersproject/abi': 5.7.0
       '@ethersproject/providers': 5.7.2
