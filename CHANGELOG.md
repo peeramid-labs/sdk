@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.7.2
+
+### Patch Changes
+
+- [#127](https://github.com/peeramid-labs/sdk/pull/127) [`9aa04c8cd2ab9465d6e267cd2f941602520e3dda`](https://github.com/peeramid-labs/sdk/commit/9aa04c8cd2ab9465d6e267cd2f941602520e3dda) Thanks [@peersky](https://github.com/peersky)! - code index assumed to be deployed on any chain that has other deployments
+
 ## 3.7.1
 
 ### Patch Changes
