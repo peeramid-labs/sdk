@@ -1,5 +1,13 @@
 # peeramid-labs/sdk
 
+## 3.7.0
+
+### Minor Changes
+
+- [#121](https://github.com/peeramid-labs/sdk/pull/121) [`5d2c459a40ded77f5eb6d361e74b62965de15709`](https://github.com/peeramid-labs/sdk/commit/5d2c459a40ded77f5eb6d361e74b62965de15709) Thanks [@peersky](https://github.com/peersky)! - add thread (game) metadata getter
+
+- [#124](https://github.com/peeramid-labs/sdk/pull/124) [`572e5f791037b91aa1ad1c1718fc05efcc524a30`](https://github.com/peeramid-labs/sdk/commit/572e5f791037b91aa1ad1c1718fc05efcc524a30) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Added arbitrum sepolia configuration. Updated contracts version
+
 ## 3.6.0
 
 ### Minor Changes
