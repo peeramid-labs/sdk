@@ -23,7 +23,7 @@ export type SupportedChains = "anvil" | "localhost" | "arbsepolia";
 export const chainIdMapping: { [key in SupportedChains]: string } = {
   anvil: "97113",
   localhost: "42161",
-  arbsepolia: "421614",
+  arbsepolia: "421614"
 };
 
 export type ArtifactTypes =
