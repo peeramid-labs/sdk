@@ -2,9 +2,9 @@
 export type ChainMapping = Record<string, string>;
 
 export const chainToPath: ChainMapping = {
-  "23772": "buildbear",
   "31337": "localhost",
   "97113": "anvil",
+  "421614": "arbsepolia",
 } as const;
 
 export function getChainPath(chainId: number): string {
