@@ -4,8 +4,8 @@ const { inspect } = require("util");
 
 function processAbiFile(sourcePath, destDir) {
   const content = fs.readFileSync(sourcePath, "utf8");
-  const fileName = path.basename(sourcePath, ".json");
-  const destPath = path.join(destDir, `${fileName}.ts`);
+  const fileName = path.basename(sourcePath, ".json").replace("-", "");
+  const destPath = path.join(destDir, `${fileName.replace("-", "")}.ts`);
   console.log("parsing abi file", sourcePath);
   // Convert JSON to TypeScript with both a named export and a default export
   const tsContent = `export const ${fileName}Abi = ${JSON.stringify(JSON.parse(content), null, 2)} as const;\nexport default ${fileName}Abi;`;
@@ -28,31 +28,31 @@ function copyAbiFiles(source, destDir) {
 
 function generateIndexFile(destDir) {
   const files = fs.readdirSync(destDir);
-  const tsFiles = files.filter(file => file.endsWith('.ts') && file !== 'index.ts');
-  
+  const tsFiles = files.filter((file) => file.endsWith(".ts") && file !== "index.ts");
+
   // Create imports
   const imports = tsFiles
-    .map(file => {
-      const name = path.basename(file, '.ts');
+    .map((file) => {
+      const name = path.basename(file, ".ts").replace("-", "");
       return `import { ${name}Abi } from './${name}';`;
     })
-    .join('\n');
-  
+    .join("\n");
+
   // Create named exports
   const namedExports = tsFiles
-    .map(file => {
-      const name = path.basename(file, '.ts');
+    .map((file) => {
+      const name = path.basename(file, ".ts");
       return `export { ${name}Abi } from './${name}';`;
     })
-    .join('\n');
-  
+    .join("\n");
+
   // Create the abis object
   const abiObjectEntries = tsFiles
-    .map(file => {
-      const name = path.basename(file, '.ts');
+    .map((file) => {
+      const name = path.basename(file, ".ts");
       return `  ${name}Abi`;
     })
-    .join(',\n');
+    .join(",\n");
 
   const indexContent = `${imports}
 
@@ -68,7 +68,7 @@ export { abis };
 export default abis;
 `;
 
-  fs.writeFileSync(path.join(destDir, 'index.ts'), indexContent);
+  fs.writeFileSync(path.join(destDir, "index.ts"), indexContent);
 }
 
 // Ensure src/abis directory exists
