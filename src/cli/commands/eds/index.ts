@@ -52,4 +52,20 @@ export const edsCommand = new Command("eds")
           console.log(chalk.red("Contract is not in the index"));
         }
       })
+  )
+  .addCommand(
+    new Command("get")
+      .description("Get the code index")
+      .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
+      .option("-c, --codehash <codehash>", "Codehash of the contract to get")
+      .action(async (options) => {
+        const publicClient = await createPublic(options.rpc);
+        const code = await publicClient.readContract({
+          abi: ERC7744Abi,
+          address: "0xC0dE1D2F7662c63796E544B2647b2A94EE658E07",
+          functionName: "get",
+          args: [options.codehash],
+        });
+        console.log(code);
+      })
   );

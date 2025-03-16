@@ -5,31 +5,17 @@ import {
   type Block,
   zeroAddress,
   ContractFunctionReturnType,
+  keccak256,
+  encodePacked,
+  Hex,
 } from "viem";
-import { ApiError, findContractDeploymentBlock, handleRPCError } from "../utils/index";
-
+import { ApiError, handleRPCError } from "../utils/index";
+import { getSharedSecret } from "@noble/secp256k1";
+import { CONTENT_STORAGE, FellowshipMetadata, GameMetadata, gameStatusEnum, SUBMISSION_TYPES } from "../types";
 import instanceAbi from "../abis/RankifyDiamondInstance";
-
-/**
- * Enum representing different states of a game instance
- * @public
- */
-export enum gameStatusEnum {
-  /** Game has been created but not opened for registration */
-  created = "Game created",
-  /** Game is open for player registration */
-  open = "Registration open",
-  /** Game is in progress */
-  started = "In progress",
-  /** Game is in its final turn */
-  lastTurn = "Playing last turn",
-  /** Game is in overtime */
-  overtime = "PLaying in overtime",
-  /** Game has finished */
-  finished = "Finished",
-  /** Game was not found */
-  notFound = "not found",
-}
+import { reversePermutation } from "../utils/permutations";
+import { MAODistributorClient, MAOInstanceContracts } from "./MAODistributor";
+import RankTokenClient from "./RankToken";
 
 interface GameState extends ContractFunctionReturnType<typeof instanceAbi, "view", "getGameState"> {
   joinRequirements: ContractFunctionReturnType<typeof instanceAbi, "view", "getJoinRequirements">;
@@ -54,8 +40,8 @@ export default class InstanceBase {
   chainId: number;
   /** Address of the Rankify instance contract */
   instanceAddress: Address;
-
   creationBlock: bigint;
+  instanceContracts?: MAOInstanceContracts;
 
   /**
    * Creates a new InstanceBase
@@ -97,19 +83,81 @@ export default class InstanceBase {
         turn: turnId,
       },
     });
+    let logsReorganized = { ...logs[0] };
+    logsReorganized.args.newProposals = logsReorganized.args?.newProposals?.slice(
+      0,
+      logsReorganized.args?.players?.length
+    );
+
+    if (logsReorganized.args && logsReorganized.args.newProposals) {
+      logsReorganized.args.newProposals = await this.reorganizeProposals(
+        logsReorganized.args.newProposals,
+        turnId,
+        gameId
+      );
+    }
+
+    if (logsReorganized.args.votes && logsReorganized.args.proposerIndices) {
+      logsReorganized.args.votes = this.reorganizeVotes(
+        logsReorganized.args.votes,
+        logsReorganized.args.proposerIndices
+      );
+    }
 
     if (logs.length !== 1) {
       console.error("getHistoricTurn", gameId, turnId, "failed:", logs.length);
       throw new ApiError("Game not found", { status: 404 });
     }
 
-    return logs[0];
+    return logsReorganized;
+  };
+
+  /**
+   * Reorganizes votes array based on proposerIndices mapping
+   * @param votes - Array of votes for each player
+   * @param proposerIndices - Array of indices mapping shuffled order to original order
+   * @returns Reorganized votes array
+   */
+  reorganizeVotes = (votes: readonly (readonly bigint[])[], proposerIndices: readonly bigint[]): bigint[][] => {
+    return votes.map((playerVotes) => {
+      return reversePermutation({ array: playerVotes, permutation: proposerIndices });
+    });
+  };
+
+  /**
+   * Reorganizes proposals array based on proposerIndices mapping
+   * @param proposals - Array of proposals for each player
+   * @param proposerIndices - Array of indices mapping shuffled order to original order
+   * @returns Reorganized proposals array
+   */
+  reorganizeProposals = async (
+    proposals: readonly string[],
+    turnId: bigint,
+    gameId: bigint
+  ): Promise<readonly string[]> => {
+    const logs = await this.publicClient.getContractEvents({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      fromBlock: await this.getCreationBlock(),
+      eventName: "TurnEnded",
+      args: {
+        gameId,
+        turn: turnId + 1n,
+      },
+    });
+
+    if (logs.length === 0 || logs[0].args === undefined || logs[0].args.proposerIndices === undefined) {
+      return proposals;
+    }
+
+    return reversePermutation({ array: proposals, permutation: logs[0].args.proposerIndices });
   };
 
   getCreationBlock = async () => {
-    if (this.creationBlock == 0n)
-      this.creationBlock = await findContractDeploymentBlock(this.publicClient, this.instanceAddress);
-    return this.creationBlock;
+    return 0n;
+    // if (this.creationBlock == 0n)
+    //   this.creationBlock = await findContractDeploymentBlock(this.publicClient, this.instanceAddress);
+    // return this.creationBlock;
   };
 
   /**
@@ -215,6 +263,10 @@ export default class InstanceBase {
         eventName: "TurnEnded",
         args: { turn: currentTurn - 1n, gameId },
       });
+      lastTurnEndedEvent[0].args.newProposals = lastTurnEndedEvent[0]?.args?.newProposals?.slice(
+        0,
+        lastTurnEndedEvent[0]?.args?.players?.length
+      );
 
       if (lastTurnEndedEvent.length !== 1) {
         console.error("getOngoingProposals", gameId, "failed:", lastTurnEndedEvent.length);
@@ -622,6 +674,191 @@ export default class InstanceBase {
       name: domain[6],
       version: domain[7],
     };
+  };
+
+  pkdf = ({
+    chainId,
+    privateKey,
+    gameId,
+    turn,
+    contractAddress,
+    scope = "default",
+  }: {
+    chainId: number;
+    privateKey: Hex;
+    gameId: bigint;
+    turn: bigint;
+    contractAddress: Address;
+    scope?: "default" | "turnSalt";
+  }) => {
+    const derivedPrivateKey = keccak256(
+      encodePacked(
+        ["bytes32", "uint256", "uint256", "address", "uint256", "bytes32"],
+        [privateKey, gameId, turn, contractAddress, BigInt(chainId), keccak256(encodePacked(["string"], [scope]))]
+      )
+    );
+    return derivedPrivateKey;
+  };
+
+  sharedSigner = ({
+    publicKey,
+    privateKey,
+    gameId,
+    turn,
+    contractAddress,
+    chainId,
+  }: {
+    publicKey: Hex;
+    privateKey: Hex;
+    gameId: bigint;
+    turn: bigint;
+    contractAddress: Address;
+    chainId: number;
+  }) => {
+    // Remove '0x' prefix if present
+    const privKeyHex = privateKey.startsWith("0x") ? privateKey.slice(2) : privateKey;
+    const pubKeyHex = publicKey.startsWith("0x") ? publicKey.slice(2) : publicKey;
+
+    const sharedSecret = getSharedSecret(privKeyHex, pubKeyHex, true);
+    const sharedKey = keccak256(sharedSecret);
+
+    const derivedPrivateKey = this.pkdf({
+      privateKey: sharedKey,
+      gameId,
+      turn,
+      contractAddress,
+      chainId,
+    });
+    return derivedPrivateKey;
+  };
+
+  getPlayerPubKey = async ({
+    instanceAddress,
+    gameId,
+    player,
+  }: {
+    instanceAddress: Address;
+    gameId: bigint;
+    player: Address;
+  }): Promise<Hex> => {
+    const playerJoinedEvt = await this.publicClient.getContractEvents({
+      address: instanceAddress,
+      abi: instanceAbi,
+      eventName: "PlayerJoined",
+      args: { gameId, participant: player },
+      fromBlock: 0n,
+    });
+    const latestEvent = playerJoinedEvt
+      .sort((a, b) => Number(a.blockNumber) - Number(b.blockNumber))
+      .sort((a, b) => a.transactionIndex - b.transactionIndex)
+      .sort((a, b) => a.logIndex - b.logIndex)[0];
+    if (!latestEvent.args.voterPubKey) throw new Error("No voterPubKey found in event data, that is unexpected");
+
+    if (!player) throw new Error("No player found in event data, that is unexpected");
+
+    return latestEvent.args.voterPubKey as Hex;
+  };
+
+  // Type guard for FellowshipMetadata
+  isGameMetadata(data: unknown, fellowshipMetadata: FellowshipMetadata): data is GameMetadata<FellowshipMetadata> {
+    if (!data || typeof data !== "object") return false;
+    const metadata = data as Record<string, unknown>;
+
+    // Check required fields
+    if (typeof metadata.name !== "string") return false;
+    if (typeof metadata.description !== "string") return false;
+    if (metadata.image !== undefined && typeof metadata.image !== "string") return false;
+
+    // Check optional fields if present
+    if (metadata.banner_image !== undefined && typeof metadata.banner_image !== "string") return false;
+    if (metadata.featured_image !== undefined && typeof metadata.featured_image !== "string") return false;
+    if (metadata.external_link !== undefined && typeof metadata.external_link !== "string") return false;
+
+    // Check tags if present
+    if (metadata.tags !== undefined) {
+      if (!Array.isArray(metadata.tags)) return false;
+      if (!metadata.tags.every((tag) => typeof tag === "string")) return false;
+    }
+
+    // Check submissions
+    if (!Array.isArray(metadata.submissions)) return false;
+
+    return metadata.submissions.every((submission) => {
+      if (!submission || typeof submission !== "object") return false;
+      const r = submission as Record<string, unknown>;
+
+      // Check submission fields
+      const submissionType = r.type as string;
+      const storageType = r.store_at as string | undefined;
+
+      if (!Object.values(SUBMISSION_TYPES).includes(submissionType as SUBMISSION_TYPES)) return false;
+      if (typeof r.rules !== "object" || r.rules === null) return false;
+      if (storageType !== undefined && !Object.values(CONTENT_STORAGE).includes(storageType as CONTENT_STORAGE))
+        return false;
+
+      // Check if submission is included in fellowshipMetadata.submissions
+      if (!fellowshipMetadata.submissions.some((s) => JSON.stringify(s) === JSON.stringify(submission))) return false;
+
+      return true;
+    });
+  }
+
+  private getMAOInstanceContracts = async (): Promise<MAOInstanceContracts> => {
+    if (!this.instanceContracts) {
+      const distributor = new MAODistributorClient(this.chainId, {
+        publicClient: this.publicClient,
+      });
+      const instanceId = await distributor.getInstanceFromAddress(this.instanceAddress);
+      this.instanceContracts = await distributor.getMAOInstance({ instanceId: instanceId as bigint });
+    }
+    return this.instanceContracts;
+  };
+
+  private getFellowshipMetadata = async (ipfsGateway: string): Promise<FellowshipMetadata> => {
+    const rankTokenClient = new RankTokenClient({
+      address: (await this.getMAOInstanceContracts()).rankToken.address,
+      chainId: this.chainId,
+      publicClient: this.publicClient,
+    });
+
+    return await rankTokenClient.getMetadata(ipfsGateway);
+  };
+
+  getGameMetadata = async (
+    ipfsGateway: string,
+    gameId: bigint,
+    fellowshipMetadata?: FellowshipMetadata
+  ): Promise<GameMetadata<FellowshipMetadata>> => {
+    try {
+      const { metadata } = await this.getGameStateDetails(gameId);
+      // Handle different URI formats
+      const processedUri = metadata.startsWith("ipfs://")
+        ? metadata.replace("ipfs://", `${ipfsGateway}`)
+        : metadata.startsWith("ar://")
+          ? `https://arweave.net/${metadata.slice(5)}`
+          : metadata;
+      console.log("fetching from", processedUri);
+      const response = await fetch(processedUri);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const rawData: unknown = await response.json();
+
+      if (typeof rawData !== "object" || rawData === null) {
+        throw new Error("Invalid response: expected JSON object");
+      }
+
+      if (!this.isGameMetadata(rawData, fellowshipMetadata ?? (await this.getFellowshipMetadata(ipfsGateway)))) {
+        throw new Error("Invalid metadata format");
+      }
+
+      return rawData;
+    } catch (error) {
+      console.error("Error fetching metadata:", error);
+      throw error;
+    }
   };
 }
 

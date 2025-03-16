@@ -1,5 +1,51 @@
 # peeramid-labs/sdk
 
+## 3.7.3
+
+### Patch Changes
+
+- [`699f057ddf3194bbb3ebc49b578aeedda21adca1`](https://github.com/peeramid-labs/sdk/commit/699f057ddf3194bbb3ebc49b578aeedda21adca1) Thanks [@peersky](https://github.com/peersky)! - fixed case when endTurn fails due to old Proposals not having some of proposals.
+
+## 3.7.2
+
+### Patch Changes
+
+- [#127](https://github.com/peeramid-labs/sdk/pull/127) [`9aa04c8cd2ab9465d6e267cd2f941602520e3dda`](https://github.com/peeramid-labs/sdk/commit/9aa04c8cd2ab9465d6e267cd2f941602520e3dda) Thanks [@peersky](https://github.com/peersky)! - code index assumed to be deployed on any chain that has other deployments
+
+## 3.7.1
+
+### Patch Changes
+
+- [#125](https://github.com/peeramid-labs/sdk/pull/125) [`bbd1537e495af2753e833aeaad6f175e1936299c`](https://github.com/peeramid-labs/sdk/commit/bbd1537e495af2753e833aeaad6f175e1936299c) Thanks [@peersky](https://github.com/peersky)! - add mpass arb sepolia package
+
+## 3.7.0
+
+### Minor Changes
+
+- [#121](https://github.com/peeramid-labs/sdk/pull/121) [`5d2c459a40ded77f5eb6d361e74b62965de15709`](https://github.com/peeramid-labs/sdk/commit/5d2c459a40ded77f5eb6d361e74b62965de15709) Thanks [@peersky](https://github.com/peersky)! - add thread (game) metadata getter
+
+- [#124](https://github.com/peeramid-labs/sdk/pull/124) [`572e5f791037b91aa1ad1c1718fc05efcc524a30`](https://github.com/peeramid-labs/sdk/commit/572e5f791037b91aa1ad1c1718fc05efcc524a30) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Added arbitrum sepolia configuration. Updated contracts version
+
+## 3.6.0
+
+### Minor Changes
+
+- [#112](https://github.com/peeramid-labs/sdk/pull/112) [`eed771cc1e6cfe6becc85c1a090763857b622450`](https://github.com/peeramid-labs/sdk/commit/eed771cc1e6cfe6becc85c1a090763857b622450) Thanks [@peersky](https://github.com/peersky)! - adapted gm voting to 0.12 release
+
+- [#112](https://github.com/peeramid-labs/sdk/pull/112) [`eed771cc1e6cfe6becc85c1a090763857b622450`](https://github.com/peeramid-labs/sdk/commit/eed771cc1e6cfe6becc85c1a090763857b622450) Thanks [@peersky](https://github.com/peersky)! - Sign joining game method for game master
+
+- [#112](https://github.com/peeramid-labs/sdk/pull/112) [`eed771cc1e6cfe6becc85c1a090763857b622450`](https://github.com/peeramid-labs/sdk/commit/eed771cc1e6cfe6becc85c1a090763857b622450) Thanks [@peersky](https://github.com/peersky)! - permutation array logic
+
+- [#112](https://github.com/peeramid-labs/sdk/pull/112) [`eed771cc1e6cfe6becc85c1a090763857b622450`](https://github.com/peeramid-labs/sdk/commit/eed771cc1e6cfe6becc85c1a090763857b622450) Thanks [@peersky](https://github.com/peersky)! - Game proposal signature workflows edited to accomodate 0.12 release
+
+- [#112](https://github.com/peeramid-labs/sdk/pull/112) [`eed771cc1e6cfe6becc85c1a090763857b622450`](https://github.com/peeramid-labs/sdk/commit/eed771cc1e6cfe6becc85c1a090763857b622450) Thanks [@peersky](https://github.com/peersky)! - added turnSalt and playerTurnSalt methods to update for 0.12 contracts release
+
+- [#112](https://github.com/peeramid-labs/sdk/pull/112) [`eed771cc1e6cfe6becc85c1a090763857b622450`](https://github.com/peeramid-labs/sdk/commit/eed771cc1e6cfe6becc85c1a090763857b622450) Thanks [@peersky](https://github.com/peersky)! - Added zero knowledge proof generation for end turn integrity
+
+### Patch Changes
+
+- [#98](https://github.com/peeramid-labs/sdk/pull/98) [`70f8a61b88762b33e9063029eb38b9ad2eb35c60`](https://github.com/peeramid-labs/sdk/commit/70f8a61b88762b33e9063029eb38b9ad2eb35c60) Thanks [@peersky](https://github.com/peersky)! - moved viem to peer deps
+
 ## 3.5.0
 
 ### Minor Changes

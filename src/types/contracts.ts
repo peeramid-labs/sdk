@@ -1,3 +1,5 @@
+import { Address, Hex } from "viem";
+
 /**
  * Interface representing the contract addresses for a MAO instance
  * @public
@@ -13,4 +15,23 @@ export interface MAOInstances {
   ACIDAccessManager: string;
   /** Address of the rank token contract */
   rankToken: string;
+}
+
+export interface GmProposalParams {
+  gameId: bigint;
+  encryptedProposal: string;
+  commitment: bigint;
+  proposer: Address;
+  gmSignature: Hex;
+}
+
+export interface VoteAttestation {
+  vote: bigint[];
+  ballotHash: string;
+  ballot: {
+    vote: bigint[];
+    salt: Hex;
+  };
+  ballotId: string;
+  gmSignature: Hex;
 }

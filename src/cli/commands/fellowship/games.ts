@@ -39,7 +39,9 @@ export const games = new Command("games")
         "\n  Time per turn:",
         game.timePerTurn.toString(),
         "\n  Time to join:",
-        game.timeToJoin.toString()
+        game.timeToJoin.toString(),
+        "\n  Vote credits:",
+        game.voteCredits.toString(),
       );
     });
   });

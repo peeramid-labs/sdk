@@ -22,12 +22,11 @@ export class DistributorClient {
   }
 
   async getDistributions() {
-    const contract = getContract({
-      address: getAddress(this.address),
+    return this.publicClient.readContract({
+      address: this.address,
       abi: DistributorAbi,
-      client: this.publicClient,
+      functionName: "getDistributions",
     });
-    return contract.read.getDistributions();
   }
 
   async getCreationBlock() {
@@ -87,8 +86,7 @@ export class DistributorClient {
 
     if (events.length > 1) {
       throw new Error(`Multiple instances found for distributor ${distributorsId} and instance ${instanceId}`);
-    }
-    if (events.length === 0) {
+    } else if (events.length === 0) {
       throw new Error(`No instances found for distributor ${distributorsId} and instance ${instanceId}`);
     }
 
@@ -103,5 +101,14 @@ export class DistributorClient {
   async getNamedDistributionInstance(namedDistribution: string, instanceId: bigint): Promise<Address[]> {
     const id = stringToHex(namedDistribution, { size: 32 });
     return this.getInstance(id, instanceId);
+  }
+
+  async getInstanceFromAddress(address: Address) {
+    return await this.publicClient.readContract({
+      address: this.address,
+      abi: DistributorAbi,
+      functionName: "getInstanceId",
+      args: [address],
+    });
   }
 }

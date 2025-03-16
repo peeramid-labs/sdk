@@ -31,7 +31,8 @@ import {
 } from "viem";
 import MaoDistributionAbi from "../abis/MAODistribution";
 import distributorAbi from "../abis/DAODistributor";
-import { ERC7744Abi } from "../abis";
+import { ERC7744Abi, RankifyAbi } from "../abis";
+import { logger } from "../utils/log";
 
 /**
  * Structure defining token-related arguments
@@ -225,6 +226,7 @@ export class MAODistributorClient extends DistributorClient {
       functionName: "get",
       args: [hashCode],
     });
+    logger(`Distribution address ${distrAddress}`);
 
     if (distrAddress == "0x0000000000000000000000000000000000000000") {
       try {
@@ -261,6 +263,8 @@ export class MAODistributorClient extends DistributorClient {
         logs: receipt.logs,
         eventName: "DistributionAdded",
       });
+      logger(`Distribution added event`);
+      logger(distributionAddedEvent);
 
       return { receipt, distributionAddedEvent: distributionAddedEvent[0] };
     } catch (e) {
@@ -326,6 +330,7 @@ export class MAODistributorClient extends DistributorClient {
   }
 
   async setInstantiationAllowance(amount?: bigint) {
+    logger(`Setting instantiation allowance ${amount?.toString ? amount : maxUint256}`);
     if (!this.walletClient) throw new Error("walletClient is required, use constructor with walletClient");
     if (!this.walletClient.account?.address) throw new Error("No account address found");
     const paymentToken = await this.publicClient.readContract({
@@ -365,6 +370,16 @@ export class MAODistributorClient extends DistributorClient {
         address: paymentToken,
         args: [this.walletClient.account?.address, this.address],
       });
+      const chainid = this.publicClient?.chain?.id;
+      if (!chainid) throw new Error("No chain id found");
+      const RankifyTokenBalance = await this.publicClient.readContract({
+        abi: RankifyAbi,
+        functionName: "balanceOf",
+        address: getArtifact(chainid, "Rankify").address,
+        args: [this.walletClient.account?.address],
+      });
+      logger(`Rankify Token Balance ${RankifyTokenBalance.toString()}`);
+      logger(`Allowance ${allowance.toString()} for ${this.walletClient.account?.address} on ${this.address}`);
       return allowance < (await this.getInstantiatePrice(distributorsId));
     } catch (e) {
       throw await handleRPCError(e);
@@ -382,6 +397,7 @@ export class MAODistributorClient extends DistributorClient {
     name: string = MAODistributorClient.DEFAULT_NAME,
     chain: Chain
   ): Promise<MAOInstanceContracts> {
+    logger("Instantiating MAO Distribution");
     if (!args) throw new Error("args is required");
     if (!this.walletClient) throw new Error("walletClient is required, use constructor with walletClient");
     const abiItem = getAbiItem({ abi: MaoDistributionAbi, name: "distributionSchema" });
