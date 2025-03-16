@@ -1365,7 +1365,7 @@ export class GameMaster {
     return {
       commitment: inputs.permutationCommitment,
       nullifier,
-      permutation: permutation.slice(0, size),
+      permutation: permutation,
       permutedProposals: permutedProposals.map((proposal) => proposal.proposal),
       a,
       b,
