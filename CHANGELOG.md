@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.7.3
+
+### Patch Changes
+
+- [`699f057ddf3194bbb3ebc49b578aeedda21adca1`](https://github.com/peeramid-labs/sdk/commit/699f057ddf3194bbb3ebc49b578aeedda21adca1) Thanks [@peersky](https://github.com/peersky)! - fixed case when endTurn fails due to old Proposals not having some of proposals.
+
 ## 3.7.2
 
 ### Patch Changes
