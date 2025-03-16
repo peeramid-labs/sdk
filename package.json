@@ -36,7 +36,7 @@
     "generate-chain-mapping": "node ./scripts/generateChainMapping.mjs",
     "prebuild": "node scripts/copyAbi.cjs && pnpm generate-chain-mapping",
     "build": "tsup src/index.ts src/cli/index.ts --format cjs,esm --dts --clean",
-    "postbuild": "cp -r node_modules/rankify-contracts/zk_artifacts/circuits ./dist/zk_artifacts/circuits && cp -r node_modules/rankify-contracts/src/verifiers ./dist/verifiers && pnpm run docs && node scripts/copyPackageFile.cjs prod",
+    "postbuild": "mkdir -p ./dist/zk_artifacts/circuits && cp -r node_modules/rankify-contracts/zk_artifacts/circuits ./dist/zk_artifacts/circuits && mkdir -p ./dist/verifiers && cp -r node_modules/rankify-contracts/src/verifiers ./dist/verifiers && pnpm run docs && node scripts/copyPackageFile.cjs prod",
     "dist": "changeset && changeset version && pnpm build && pnpm changeset publish",
     "version": "changeset version",
     "release": "pnpm build && cd ./dist && changeset publish",
