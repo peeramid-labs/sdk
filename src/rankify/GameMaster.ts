@@ -1004,6 +1004,7 @@ export class GameMaster {
       const oldProposals = await this.getProposalsVotedUpon({ instanceAddress, gameId, turn });
 
       const decryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn });
+      logger(decryptedProposals);
       const proposals = players.map((player) => {
         const proposal = decryptedProposals.find((p) => p.proposer === player)?.proposal ?? "";
         return {
@@ -1011,6 +1012,7 @@ export class GameMaster {
           proposal,
         };
       });
+      logger(proposals);
       players.forEach((player) => {
         let proposerIdx = oldProposals.findIndex((p) => player === p.proposer);
         if (proposerIdx === -1) proposerIdx = players.length; //Did not propose
