@@ -1361,12 +1361,16 @@ class GameMaster {
       throw new Error("Proof not found");
     }
 
-    // const callData = await circuit.generateCalldata(proof);
-    const a: readonly [bigint, bigint] = callData[0].map((a) => BigInt(a)) as [bigint, bigint];
-    const b: readonly [readonly [bigint, bigint], readonly [bigint, bigint]] = callData[1].map((b) =>
+    // The callData is an array-like structure with numeric indices
+    // Cast it to the appropriate type for proper indexing
+    const callDataArray = callData as unknown as [string[], string[][], string[]];
+
+    const a: readonly [bigint, bigint] = callDataArray[0].map((a) => BigInt(a)) as [bigint, bigint];
+    const b: readonly [readonly [bigint, bigint], readonly [bigint, bigint]] = callDataArray[1].map((b) =>
       b.map((b) => BigInt(b))
     ) as unknown as [readonly [bigint, bigint], readonly [bigint, bigint]];
-    const c: readonly [bigint, bigint] = callData[2].map((c) => BigInt(c)) as [bigint, bigint];
+    // eslint-disable-next-line
+    const c: readonly [bigint, bigint] = callDataArray[2].map((c: any) => BigInt(c)) as [bigint, bigint];
     return {
       commitment: inputs.permutationCommitment,
       nullifier,
