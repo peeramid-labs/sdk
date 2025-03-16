@@ -1029,7 +1029,7 @@ export class GameMaster {
       const tableData = players.map((player, idx) => ({
         player,
         proposerIndex: proposerIndices[idx],
-        proposer: oldProposals[Number(proposerIndices[idx])].proposer,
+        proposer: oldProposals[Number(proposerIndices[idx])]?.proposer || "not-proposed",
       }));
       console.table(tableData);
       const attested = await this.getProposalsIntegrity({
