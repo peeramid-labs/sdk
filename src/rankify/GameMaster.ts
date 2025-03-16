@@ -24,6 +24,41 @@ import { CircuitZKit, Groth16Implementer } from "@solarity/zkit";
 import path from "path";
 import { permuteArray, reversePermutation } from "../utils/permutations";
 
+export async function resolveModulePath(modulePath: string): Promise<string> {
+  return path.dirname(require.resolve(modulePath));
+}
+
+interface Config {
+  circuitName: string;
+  circuitArtifactsPath: string;
+  verifierDirPath: string;
+}
+
+export async function createConfig(): Promise<Config> {
+  const circuitArtifactsPath = await resolveModulePath(
+    "rankify-contracts/zk_artifacts/circuits/proposals_integrity_15.circom"
+  );
+  const verifierDirPath = await resolveModulePath("rankify-contracts/src/verifiers");
+
+  const config: Config = {
+    circuitName: "ProposalsIntegrity15",
+    circuitArtifactsPath: circuitArtifactsPath,
+    verifierDirPath: verifierDirPath,
+  };
+
+  return config;
+}
+
+// {
+//   circuitName: "ProposalsIntegrity15",
+//   // node_modules/rankify-contracts/zk_artifacts
+//   circuitArtifactsPath: path.join(
+//     __dirname,
+//     "../../node_modules/rankify-contracts/zk_artifacts/circuits/proposals_integrity_15.circom/"
+//   ),
+//   verifierDirPath: path.join(__dirname, "../../node_modules/rankify-contracts/src/verifiers"),
+// };
+
 export interface ProposalsIntegrity {
   newProposals: ContractFunctionArgs<typeof RankifyDiamondInstanceAbi, "nonpayable", "endTurn">[2];
   permutation: bigint[];
@@ -1302,15 +1337,7 @@ class GameMaster {
       }
     }
 
-    const config = {
-      circuitName: "ProposalsIntegrity15",
-      // node_modules/rankify-contracts/zk_artifacts
-      circuitArtifactsPath: path.join(
-        __dirname,
-        "../../node_modules/rankify-contracts/zk_artifacts/circuits/proposals_integrity_15.circom/"
-      ),
-      verifierDirPath: path.join(__dirname, "../../node_modules/rankify-contracts/src/verifiers"),
-    };
+    const config = await createConfig();
     const implementer = new Groth16Implementer();
     const circuit = new CircuitZKit<"groth16">(config, implementer);
     const proof = await circuit.generateProof(inputs);

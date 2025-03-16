@@ -18,8 +18,8 @@ importers:
         specifier: ^0.3.3
         version: 0.3.3(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2))
       '@solarity/zkit':
-        specifier: ^0.3.3
-        version: 0.3.3
+        specifier: ^0.3.5
+        version: 0.3.5
       chalk:
         specifier: ^4.1.2
         version: 4.1.2
@@ -42,7 +42,7 @@ importers:
         specifier: ^5.4.1
         version: 5.4.1
       rankify-contracts:
-        specifier: ^0.12.1
+        specifier: ^0.12.2
         version: 0.12.2(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2))
       viem:
         specifier: ^2.22.8
@@ -110,19 +110,19 @@ importers:
         version: 10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.7.2)
       tsup:
         specifier: ^8.3.6
-        version: 8.4.0(@swc/core@1.10.18)(tsx@4.19.2)(typescript@5.7.2)
+        version: 8.4.0(@swc/core@1.10.18)(tsx@4.19.2)(typescript@5.7.2)(yaml@2.7.0)
       tsx:
         specifier: ^4.19.2
         version: 4.19.2
       typedoc:
-        specifier: ^0.25.7
+        specifier: ^0.25.13
         version: 0.25.13(typescript@5.7.2)
       typedoc-plugin-markdown:
         specifier: ^3.17.1
         version: 3.17.1(typedoc@0.25.13(typescript@5.7.2))
       typedoc-theme-hierarchy:
-        specifier: ^4.1.2
-        version: 4.1.3(typedoc@0.25.13(typescript@5.7.2))
+        specifier: ^5.0.4
+        version: 5.0.4(typedoc@0.25.13(typescript@5.7.2))
       typescript:
         specifier: ^5.7.2
         version: 5.7.2
@@ -1294,6 +1294,9 @@ packages:
   '@solarity/zkit@0.3.3':
     resolution: {integrity: sha512-JyMVc4AmNi2CthvYMP78eGKiddaWs6jlmxxw+0qTDZR+DPDVBs2mogoNJETVYgov2BtV7l994OD7qd+Q7KWtqA==}
 
+  '@solarity/zkit@0.3.5':
+    resolution: {integrity: sha512-+hGep1Lc3/RRYViwJgfID/uuWKh8fwysjJbKECknmEfbtqhWeDxCpBycsDUKNix818rcDTTDJdH2hBYB4NxyDA==}
+
   '@solarity/zktype@0.4.3':
     resolution: {integrity: sha512-iPWBJcSf72DDsQX0B/Yelu9H24kud3yyZwpRhYoLS9is1SPgDN6tieOpjDU9NhDexhkBLZvQ/u2CMBqn1a5xdQ==}
     engines: {node: '>=18'}
@@ -1608,8 +1611,8 @@ packages:
     resolution: {integrity: sha512-7HSX4QQb4CspciLpVFwyRe79O3xsIZDDLER21kERQ71oaPodF8jL725AgJMFAYbooIqolJoRLuM81SpeUkpkvA==}
     engines: {node: '>=12'}
 
-  ansi-sequence-parser@1.1.1:
-    resolution: {integrity: sha512-vJXt3yiaUL4UU546s3rPXlsry/RnM730G1+HkpKE012AN0sx1eOrxSu95oKDIonskeLTijMgqWZ3uDEe3NFvyg==}
+  ansi-sequence-parser@1.1.3:
+    resolution: {integrity: sha512-+fksAx9eG3Ab6LDnLs3ZqZa8KVJ/jYnX+D4Qe1azX+LFGFAXqynCQLOdLpNYN/l9e7l6hMWwZbrnctqr6eSQSw==}
 
   ansi-styles@4.3.0:
     resolution: {integrity: sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg==}
@@ -3754,10 +3757,6 @@ packages:
   tinyexec@0.3.2:
     resolution: {integrity: sha512-KQQR9yN7R5+OSwaK0XQoj22pwHoTlgYqmUscPYoknOoWCWfj/5/ABTMRi69FrKU5ffPVh5QcFikpWJI/P1ocHA==}
 
-  tinyglobby@0.2.10:
-    resolution: {integrity: sha512-Zc+8eJlFMvgatPZTl6A9L/yht8QqdmUNtURHaKZLmKBE12hNPSrqNkUp2cs3M/UKmNVVAMFQYSjYIVHDjW5zew==}
-    engines: {node: '>=12.0.0'}
-
   tinyglobby@0.2.12:
     resolution: {integrity: sha512-qkf4trmKSIiMTs/E63cxH+ojC2unam7rJ0WrauAzpT3ECNTxGRMlaXxVbfxMUC/w0LaYk6jQ4y/nGR9uBO3tww==}
     engines: {node: '>=12.0.0'}
@@ -3884,10 +3883,10 @@ packages:
     peerDependencies:
       typedoc: '>=0.24.0'
 
-  typedoc-theme-hierarchy@4.1.3:
-    resolution: {integrity: sha512-g24+eKSkKXf0WsSFAnweffNgLZ2k50wcOE8bUvVmXtCg5fMPxQl5Nrd+rro2MNM6uw/kZ4IrV9kZLdM3RjWXQQ==}
+  typedoc-theme-hierarchy@5.0.4:
+    resolution: {integrity: sha512-gDM5gn39LalueIDLMVVIZvtko318nlMLpoWZx3cagBI07LRkncQBkEcbH2nxWhZbORha1LfCf6M5YAI3U2M9wg==}
     peerDependencies:
-      typedoc: ^0.24.0 || ^0.25.0 || ^0.26.0
+      typedoc: ^0.26.0 || ^0.27.0
 
   typedoc@0.25.13:
     resolution: {integrity: sha512-pQqiwiJ+Z4pigfOnnysObszLiU3mVLWAExSPf+Mu06G/qsc3wzbuM56SZQvONhHLncLUhYzOVkjFFpFfL5AzhQ==}
@@ -4093,6 +4092,11 @@ packages:
 
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
+
+  yaml@2.7.0:
+    resolution: {integrity: sha512-+hSoy/QHluxmC9kCIJyL/uyFmLmc+e5CFR5Wa+bpIhIj85LVb9ZH2nVnqrHoSvKogwODv0ClqZkmiSSaIH5LTA==}
+    engines: {node: '>= 14'}
+    hasBin: true
 
   yargs-parser@20.2.9:
     resolution: {integrity: sha512-y11nGElTIV+CT3Zv9t7VKl+Q3hTQoT9a1Qzezhhl6Rp21gJ/IVTW7Z3y9EWXhuUBC2Shnf+DX0antecpAwSP8w==}
@@ -5712,6 +5716,11 @@ snapshots:
       ejs: 3.1.10
       snarkjs: 0.7.5
 
+  '@solarity/zkit@0.3.5':
+    dependencies:
+      ejs: 3.1.10
+      snarkjs: 0.7.5
+
   '@solarity/zktype@0.4.3(@solarity/zkit@0.3.3)':
     dependencies:
       '@solarity/zkit': 0.3.3
@@ -6031,7 +6040,7 @@ snapshots:
 
   ansi-regex@6.1.0: {}
 
-  ansi-sequence-parser@1.1.1: {}
+  ansi-sequence-parser@1.1.3: {}
 
   ansi-styles@4.3.0:
     dependencies:
@@ -7186,7 +7195,7 @@ snapshots:
       solc: 0.8.26(debug@4.4.0)
       source-map-support: 0.5.21
       stacktrace-parser: 0.1.10
-      tinyglobby: 0.2.10
+      tinyglobby: 0.2.12
       tsort: 0.0.1
       undici: 5.28.5
       uuid: 8.3.2
@@ -8137,11 +8146,12 @@ snapshots:
 
   possible-typed-array-names@1.1.0: {}
 
-  postcss-load-config@6.0.1(tsx@4.19.2):
+  postcss-load-config@6.0.1(tsx@4.19.2)(yaml@2.7.0):
     dependencies:
       lilconfig: 3.1.3
     optionalDependencies:
       tsx: 4.19.2
+      yaml: 2.7.0
 
   prelude-ls@1.1.2: {}
 
@@ -8415,7 +8425,7 @@ snapshots:
 
   shiki@0.14.7:
     dependencies:
-      ansi-sequence-parser: 1.1.1
+      ansi-sequence-parser: 1.1.3
       jsonc-parser: 3.3.1
       vscode-oniguruma: 1.7.0
       vscode-textmate: 8.0.0
@@ -8636,11 +8646,6 @@ snapshots:
 
   tinyexec@0.3.2: {}
 
-  tinyglobby@0.2.10:
-    dependencies:
-      fdir: 6.4.3(picomatch@4.0.2)
-      picomatch: 4.0.2
-
   tinyglobby@0.2.12:
     dependencies:
       fdir: 6.4.3(picomatch@4.0.2)
@@ -8740,7 +8745,7 @@ snapshots:
 
   tsort@0.0.1: {}
 
-  tsup@8.4.0(@swc/core@1.10.18)(tsx@4.19.2)(typescript@5.7.2):
+  tsup@8.4.0(@swc/core@1.10.18)(tsx@4.19.2)(typescript@5.7.2)(yaml@2.7.0):
     dependencies:
       bundle-require: 5.1.0(esbuild@0.25.1)
       cac: 6.7.14
@@ -8750,7 +8755,7 @@ snapshots:
       esbuild: 0.25.1
       joycon: 3.1.1
       picocolors: 1.1.1
-      postcss-load-config: 6.0.1(tsx@4.19.2)
+      postcss-load-config: 6.0.1(tsx@4.19.2)(yaml@2.7.0)
       resolve-from: 5.0.0
       rollup: 4.35.0
       source-map: 0.8.0-beta.0
@@ -8801,7 +8806,7 @@ snapshots:
       handlebars: 4.7.8
       typedoc: 0.25.13(typescript@5.7.2)
 
-  typedoc-theme-hierarchy@4.1.3(typedoc@0.25.13(typescript@5.7.2)):
+  typedoc-theme-hierarchy@5.0.4(typedoc@0.25.13(typescript@5.7.2)):
     dependencies:
       fs-extra: 11.1.1
       typedoc: 0.25.13(typescript@5.7.2)
@@ -8976,6 +8981,9 @@ snapshots:
   y18n@5.0.8: {}
 
   yallist@3.1.1: {}
+
+  yaml@2.7.0:
+    optional: true
 
   yargs-parser@20.2.9: {}
 

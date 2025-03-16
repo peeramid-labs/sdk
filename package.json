@@ -52,7 +52,7 @@
     "@noble/secp256k1": "^2.2.3",
     "@peeramid-labs/eds": "^2.3.2",
     "@peeramid-labs/multipass": "^0.3.3",
-    "@solarity/zkit": "^0.3.3",
+    "@solarity/zkit": "^0.3.5",
     "chalk": "^4.1.2",
     "circomlibjs": "^0.1.7",
     "commander": "^13.0.0",
@@ -60,7 +60,7 @@
     "inquirer": "^12.3.0",
     "lodash": "^4.17.21",
     "ora": "^5.4.1",
-    "rankify-contracts": "^0.12.1"
+    "rankify-contracts": "^0.12.2"
   },
   "peerDependencies": {
     "viem": "^2.22.8"
@@ -88,9 +88,9 @@
     "ts-node": "^10.9.2",
     "tsup": "^8.3.6",
     "tsx": "^4.19.2",
-    "typedoc": "^0.25.7",
+    "typedoc": "^0.25.13",
     "typedoc-plugin-markdown": "^3.17.1",
-    "typedoc-theme-hierarchy": "^4.1.2",
+    "typedoc-theme-hierarchy": "^5.0.4",
     "typescript": "^5.7.2"
   },
   "types": "./dist/index.d.ts"

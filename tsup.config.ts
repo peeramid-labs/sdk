@@ -8,9 +8,9 @@ export default defineConfig({
   splitting: true,
   outDir: "dist",
   bundle: true,
-  minify: false,
+  minify: true,
   sourcemap: true,
   target: "es2020",
   platform: "node",
-  external: ["viem", "crypto-js", "lodash", "rankify-contracts", "@peeramid-labs/eds", "@peeramid-labs/multipass"],
+  external: ["viem"],
 });

@@ -272,6 +272,35 @@ export class MAODistributorClient extends DistributorClient {
     }
   }
 
+  async removeDistribution(id: `0x${string}`) {
+    if (!this.walletClient) throw new Error("Wallet client is required for this operation");
+    try {
+      const { request } = await this.publicClient.simulateContract({
+        abi: distributorAbi,
+        address: this.address,
+        functionName: "removeDistribution",
+        args: [id],
+        account: this.walletClient.account,
+        chain: this.walletClient.chain,
+      });
+
+      const receipt = await this.walletClient
+        .writeContract(request)
+        .then((h) => this.publicClient.waitForTransactionReceipt({ hash: h }));
+      const distributionRemovedEvent = parseEventLogs({
+        abi: distributorAbi,
+        logs: receipt.logs,
+        eventName: "DistributionRemoved",
+      });
+      logger(`Distribution removed event`);
+      logger(distributionRemovedEvent);
+
+      return { receipt, distributionRemovedEvent: distributionRemovedEvent[0] };
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  }
+
   /**
    * Gets a specific MAO instance by name and instance ID
    * @param params Parameters for getting the instance

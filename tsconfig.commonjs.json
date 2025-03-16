@@ -1,8 +1,0 @@
-{
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "module": "commonjs",
-    "outDir": "./dist/lib.commonjs"
-  },
-  "exclude": ["node_modules", "dist", "**/__tests__/*", "src/cli/**/*"]
-}
