@@ -9,6 +9,7 @@ import {
   GetAbiItemParameters,
   zeroHash,
   ContractFunctionArgs,
+  zeroAddress,
 } from "viem";
 import { RankifyDiamondInstanceAbi } from "../abis";
 import InstanceBase from "./InstanceBase";
@@ -1005,13 +1006,21 @@ export class GameMaster {
 
       const decryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn });
       logger(decryptedProposals);
-      const proposals = players.map((player) => {
-        const proposal = decryptedProposals.find((p) => p.proposer === player)?.proposal ?? "";
-        return {
-          proposer: player,
-          proposal,
-        };
-      });
+      const proposals = [];
+      for (let i = 0; i < 15; i++) {
+        if (i < players.length) {
+          const proposal = decryptedProposals.find((p) => p.proposer === players[i])?.proposal ?? "";
+          proposals.push({
+            proposer: players[i],
+            proposal,
+          });
+        } else {
+          proposals.push({
+            proposer: zeroAddress,
+            proposal: "",
+          });
+        }
+      }
       logger(proposals);
       players.forEach((player) => {
         let proposerIdx = oldProposals.findIndex((p) => player === p.proposer);
