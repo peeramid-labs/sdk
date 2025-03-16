@@ -18,8 +18,8 @@ importers:
         specifier: ^0.3.3
         version: 0.3.3(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2))
       '@solarity/zkit':
-        specifier: ^0.3.5
-        version: 0.3.5
+        specifier: '=0.3.3'
+        version: 0.3.3
       chalk:
         specifier: ^4.1.2
         version: 4.1.2
@@ -1293,9 +1293,6 @@ packages:
 
   '@solarity/zkit@0.3.3':
     resolution: {integrity: sha512-JyMVc4AmNi2CthvYMP78eGKiddaWs6jlmxxw+0qTDZR+DPDVBs2mogoNJETVYgov2BtV7l994OD7qd+Q7KWtqA==}
-
-  '@solarity/zkit@0.3.5':
-    resolution: {integrity: sha512-+hGep1Lc3/RRYViwJgfID/uuWKh8fwysjJbKECknmEfbtqhWeDxCpBycsDUKNix818rcDTTDJdH2hBYB4NxyDA==}
 
   '@solarity/zktype@0.4.3':
     resolution: {integrity: sha512-iPWBJcSf72DDsQX0B/Yelu9H24kud3yyZwpRhYoLS9is1SPgDN6tieOpjDU9NhDexhkBLZvQ/u2CMBqn1a5xdQ==}
@@ -5712,11 +5709,6 @@ snapshots:
       - supports-color
 
   '@solarity/zkit@0.3.3':
-    dependencies:
-      ejs: 3.1.10
-      snarkjs: 0.7.5
-
-  '@solarity/zkit@0.3.5':
     dependencies:
       ejs: 3.1.10
       snarkjs: 0.7.5
