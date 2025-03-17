@@ -982,6 +982,7 @@ export class GameMaster {
    * @returns Transaction hash
    */
   endTurn = async ({ instanceAddress, gameId }: { instanceAddress: Address; gameId: bigint }) => {
+    logger(`Ending turn for game ${gameId}`, 2);
     try {
       const turn = await this.publicClient.readContract({
         address: instanceAddress,
@@ -996,7 +997,7 @@ export class GameMaster {
         functionName: "getPlayers",
         args: [gameId],
       })) as Address[];
-
+      logger(`Current turn: ${turn}, Players count: ${players.length}`, 2);
       if (!Array.isArray(players)) {
         throw new Error("Expected players to be an array");
       }
