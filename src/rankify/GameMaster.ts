@@ -1014,6 +1014,15 @@ export class GameMaster {
           proposal,
         };
       });
+      const maxSize = 15;
+      if (proposals.length < maxSize) {
+        for (let i = proposals.length; i < maxSize; i++) {
+          proposals.push({
+            proposer: zeroAddress,
+            proposal: "",
+          });
+        }
+      }
       logger(proposals);
       players.forEach((player) => {
         let proposerIdx = oldProposals.findIndex((p) => player === p.proposer);
@@ -1261,16 +1270,7 @@ export class GameMaster {
     size?: number;
     proposals: { proposal: string; proposer: Address }[];
   }) => {
-    const maxSize = 15;
     let _proposals = [...proposals];
-    if (_proposals.length < maxSize) {
-      for (let i = _proposals.length; i < maxSize; i++) {
-        _proposals.push({
-          proposer: zeroAddress,
-          proposal: "",
-        });
-      }
-    }
 
     const { permutation, secret: nullifier } = await this.generateDeterministicPermutation({
       gameId,
@@ -1296,6 +1296,8 @@ export class GameMaster {
             })
       )
     );
+    logger("proposals with added empty proposals:", 3);
+    logger(_proposals, 3);
 
     const inputs = await this.createInputs({
       numActive: size,
@@ -1305,15 +1307,11 @@ export class GameMaster {
       turn,
       verifierAddress,
     });
-    logger(inputs, 2);
+    logger("inputs:", 3);
+    logger(inputs, 3);
 
     // Apply permutation to proposals array
-    const permutedProposals = [..._proposals];
-    for (let i = 0; i < maxSize; i++) {
-      if (i < size) {
-        permutedProposals[Number(inputs.permutation[i])] = _proposals[i];
-      }
-    }
+    const permutedProposals = permuteArray({ array: _proposals, permutation: inputs.permutation });
 
     const config = {
       circuitName: "ProposalsIntegrity15",
@@ -1437,7 +1435,8 @@ export class GameMaster {
 
     // Fill arrays with values
     for (let i = 0; i < maxSize; i++) {
-      if (i < numActive) {
+      if (i < numActive && commitmentRandomnesses[i] !== 0n) {
+        logger(`Active slot ${i}`, 3);
         // Active slots
         const proposal = proposals[i];
         const randomness = commitmentRandomnesses[i];
@@ -1447,6 +1446,7 @@ export class GameMaster {
         // Store proposal in permuted position
         permutedProposals[permutation[i]] = proposal;
       } else {
+        logger(`Inactive slot ${i}`, 3);
         // Inactive slots
         const hash = poseidon([0n, 0n]);
         commitments[i] = BigInt(poseidon.F.toObject(hash));
