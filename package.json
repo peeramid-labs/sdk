@@ -35,7 +35,7 @@
     "build-cli": "tsc --project tsconfig.cli.json",
     "build-commonjs": "tsc --project tsconfig.commonjs.json",
     "build": "pnpm build-all && node ./scripts/copyPackageFile.cjs prod",
-    "postbuild": "jq '.type = \"module\"' package.json > temp.json && mv temp.json package.json && cp README.md dist && cp -r .changeset ./dist/.changeset && cp -r docs dist/docs && prettier --write \"dist/**/*.{ts,js,json,md}\" && cd ./dist && pnpm install",
+    "postbuild": "mkdir -p ./dist/zk_artifacts && cp -r node_modules/rankify-contracts/zk_artifacts/ ./dist && mkdir -p ./dist/verifiers && cp -r node_modules/rankify-contracts/src/verifiers ./dist/verifiers && jq '.type = \"module\"' package.json > temp.json && mv temp.json package.json && cp README.md dist && cp -r .changeset ./dist/.changeset && cp -r docs dist/docs && prettier --write \"dist/**/*.{ts,js,json,md}\" && cd ./dist && pnpm install",
     "dist": "changeset && changeset version && pnpm build && cp -r .changeset ./dist && cd dist && pnpm changeset publish",
     "version": "changeset version",
     "release": "pnpm build && cd ./dist && changeset publish",
@@ -50,7 +50,7 @@
     "@noble/secp256k1": "^2.2.3",
     "@peeramid-labs/eds": "^2.3.2",
     "@peeramid-labs/multipass": "^0.3.3",
-    "@solarity/zkit": "^0.3.3",
+    "@solarity/zkit": "=0.3.3",
     "chalk": "^4.1.2",
     "circomlibjs": "^0.1.7",
     "commander": "^13.0.0",
@@ -58,7 +58,7 @@
     "inquirer": "^12.3.0",
     "lodash": "^4.17.21",
     "ora": "^5.4.1",
-    "rankify-contracts": "^0.12.1"
+    "rankify-contracts": "^0.12.2"
   },
   "peerDependencies": {
     "viem": "^2.22.8"
@@ -87,7 +87,7 @@
     "tsx": "^4.19.2",
     "typedoc": "^0.25.7",
     "typedoc-plugin-markdown": "^3.17.1",
-    "typedoc-theme-hierarchy": "^4.1.2",
+    "typedoc-theme-hierarchy": "^5.0.4",
     "typescript": "^5.7.2"
   }
 }

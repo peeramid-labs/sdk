@@ -9,6 +9,7 @@ import {
   GetAbiItemParameters,
   zeroHash,
   ContractFunctionArgs,
+  zeroAddress
 } from "viem";
 import { RankifyDiamondInstanceAbi } from "../abis";
 import InstanceBase from "./InstanceBase";
@@ -981,6 +982,7 @@ export class GameMaster {
    * @returns Transaction hash
    */
   endTurn = async ({ instanceAddress, gameId }: { instanceAddress: Address; gameId: bigint }) => {
+    logger(`Ending turn for game ${gameId}`, 2);
     try {
       const turn = await this.publicClient.readContract({
         address: instanceAddress,
@@ -996,6 +998,7 @@ export class GameMaster {
         args: [gameId],
       })) as Address[];
 
+      logger(`Current turn: ${turn}, Players count: ${players.length}`, 2);
       if (!Array.isArray(players)) {
         throw new Error("Expected players to be an array");
       }
@@ -1004,6 +1007,7 @@ export class GameMaster {
       const oldProposals = await this.getProposalsVotedUpon({ instanceAddress, gameId, turn });
 
       const decryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn });
+      logger(decryptedProposals);
       const proposals = players.map((player) => {
         const proposal = decryptedProposals.find((p) => p.proposer === player)?.proposal ?? "";
         return {
@@ -1011,6 +1015,16 @@ export class GameMaster {
           proposal,
         };
       });
+      const maxSize = 15;
+      if (proposals.length < maxSize) {
+        for (let i = proposals.length; i < maxSize; i++) {
+          proposals.push({
+            proposer: zeroAddress,
+            proposal: "",
+          });
+        }
+      }
+      logger(proposals);
       players.forEach((player) => {
         let proposerIdx = oldProposals.findIndex((p) => player === p.proposer);
         if (proposerIdx === -1) proposerIdx = players.length; //Did not propose
@@ -1257,7 +1271,7 @@ export class GameMaster {
     size?: number;
     proposals: { proposal: string; proposer: Address }[];
   }) => {
-    const maxSize = 15;
+    let _proposals = [...proposals];
 
     const { permutation, secret: nullifier } = await this.generateDeterministicPermutation({
       gameId,
@@ -1267,7 +1281,7 @@ export class GameMaster {
     });
 
     const values = await Promise.all(
-      proposals.map((p) =>
+      _proposals.map((p) =>
         p.proposal === ""
           ? {
               proposalValue: 0n,
@@ -1284,6 +1298,9 @@ export class GameMaster {
       )
     );
 
+    logger("proposals with added empty proposals:", 3);
+    logger(_proposals, 3);
+
     const inputs = await this.createInputs({
       numActive: size,
       proposals: values.map((v) => v.proposalValue),
@@ -1292,44 +1309,32 @@ export class GameMaster {
       turn,
       verifierAddress,
     });
-    logger(inputs, 2);
+    logger("inputs:", 3);
+    logger(inputs, 3);
 
     // Apply permutation to proposals array
-    const permutedProposals = [...proposals];
-    for (let i = 0; i < maxSize; i++) {
-      if (i < size) {
-        permutedProposals[Number(inputs.permutation[i])] = proposals[i];
-      }
-    }
+    const permutedProposals = permuteArray({ array: _proposals, permutation: inputs.permutation });
 
     const config = {
       circuitName: "ProposalsIntegrity15",
       // node_modules/rankify-contracts/zk_artifacts
       circuitArtifactsPath: path.join(
         __dirname,
-        "../../node_modules/rankify-contracts/zk_artifacts/circuits/proposals_integrity_15.circom/"
+        process.env.IS_BUILD_TIME
+          ? "./zk_artifacts/circuits/proposals_integrity_15.circom/"
+          : "../../node_modules/rankify-contracts/zk_artifacts/circuits/proposals_integrity_15.circom/"
       ),
-      verifierDirPath: path.join(__dirname, "../../node_modules/rankify-contracts/src/verifiers"),
+      verifierDirPath: path.join(
+        __dirname,
+        process.env.IS_BUILD_TIME ? "./verifiers" : "../../node_modules/rankify-contracts/src/verifiers"
+      ),
     };
+
     const implementer = new Groth16Implementer();
     const circuit = new CircuitZKit<"groth16">(config, implementer);
     const proof = await circuit.generateProof(inputs);
     const callData = await circuit.generateCalldata(proof);
 
-    // const circuit = await hre.zkit.getCircuit("ProposalsIntegrity15");
-    // const inputsKey = ethers.utils.solidityKeccak256(["string"], [JSON.stringify(inputs) + "groth16"]);
-
-    // let cached = loadFromCache(inputsKey);
-    // if (cached) {
-    // log(`Loaded proof from cache for inputsKey ${inputsKey}`, 2);
-    // } else {
-    // log(`Generating proof for inputsKey ${inputsKey}`, 2);
-    // const proof = await circuit.generateProof(inputs);
-    // saveToCache(inputsKey, proof);
-    // cached = proof;
-    // }
-
-    // const proof = "0x00";
     if (!proof) {
       throw new Error("Proof not found");
     }
@@ -1343,7 +1348,7 @@ export class GameMaster {
     return {
       commitment: inputs.permutationCommitment,
       nullifier,
-      permutation: permutation.slice(0, size),
+      permutation: permutation,
       permutedProposals: permutedProposals.map((proposal) => proposal.proposal),
       a,
       b,
@@ -1443,6 +1448,7 @@ export class GameMaster {
         // Store proposal in permuted position
         permutedProposals[permutation[i]] = proposal;
       } else {
+        logger(`Inactive slot ${i}`, 3);
         // Inactive slots
         const hash = poseidon([0n, 0n]);
         commitments[i] = BigInt(poseidon.F.toObject(hash));
@@ -1461,3 +1467,5 @@ export class GameMaster {
     };
   };
 }
+
+export default GameMaster;
