@@ -87,7 +87,7 @@ export async function handleRPCError(e: unknown) {
     const response = await remoteAttempt;
     const data = await response.json();
     // eslint-disable-next-line
-    return new Error(data.result?.[0]?.text_signature ?? (e as unknown as any)?.message);
+    return new Error(data.result?.[0]?.text_signature);
   }
 
   throw e;
