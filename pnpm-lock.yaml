@@ -18,7 +18,7 @@ importers:
         specifier: ^0.3.3
         version: 0.3.3(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2))
       '@solarity/zkit':
-        specifier: ^0.3.3
+        specifier: '=0.3.3'
         version: 0.3.3
       chalk:
         specifier: ^4.1.2
@@ -42,8 +42,8 @@ importers:
         specifier: ^5.4.1
         version: 5.4.1
       rankify-contracts:
-        specifier: ^0.12.1
-        version: 0.12.1(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2))
+        specifier: ^0.12.2
+        version: 0.12.2(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2))
       viem:
         specifier: ^2.22.8
         version: 2.22.8(typescript@5.7.2)(zod@3.23.8)
@@ -118,8 +118,8 @@ importers:
         specifier: ^3.17.1
         version: 3.17.1(typedoc@0.25.13(typescript@5.7.2))
       typedoc-theme-hierarchy:
-        specifier: ^4.1.2
-        version: 4.1.3(typedoc@0.25.13(typescript@5.7.2))
+        specifier: ^5.0.4
+        version: 5.0.4(typedoc@0.25.13(typescript@5.7.2))
       typescript:
         specifier: ^5.7.2
         version: 5.7.2
@@ -3043,8 +3043,8 @@ packages:
   randomfill@1.0.4:
     resolution: {integrity: sha512-87lcbR8+MhcWcUiQ+9e+Rwx8MyR2P7qnt15ynUlbm3TU/fjbgz4GsvfSUDTemtCCtVCqb4ZcEFlyPNTh9bBTLw==}
 
-  rankify-contracts@0.12.1:
-    resolution: {integrity: sha512-xbASMs2sPnsN+OX9Hg5r0Vfg80xDJoaKuOO6SLv4D5eRyyTaQhFotleivvkOjaN1qvyt7clL8F9Nihesl0KWuQ==}
+  rankify-contracts@0.12.2:
+    resolution: {integrity: sha512-3WGGqvBM5gK/5s8EeIvkHMpvofVemvmrdRwY0x7aRzkOxQn30e1U0nIiS28HyYkzSCgeQCKWTNIupv+G1hz/wg==}
 
   raw-body@2.5.2:
     resolution: {integrity: sha512-8zGqypfENjCIqGhgXToC8aB2r7YrBX+AQAfIPs/Mlk+BtPTztOvTS01NRW/3Eh60J+a48lt8qsCzirQ6loCVfA==}
@@ -3459,10 +3459,10 @@ packages:
     peerDependencies:
       typedoc: '>=0.24.0'
 
-  typedoc-theme-hierarchy@4.1.3:
-    resolution: {integrity: sha512-g24+eKSkKXf0WsSFAnweffNgLZ2k50wcOE8bUvVmXtCg5fMPxQl5Nrd+rro2MNM6uw/kZ4IrV9kZLdM3RjWXQQ==}
+  typedoc-theme-hierarchy@5.0.4:
+    resolution: {integrity: sha512-gDM5gn39LalueIDLMVVIZvtko318nlMLpoWZx3cagBI07LRkncQBkEcbH2nxWhZbORha1LfCf6M5YAI3U2M9wg==}
     peerDependencies:
-      typedoc: ^0.24.0 || ^0.25.0 || ^0.26.0
+      typedoc: ^0.26.0 || ^0.27.0
 
   typedoc@0.25.13:
     resolution: {integrity: sha512-pQqiwiJ+Z4pigfOnnysObszLiU3mVLWAExSPf+Mu06G/qsc3wzbuM56SZQvONhHLncLUhYzOVkjFFpFfL5AzhQ==}
@@ -7515,7 +7515,7 @@ snapshots:
       randombytes: 2.1.0
       safe-buffer: 5.2.1
 
-  rankify-contracts@0.12.1(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2)):
+  rankify-contracts@0.12.2(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.7.2))(typescript@5.7.2)):
     dependencies:
       '@ethersproject/abi': 5.7.0
       '@ethersproject/providers': 5.7.2
@@ -8021,7 +8021,7 @@ snapshots:
       handlebars: 4.7.8
       typedoc: 0.25.13(typescript@5.7.2)
 
-  typedoc-theme-hierarchy@4.1.3(typedoc@0.25.13(typescript@5.7.2)):
+  typedoc-theme-hierarchy@5.0.4(typedoc@0.25.13(typescript@5.7.2)):
     dependencies:
       fs-extra: 11.1.1
       typedoc: 0.25.13(typescript@5.7.2)
