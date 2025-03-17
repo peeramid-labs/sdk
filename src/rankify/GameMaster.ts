@@ -1334,34 +1334,15 @@ export class GameMaster {
     const proof = await circuit.generateProof(inputs);
     const callData = await circuit.generateCalldata(proof);
 
-    // const circuit = await hre.zkit.getCircuit("ProposalsIntegrity15");
-    // const inputsKey = ethers.utils.solidityKeccak256(["string"], [JSON.stringify(inputs) + "groth16"]);
-
-    // let cached = loadFromCache(inputsKey);
-    // if (cached) {
-    // log(`Loaded proof from cache for inputsKey ${inputsKey}`, 2);
-    // } else {
-    // log(`Generating proof for inputsKey ${inputsKey}`, 2);
-    // const proof = await circuit.generateProof(inputs);
-    // saveToCache(inputsKey, proof);
-    // cached = proof;
-    // }
-
-    // const proof = "0x00";
     if (!proof) {
       throw new Error("Proof not found");
     }
 
-    // The callData is an array-like structure with numeric indices
-    // Cast it to the appropriate type for proper indexing
-    const callDataArray = callData as unknown as [string[], string[][], string[]];
-
-    const a: readonly [bigint, bigint] = callDataArray[0].map((a) => BigInt(a)) as [bigint, bigint];
-    const b: readonly [readonly [bigint, bigint], readonly [bigint, bigint]] = callDataArray[1].map((b) =>
+    const a: readonly [bigint, bigint] = callData[0].map((a) => BigInt(a)) as [bigint, bigint];
+    const b: readonly [readonly [bigint, bigint], readonly [bigint, bigint]] = callData[1].map((b) =>
       b.map((b) => BigInt(b))
     ) as unknown as [readonly [bigint, bigint], readonly [bigint, bigint]];
-    // eslint-disable-next-line
-    const c: readonly [bigint, bigint] = callDataArray[2].map((c: any) => BigInt(c)) as [bigint, bigint];
+    const c: readonly [bigint, bigint] = callData[2].map((c) => BigInt(c)) as [bigint, bigint];
     return {
       commitment: inputs.permutationCommitment,
       nullifier,
