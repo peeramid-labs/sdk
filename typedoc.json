@@ -1,8 +1,8 @@
 {
-  "$schema": "https://typedoc.org/schema.json",
+  "$schema": "https://typedoc-plugin-markdown.org/schema.json",
   "entryPoints": ["./src/index.ts"],
   "out": "docs",
-  "exclude": ["**/__tests__/**/*", "**/node_modules/**/*"],
+  "exclude": ["**/__tests__/**/*", "**/node_modules/**/*", "**/dist/**/*"],
   "excludePrivate": true,
   "excludeProtected": true,
   "excludeExternals": false,

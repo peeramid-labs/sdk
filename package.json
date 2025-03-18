@@ -2,10 +2,9 @@
   "name": "@peeramid-labs/sdk",
   "description": "Peeramid Labs JavaScript SDK and CLI tools for building your community",
   "version": "3.7.3",
-  "private": "true",
   "type": "module",
-  "main": "./src/index.ts",
-  "module": "./src/index.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
   "publishConfig": {
     "access": "public"
   },
@@ -17,8 +16,14 @@
   },
   "exports": {
     ".": {
-      "require": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./cli": {
+      "types": "./dist/cli/index.d.ts",
+      "import": "./dist/cli/index.js",
+      "require": "./dist/cli/index.cjs"
     }
   },
   "bin": {
@@ -29,14 +34,10 @@
     "lint:fix": "prettier --write 'src/**/*.{ts,js}' && eslint --fix .",
     "lint": "eslint .",
     "generate-chain-mapping": "node ./scripts/generateChainMapping.mjs",
-    "prebuild": "node scripts/copyAbi.cjs && jq '.type = \"commonjs\"' package.json > temp.json && mv temp.json package.json",
-    "build-esm": "tsc --project tsconfig.esm.json",
-    "build-all": "pnpm generate-chain-mapping && pnpm run build-commonjs && pnpm run build-esm && pnpm run build-cli && pnpm run docs",
-    "build-cli": "tsc --project tsconfig.cli.json",
-    "build-commonjs": "tsc --project tsconfig.commonjs.json",
-    "build": "pnpm build-all && node ./scripts/copyPackageFile.cjs prod",
-    "postbuild": "jq '.type = \"module\"' package.json > temp.json && mv temp.json package.json && cp README.md dist && cp -r .changeset ./dist/.changeset && cp -r docs dist/docs && prettier --write \"dist/**/*.{ts,js,json,md}\" && cd ./dist && pnpm install",
-    "dist": "changeset && changeset version && pnpm build && cp -r .changeset ./dist && cd dist && pnpm changeset publish",
+    "prebuild": "node scripts/copyAbi.cjs && pnpm generate-chain-mapping",
+    "build": "tsup src/index.ts src/cli/index.ts --format cjs,esm --dts --clean",
+    "postbuild": "mkdir -p ./dist/zk_artifacts && cp -r node_modules/rankify-contracts/zk_artifacts/ ./dist && mkdir -p ./dist/verifiers && cp -r node_modules/rankify-contracts/src/verifiers ./dist/verifiers && pnpm run docs && node scripts/copyPackageFile.cjs prod",
+    "dist": "changeset && changeset version && pnpm build && pnpm changeset publish",
     "version": "changeset version",
     "release": "pnpm build && cd ./dist && changeset publish",
     "test": "jest",
@@ -50,7 +51,7 @@
     "@noble/secp256k1": "^2.2.3",
     "@peeramid-labs/eds": "^2.3.2",
     "@peeramid-labs/multipass": "^0.3.3",
-    "@solarity/zkit": "^0.3.3",
+    "@solarity/zkit": "=0.3.2",
     "chalk": "^4.1.2",
     "circomlibjs": "^0.1.7",
     "commander": "^13.0.0",
@@ -58,7 +59,7 @@
     "inquirer": "^12.3.0",
     "lodash": "^4.17.21",
     "ora": "^5.4.1",
-    "rankify-contracts": "^0.12.1"
+    "rankify-contracts": "^0.12.2"
   },
   "peerDependencies": {
     "viem": "^2.22.8"
@@ -84,10 +85,12 @@
     "jest-ts-webcompat-resolver": "^1.0.0",
     "prettier": "^3.3.3",
     "ts-node": "^10.9.2",
+    "tsup": "^8.3.6",
     "tsx": "^4.19.2",
-    "typedoc": "^0.25.7",
+    "typedoc": "^0.25.13",
     "typedoc-plugin-markdown": "^3.17.1",
-    "typedoc-theme-hierarchy": "^4.1.2",
+    "typedoc-theme-hierarchy": "^5.0.4",
     "typescript": "^5.7.2"
-  }
+  },
+  "types": "./dist/index.d.ts"
 }
