@@ -91,10 +91,6 @@ setup_repo() {
     if [ "$CLEAN" = "clean" ]; then
         echo "Cleaning up deployments for $NETWORK..."
         pnpm hardhat clean && rm -rf deployments/$NETWORK
-        # clean zkit artifacts for rankify-contracts
-        if [ "$repo_name" = "rankify-contracts" ]; then
-            npx hardhat zkit clean
-        fi
     fi
 
     pnpm build
