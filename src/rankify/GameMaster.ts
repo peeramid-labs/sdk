@@ -9,7 +9,7 @@ import {
   GetAbiItemParameters,
   zeroHash,
   ContractFunctionArgs,
-  zeroAddress
+  zeroAddress,
 } from "viem";
 import { RankifyDiamondInstanceAbi } from "../abis";
 import InstanceBase from "./InstanceBase";
@@ -142,6 +142,9 @@ export class GameMaster {
     turn: bigint;
     proposer?: Address;
   }) => {
+    logger(
+      `Getting proposals for instance ${instanceAddress}, game ${gameId}, turn ${turn.toString()}, proposer ${proposer}`
+    );
     const evts = await this.publicClient.getContractEvents({
       abi: RankifyDiamondInstanceAbi,
       address: instanceAddress,
@@ -149,6 +152,7 @@ export class GameMaster {
       args: { gameId: gameId, turn: turn, proposer: proposer },
       fromBlock: 0n,
     });
+    logger(`Found ${evts.length} proposals`);
     const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
     if (evts.length == 0) return [];
     logger(`Decrypting ${evts.length} proposals`);
@@ -400,6 +404,7 @@ export class GameMaster {
     }[] = [];
     //Proposals sequence is directly corresponding to proposers sequence
     if (turn != 1n) {
+      logger(`Getting proposals voted upon for game ${gameId.toString()}, turn ${(turn - 1n).toString()}`, 3);
       const endedEvents = await this.publicClient.getContractEvents({
         address: instanceAddress,
         abi: RankifyDiamondInstanceAbi,
@@ -408,6 +413,8 @@ export class GameMaster {
         fromBlock: 0n,
       });
       const evt = endedEvents[0];
+      logger("evt:", 3);
+      logger(evt, 3);
       if (endedEvents.length > 1) throw new Error("Multiple turns ended");
       const args = evt.args;
       const decryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn: turn - 1n });
@@ -1333,7 +1340,11 @@ export class GameMaster {
     const implementer = new Groth16Implementer();
     const circuit = new CircuitZKit<"groth16">(config, implementer);
     const proof = await circuit.generateProof(inputs);
+    logger("proof:", 3);
+    logger(proof, 3);
     const callData = await circuit.generateCalldata(proof);
+    logger("callData:", 3);
+    logger(callData, 3);
 
     if (!proof) {
       throw new Error("Proof not found");
