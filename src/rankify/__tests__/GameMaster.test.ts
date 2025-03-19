@@ -587,9 +587,9 @@ describe("GameMaster", () => {
       });
 
       // Verify permutation properties
-      expect(result.permutation).toHaveLength(3);
+      expect(result.permutation).toHaveLength(15);
       expect(result.permutation.every((p) => typeof p === "bigint")).toBe(true);
-      expect(new Set(result.permutation).size).toBe(3); // All elements should be unique
+      expect(new Set(result.permutation).size).toBe(15); // All elements should be unique
 
       // Test permuteArray matches the result
       const permutedByMethod = await gameMaster.permuteArray<string>({
