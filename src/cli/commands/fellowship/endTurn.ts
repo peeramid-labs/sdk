@@ -1,9 +1,8 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { Chain, getAddress } from "viem";
+import { getAddress } from "viem";
 import { createPublic, createWallet } from "../../client";
-import { chainToPath } from "../../../utils/chainMapping";
 import GameMaster from "../../../rankify/GameMaster";
 
 export const endTurn = new Command("endTurn")
