@@ -50,7 +50,7 @@
     "@noble/secp256k1": "^2.2.3",
     "@peeramid-labs/eds": "^2.3.2",
     "@peeramid-labs/multipass": "^0.3.3",
-    "@solarity/zkit": "=0.3.3",
+    "@solarity/zkit": "=0.3.2",
     "chalk": "^4.1.2",
     "circomlibjs": "^0.1.7",
     "commander": "^13.0.0",
@@ -58,7 +58,7 @@
     "inquirer": "^12.3.0",
     "lodash": "^4.17.21",
     "ora": "^5.4.1",
-    "rankify-contracts": "^0.12.2"
+    "rankify-contracts": "^0.12.3"
   },
   "peerDependencies": {
     "viem": "^2.22.8"
