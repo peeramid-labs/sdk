@@ -41,7 +41,7 @@ export const games = new Command("games")
         "\n  Time to join:",
         game.timeToJoin.toString(),
         "\n  Vote credits:",
-        game.voteCredits.toString(),
+        game.voteCredits.toString()
       );
     });
   });

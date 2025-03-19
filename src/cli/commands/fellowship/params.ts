@@ -46,6 +46,7 @@ export const paramsCommand = new Command("params")
         gamePaymentToken,
         derivedToken,
         proposalIntegrityVerifier,
+        numGames: numGames.toString(),
       });
     } catch (error) {
       spinner.fail("Operation failed");

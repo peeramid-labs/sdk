@@ -31,24 +31,6 @@ export const endTurn = new Command("endTurn")
 
       spinner.start("Ending turn...");
 
-      const chain: Chain = {
-        id: chainId,
-        name: chainToPath[chainId.toString()],
-        nativeCurrency: {
-          name: "Ether",
-          symbol: "ETH",
-          decimals: 18,
-        },
-        rpcUrls: {
-          default: {
-            http: [options.rpc || process.env.RPC_URL!],
-          },
-          public: {
-            http: [options.rpc || process.env.RPC_URL!],
-          },
-        },
-      };
-
       const hash = await gameMaster.endTurn({ instanceAddress: getAddress(instanceAddress), gameId: BigInt(gameId) });
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       console.log(receipt);
