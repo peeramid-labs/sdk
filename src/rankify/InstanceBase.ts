@@ -429,6 +429,7 @@ export default class InstanceBase {
         address: this.instanceAddress,
         abi: instanceAbi,
         eventName: "ProposalScore",
+        fromBlock: await this.getCreationBlock(),
         args: { gameId },
       });
 
