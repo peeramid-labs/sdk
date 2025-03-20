@@ -881,11 +881,15 @@ export class GameMaster {
     gameId: bigint;
     turn: bigint;
   }) => {
+    logger(
+      `Decrypting votes for game ${BigInt(gameId)} turn ${turn} at address ${instanceAddress} at ${await this.publicClient.getBlockNumber()} block`
+    );
     const evts = await this.publicClient.getContractEvents({
       address: instanceAddress,
       abi: RankifyDiamondInstanceAbi,
       eventName: "VoteSubmitted",
-      args: { gameId, turn },
+      fromBlock: 0n,
+      args: { turn, gameId },
     });
     logger(`Found ${evts.length} events`);
     if (evts.length === 0) return [];
