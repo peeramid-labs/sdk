@@ -17,6 +17,7 @@ function formatBytes32String(text: string): `0x${string}` {
 export const addCommand = new Command("add")
   .description("Add a new distribution")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
+  .option("-d, --distributor <address>", "Address of the distributor")
   .action(async (options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -26,6 +27,7 @@ export const addCommand = new Command("add")
       const chainId = Number(await publicClient.getChainId());
 
       const maoDistributor = new MAODistributorClient(chainId, {
+        address: options.distributor ?? undefined,
         publicClient,
         walletClient,
       });

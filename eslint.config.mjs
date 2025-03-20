@@ -8,7 +8,7 @@ import prettierConfig from "eslint-config-prettier";
 export default [
   js.configs.recommended,
   {
-    ignores: ["**/node_modules/**", "**/dist/**", "src/abis/*.ts", "scripts", "copyPackageFile.js"],
+    ignores: ["**/node_modules/**", "**/dist/**", "src/abis/*.ts", "scripts", "copyPackageFile.js", "zk_artifacts"],
   },
   {
     files: ["**/*.ts"],

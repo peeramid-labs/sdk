@@ -31,56 +31,63 @@ export const createFellowshipCommand = new Command("create")
       spinner.text = "Please provide fellowship details...";
       spinner.stop();
 
-      const { tokenName, tokenSymbol, principalCost, timeConstant, metadata, rankTokenUri } = await inquirer.prompt([
-        {
-          type: "input",
-          name: "tokenName",
-          message: "Enter token name:",
-          default: "Fellowship Token",
-        },
-        {
-          type: "input",
-          name: "tokenSymbol",
-          message: "Enter token symbol:",
-          default: "FLSHP",
-        },
-        {
-          type: "input",
-          name: "principalCost",
-          message: "Enter principal cost (in wei):",
-          default: "1000000000000000000", // 1 ETH
-          validate: (input: string) => {
-            try {
-              BigInt(input);
-              return true;
-            } catch {
-              return "Please enter a valid number";
-            }
+      const { tokenName, tokenSymbol, principalCost, timeConstant, metadata, rankTokenUri, owner } =
+        await inquirer.prompt([
+          {
+            type: "input",
+            name: "tokenName",
+            message: "Enter token name:",
+            default: "Fellowship Token",
           },
-        },
-        {
-          type: "input",
-          name: "timeConstant",
-          message: "Enter time constant (in seconds):",
-          default: "604800", // 1 week
-          validate: (input: string) => {
-            const num = parseInt(input);
-            return !isNaN(num) && num > 0 ? true : "Please enter a valid number greater than 0";
+          {
+            type: "input",
+            name: "tokenSymbol",
+            message: "Enter token symbol:",
+            default: "FLSHP",
           },
-        },
-        {
-          type: "input",
-          name: "metadata",
-          message: "Enter metadata URI:",
-          default: "ipfs://your-metadata-uri",
-        },
-        {
-          type: "input",
-          name: "rankTokenUri",
-          message: "Enter rank token URI:",
-          default: "ipfs://your-rank-token-uri",
-        },
-      ]);
+          {
+            type: "input",
+            name: "principalCost",
+            message: "Enter principal cost (in wei):",
+            default: "1000000000000000000", // 1 ETH
+            validate: (input: string) => {
+              try {
+                BigInt(input);
+                return true;
+              } catch {
+                return "Please enter a valid number";
+              }
+            },
+          },
+          {
+            type: "input",
+            name: "timeConstant",
+            message: "Enter time constant (in seconds):",
+            default: "604800", // 1 week
+            validate: (input: string) => {
+              const num = parseInt(input);
+              return !isNaN(num) && num > 0 ? true : "Please enter a valid number greater than 0";
+            },
+          },
+          {
+            type: "input",
+            name: "metadata",
+            message: "Enter metadata URI:",
+            default: "ipfs://your-metadata-uri",
+          },
+          {
+            type: "input",
+            name: "rankTokenUri",
+            message: "Enter rank token URI:",
+            default: "ipfs://your-rank-token-uri",
+          },
+          {
+            type: "input",
+            name: "owner",
+            message: "Enter owner address:",
+            default: walletClient.account?.address,
+          },
+        ]);
 
       spinner.start("Creating fellowship...");
 
@@ -95,6 +102,7 @@ export const createFellowshipCommand = new Command("create")
             principalTimeConstant: BigInt(timeConstant),
             rankTokenURI: rankTokenUri,
             rankTokenContractURI: metadata, // Using same URI for contract metadata
+            owner: owner,
           },
         },
       ] as const;
