@@ -1,5 +1,32 @@
 # peeramid-labs/sdk
 
+## 3.7.4
+
+### Patch Changes
+
+- [#134](https://github.com/peeramid-labs/sdk/pull/134) [`98a1599ac152da6751006c561c70f7ebd9fba4ea`](https://github.com/peeramid-labs/sdk/commit/98a1599ac152da6751006c561c70f7ebd9fba4ea) Thanks [@peersky](https://github.com/peersky)! - Add remove distribution method to distributor class
+
+- [#134](https://github.com/peeramid-labs/sdk/pull/134) [`98a1599ac152da6751006c561c70f7ebd9fba4ea`](https://github.com/peeramid-labs/sdk/commit/98a1599ac152da6751006c561c70f7ebd9fba4ea) Thanks [@peersky](https://github.com/peersky)! - add fromBlock to getProposalScoresList
+
+- [#134](https://github.com/peeramid-labs/sdk/pull/134) [`98a1599ac152da6751006c561c70f7ebd9fba4ea`](https://github.com/peeramid-labs/sdk/commit/98a1599ac152da6751006c561c70f7ebd9fba4ea) Thanks [@peersky](https://github.com/peersky)! - elaborated api error processing
+
+- [#134](https://github.com/peeramid-labs/sdk/pull/134) [`98a1599ac152da6751006c561c70f7ebd9fba4ea`](https://github.com/peeramid-labs/sdk/commit/98a1599ac152da6751006c561c70f7ebd9fba4ea) Thanks [@peersky](https://github.com/peersky)! - fixed bug that caused decryptTurnVotes to not get actual vote events
+
+- [#134](https://github.com/peeramid-labs/sdk/pull/134) [`98a1599ac152da6751006c561c70f7ebd9fba4ea`](https://github.com/peeramid-labs/sdk/commit/98a1599ac152da6751006c561c70f7ebd9fba4ea) Thanks [@peersky](https://github.com/peersky)! - - add fellowship parameters cli getter
+
+  - add end-turn cli method
+  - adjust create fellowship cli for new contracts version (add owner param)
+
+- [#134](https://github.com/peeramid-labs/sdk/pull/134) [`98a1599ac152da6751006c561c70f7ebd9fba4ea`](https://github.com/peeramid-labs/sdk/commit/98a1599ac152da6751006c561c70f7ebd9fba4ea) Thanks [@peersky](https://github.com/peersky)! - allow specify distributor address in add distribution cli call
+
+- [#134](https://github.com/peeramid-labs/sdk/pull/134) [`98a1599ac152da6751006c561c70f7ebd9fba4ea`](https://github.com/peeramid-labs/sdk/commit/98a1599ac152da6751006c561c70f7ebd9fba4ea) Thanks [@peersky](https://github.com/peersky)! - added remove distribution cli method
+
+- [`4161570ea775334d6da4298931da597c05fdbaec`](https://github.com/peeramid-labs/sdk/commit/4161570ea775334d6da4298931da597c05fdbaec) Thanks [@peersky](https://github.com/peersky)! - add vote credits to cli print on fellowship games query
+
+- [#134](https://github.com/peeramid-labs/sdk/pull/134) [`98a1599ac152da6751006c561c70f7ebd9fba4ea`](https://github.com/peeramid-labs/sdk/commit/98a1599ac152da6751006c561c70f7ebd9fba4ea) Thanks [@peersky](https://github.com/peersky)! - bumped contracts dep
+
+- [#134](https://github.com/peeramid-labs/sdk/pull/134) [`98a1599ac152da6751006c561c70f7ebd9fba4ea`](https://github.com/peeramid-labs/sdk/commit/98a1599ac152da6751006c561c70f7ebd9fba4ea) Thanks [@peersky](https://github.com/peersky)! - bump contracts to 0.12.4
+
 ## 3.7.3
 
 ### Patch Changes
