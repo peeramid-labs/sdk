@@ -1324,17 +1324,8 @@ export class GameMaster {
 
     const config = {
       circuitName: "ProposalsIntegrity15",
-      // node_modules/rankify-contracts/zk_artifacts
-      circuitArtifactsPath: path.join(
-        __dirname,
-        process.env.IS_BUILD_TIME
-          ? "./zk_artifacts/circuits/proposals_integrity_15.circom/"
-          : "../../node_modules/rankify-contracts/zk_artifacts/circuits/proposals_integrity_15.circom/"
-      ),
-      verifierDirPath: path.join(
-        __dirname,
-        process.env.IS_BUILD_TIME ? "./verifiers" : "../../node_modules/rankify-contracts/src/verifiers"
-      ),
+      circuitArtifactsPath: path.join(__dirname, "../../zk_artifacts/circuits/proposals_integrity_15.circom/"),
+      verifierDirPath: path.join(__dirname, "../../zk_artifacts/verifiers"),
     };
 
     const implementer = new Groth16Implementer();

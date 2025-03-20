@@ -96,3 +96,5 @@ if (fs.existsSync(peeramidDir)) {
 
 // Generate index file
 generateIndexFile(abiDestDir);
+
+fs.cpSync("./node_modules/rankify-contracts/zk_artifacts/", "./zk_artifacts", { recursive: true });
