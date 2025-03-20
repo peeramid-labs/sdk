@@ -922,6 +922,7 @@ describe("GameMaster", () => {
         abi: RankifyDiamondInstanceAbi,
         eventName: "VoteSubmitted",
         args: { gameId: 1n, turn: 1n },
+        fromBlock: 0n,
       });
 
       expect(result).toEqual([
