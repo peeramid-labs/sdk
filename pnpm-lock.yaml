@@ -42,8 +42,8 @@ importers:
         specifier: ^5.4.1
         version: 5.4.1
       rankify-contracts:
-        specifier: ^0.12.3
-        version: 0.12.3(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.8.2))(typescript@5.8.2))
+        specifier: ^0.12.4
+        version: 0.12.4(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.8.2))(typescript@5.8.2))
       viem:
         specifier: ^2.22.8
         version: 2.23.12(typescript@5.8.2)(zod@3.23.8)
@@ -3058,8 +3058,8 @@ packages:
   randomfill@1.0.4:
     resolution: {integrity: sha512-87lcbR8+MhcWcUiQ+9e+Rwx8MyR2P7qnt15ynUlbm3TU/fjbgz4GsvfSUDTemtCCtVCqb4ZcEFlyPNTh9bBTLw==}
 
-  rankify-contracts@0.12.3:
-    resolution: {integrity: sha512-NY3APor4F3jXYDGlRxt9zo70blgMOwWeT5dk1U21+MxW6l8n7t2ArRPtgSuBlv6F0h82Si5JQcp46FpTadgFTQ==}
+  rankify-contracts@0.12.4:
+    resolution: {integrity: sha512-OFHL3Rk57pLIigkfvhxkhYR79hlBeB1FTmELaHgnv2DhhfkN4zzzcWvQ9BGxDanSwP8QaVgyHC1ZthJNxe3GZA==}
 
   raw-body@2.5.2:
     resolution: {integrity: sha512-8zGqypfENjCIqGhgXToC8aB2r7YrBX+AQAfIPs/Mlk+BtPTztOvTS01NRW/3Eh60J+a48lt8qsCzirQ6loCVfA==}
@@ -5701,9 +5701,9 @@ snapshots:
 
   call-bind@1.0.8:
     dependencies:
-      call-bind-apply-helpers: 1.0.1
+      call-bind-apply-helpers: 1.0.2
       es-define-property: 1.0.1
-      get-intrinsic: 1.2.7
+      get-intrinsic: 1.3.0
       set-function-length: 1.2.2
 
   call-bound@1.0.3:
@@ -7552,7 +7552,7 @@ snapshots:
       randombytes: 2.1.0
       safe-buffer: 5.2.1
 
-  rankify-contracts@0.12.3(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.8.2))(typescript@5.8.2)):
+  rankify-contracts@0.12.4(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.8.2))(typescript@5.8.2)):
     dependencies:
       '@ethersproject/abi': 5.7.0
       '@ethersproject/providers': 5.7.2
@@ -7720,7 +7720,7 @@ snapshots:
       define-data-property: 1.1.4
       es-errors: 1.3.0
       function-bind: 1.1.2
-      get-intrinsic: 1.2.7
+      get-intrinsic: 1.3.0
       gopd: 1.2.0
       has-property-descriptors: 1.0.2
 
