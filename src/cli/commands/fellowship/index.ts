@@ -6,7 +6,7 @@ import { getMetadataCommand } from "./metadata";
 import { eip712Command } from "./eip712";
 import { endTurn } from "./endTurn";
 import { paramsCommand } from "./params";
-
+import { cancel } from "./cancel";
 export const fellowshipCommand = new Command("fellowship")
   .description("Fellowship contract commands")
   .addCommand(createFellowshipCommand)
@@ -15,4 +15,5 @@ export const fellowshipCommand = new Command("fellowship")
   .addCommand(eip712Command)
   .addCommand(games)
   .addCommand(endTurn)
-  .addCommand(paramsCommand);
+  .addCommand(paramsCommand)
+  .addCommand(cancel);
