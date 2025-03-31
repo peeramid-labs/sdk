@@ -7,6 +7,7 @@ import { eip712Command } from "./eip712";
 import { endTurn } from "./endTurn";
 import { paramsCommand } from "./params";
 import { cancel } from "./cancel";
+
 export const fellowshipCommand = new Command("fellowship")
   .description("Fellowship contract commands")
   .addCommand(createFellowshipCommand)
