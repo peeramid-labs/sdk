@@ -398,10 +398,13 @@ export class GameMaster {
     gameId: bigint;
     turn: bigint;
   }) => {
-    const oldProposals: {
-      proposer: Address;
-      proposal: string;
-    }[] = [];
+    const oldProposals: (
+      | {
+          proposer: Address;
+          proposal: string;
+        }
+      | undefined
+    )[] = [];
     //Proposals sequence is directly corresponding to proposers sequence
     if (turn != 1n) {
       logger(`Getting proposals voted upon for game ${gameId.toString()}, turn ${(turn - 1n).toString()}`, 3);
@@ -481,7 +484,7 @@ export class GameMaster {
     }
 
     const proposalsVotedUpon = await this.getProposalsVotedUpon({ instanceAddress, gameId, turn: currentTurn });
-    return proposalsVotedUpon.findIndex((p) => p.proposer === player);
+    return proposalsVotedUpon.findIndex((p) => p?.proposer === player);
   };
 
   validateJoinGame = async (props: {
@@ -1039,7 +1042,7 @@ export class GameMaster {
       logger(proposals);
       players.forEach((player) => {
         console.log(oldProposals);
-        let proposerIdx = oldProposals.length > 0 ? oldProposals.findIndex((p) => player === p.proposer) : -1;
+        let proposerIdx = oldProposals.length > 0 ? oldProposals.findIndex((p) => player === p?.proposer) : -1;
         if (proposerIdx === -1) proposerIdx = players.length; //Did not propose
         proposerIndices.push(BigInt(proposerIdx));
       });
