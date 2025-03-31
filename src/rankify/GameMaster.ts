@@ -1038,6 +1038,7 @@ export class GameMaster {
       }
       logger(proposals);
       players.forEach((player) => {
+        console.log(oldProposals);
         let proposerIdx = oldProposals.length > 0 ? oldProposals.findIndex((p) => player === p.proposer) : -1;
         if (proposerIdx === -1) proposerIdx = players.length; //Did not propose
         proposerIndices.push(BigInt(proposerIdx));
