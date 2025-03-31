@@ -436,14 +436,14 @@ export class GameMaster {
               proposal: proposal,
             };
           }
-          // _players.forEach((p, idx) => {
-          //   if (!playersSubmitters.includes(idx)) {
-          //     oldProposals[idx] = {
-          //       proposer: p,
-          //       proposal: "",
-          //     };
-          //   }
-          // });
+          _players.forEach((p, idx) => {
+            if (!playersSubmitters.includes(idx)) {
+              oldProposals[idx] = {
+                proposer: p,
+                proposal: "",
+              };
+            }
+          });
         });
       } else {
         // Boundary case if no-one proposed a thing
@@ -1046,7 +1046,7 @@ export class GameMaster {
       }
       logger(proposals);
       players.forEach((player) => {
-        let proposerIdx = oldProposals.findIndex((p) => player === p?.proposer);
+        let proposerIdx = oldProposals.findIndex((p) => player === p.proposer);
         if (proposerIdx === -1) proposerIdx = players.length; //Did not propose
         proposerIndices.push(BigInt(proposerIdx));
       });
