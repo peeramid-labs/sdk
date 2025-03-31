@@ -415,28 +415,37 @@ export class GameMaster {
       const evt = endedEvents[0];
       logger("evt:", 3);
       logger(evt, 3);
+      const _players = await this.publicClient.readContract({
+        address: instanceAddress,
+        abi: RankifyDiamondInstanceAbi,
+        functionName: "getPlayers",
+        args: [gameId],
+      });
       if (endedEvents.length > 1) throw new Error("Multiple turns ended");
       const args = evt.args;
       const decryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn: turn - 1n });
       if (args.newProposals) {
         args.newProposals.slice(0, args?.players?.length).forEach((proposal, idx) => {
+          const playersSubmitters: number[] = [];
           if (proposal !== "") {
             const proposer = decryptedProposals.find((p) => p.proposal === proposal)?.proposer;
             if (!proposer) throw new Error("No proposer found for proposal");
+            playersSubmitters.push(idx);
             oldProposals[idx] = {
               proposer,
               proposal: proposal,
             };
           }
+          _players.forEach((p, idx) => {
+            if (!playersSubmitters.includes(idx)) {
+              oldProposals[idx] = {
+                proposer: p,
+                proposal: "",
+              };
+            }
+          });
         });
       } else {
-        const _players = await this.publicClient.readContract({
-          address: instanceAddress,
-          abi: RankifyDiamondInstanceAbi,
-          functionName: "getPlayers",
-          args: [gameId],
-        });
-
         // Boundary case if no-one proposed a thing
         _players.forEach((p, idx) => {
           oldProposals[idx] = {
