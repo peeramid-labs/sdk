@@ -415,12 +415,12 @@ export class GameMaster {
       const evt = endedEvents[0];
       logger("evt:", 3);
       logger(evt, 3);
-      const _players = await this.publicClient.readContract({
-        address: instanceAddress,
-        abi: RankifyDiamondInstanceAbi,
-        functionName: "getPlayers",
-        args: [gameId],
-      });
+      // const _players = await this.publicClient.readContract({
+      //   address: instanceAddress,
+      //   abi: RankifyDiamondInstanceAbi,
+      //   functionName: "getPlayers",
+      //   args: [gameId],
+      // });
       if (endedEvents.length > 1) throw new Error("Multiple turns ended");
       const args = evt.args;
       const decryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn: turn - 1n });
@@ -436,23 +436,15 @@ export class GameMaster {
               proposal: proposal,
             };
           }
-          _players.forEach((p, idx) => {
-            if (!playersSubmitters.includes(idx)) {
-              oldProposals[idx] = {
-                proposer: p,
-                proposal: "",
-              };
-            }
-          });
         });
       } else {
         // Boundary case if no-one proposed a thing
-        _players.forEach((p, idx) => {
-          oldProposals[idx] = {
-            proposer: p,
-            proposal: "",
-          };
-        });
+        //   _players.forEach((p, idx) => {
+        //     oldProposals[idx] = {
+        //       proposer: p,
+        //       proposal: "",
+        //     };
+        //   });
       }
     }
     return oldProposals;
