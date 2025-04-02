@@ -6,13 +6,14 @@ import { Chain } from "viem";
 import { MAODistributorClient } from "../../../rankify/MAODistributor";
 import { createPublic, createWallet } from "../../client";
 import { chainToPath } from "../../../utils/chainMapping";
+import { resolvePk } from "../../getPk";
 
 export const createFellowshipCommand = new Command("create")
   .description("Create a new Fellowship")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
   .option(
     "-k, --key <privateKey>",
-    "Private key for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
+    "Private key for signing transactions or index to derive from mnemonic. If not provided, PRIVATE_KEY environment variable will be used"
   )
   .option("-n, --dist-name <name>", "Distributors package name")
   .action(async (options) => {
@@ -20,7 +21,7 @@ export const createFellowshipCommand = new Command("create")
 
     try {
       const publicClient = await createPublic(options.rpc);
-      const walletClient = await createWallet(options.rpc, options.key);
+      const walletClient = await createWallet(options.rpc, resolvePk(options.key, spinner));
       const chainId = Number(await publicClient.getChainId());
 
       const maoDistributor = new MAODistributorClient(chainId, {
@@ -49,7 +50,7 @@ export const createFellowshipCommand = new Command("create")
             type: "input",
             name: "principalCost",
             message: "Enter principal cost (in wei):",
-            default: "1000000000000000000", // 1 ETH
+            default: "1000000000",
             validate: (input: string) => {
               try {
                 BigInt(input);
@@ -73,7 +74,7 @@ export const createFellowshipCommand = new Command("create")
             type: "input",
             name: "metadata",
             message: "Enter metadata URI:",
-            default: "ipfs://your-metadata-uri",
+            default: "ipfs://QmVzSvWjysUfVHzGMQ4y2EduXrVYLApZ3KHQb2gUTR4x6P",
           },
           {
             type: "input",

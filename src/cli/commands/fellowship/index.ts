@@ -7,6 +7,10 @@ import { eip712Command } from "./eip712";
 import { endTurn } from "./endTurn";
 import { paramsCommand } from "./params";
 import { cancel } from "./cancel";
+import { createGame } from "./createGame";
+import { joinGame } from "./joinGame";
+import { startGame } from "./startGame";
+import { propose } from "./propose";
 
 export const fellowshipCommand = new Command("fellowship")
   .description("Fellowship contract commands")
@@ -17,4 +21,8 @@ export const fellowshipCommand = new Command("fellowship")
   .addCommand(games)
   .addCommand(endTurn)
   .addCommand(paramsCommand)
-  .addCommand(cancel);
+  .addCommand(cancel)
+  .addCommand(createGame)
+  .addCommand(joinGame)
+  .addCommand(startGame)
+  .addCommand(propose);

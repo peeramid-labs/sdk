@@ -5,6 +5,7 @@ import { MAODistributorClient } from "../../../rankify/MAODistributor";
 import { createPublic, createWallet } from "../../client";
 import inquirer from "inquirer";
 import { getArtifact } from "../../../utils";
+import { resolvePk } from "../../getPk";
 
 // Helper to pad string to 32 bytes, similar to ethers.utils.formatBytes32String
 function formatBytes32String(text: string): `0x${string}` {
@@ -18,12 +19,13 @@ export const addCommand = new Command("add")
   .description("Add a new distribution")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
   .option("-d, --distributor <address>", "Address of the distributor")
+  .option("-k, --key <privateKey>", "Private key with admin permissions or index to derive from mnemonic. If not provided, PRIVATE_KEY environment variable will be used")
   .action(async (options) => {
     const spinner = ora("Initializing clients...").start();
 
     try {
       const publicClient = await createPublic(options.rpc);
-      const walletClient = await createWallet(options.rpc, options.key);
+      const walletClient = await createWallet(options.rpc, resolvePk(options.key, spinner));
       const chainId = Number(await publicClient.getChainId());
 
       const maoDistributor = new MAODistributorClient(chainId, {
