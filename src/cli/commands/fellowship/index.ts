@@ -11,6 +11,7 @@ import { createGame } from "./createGame";
 import { joinGame } from "./joinGame";
 import { startGame } from "./startGame";
 import { propose } from "./propose";
+import { vote } from "./vote";
 
 export const fellowshipCommand = new Command("fellowship")
   .description("Fellowship contract commands")
@@ -25,4 +26,5 @@ export const fellowshipCommand = new Command("fellowship")
   .addCommand(createGame)
   .addCommand(joinGame)
   .addCommand(startGame)
-  .addCommand(propose);
+  .addCommand(propose)
+  .addCommand(vote);
