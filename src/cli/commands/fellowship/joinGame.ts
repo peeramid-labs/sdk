@@ -1,12 +1,13 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { type Address, Hex, encodePacked, keccak256 } from "viem";
+import { type Address, Hex, bytesToHex, encodePacked, hexToBytes, keccak256, toHex } from "viem";
 import { createPublic, createWallet } from "../../client";
 import RankifyPlayer from "../../../rankify/Player";
 import { resolvePk } from "../../getPk";
 import GameMaster from "../../../rankify/GameMaster";
 import { CLIUtils } from "../../utils";
+import * as secp256k1 from "@noble/secp256k1";
 
 export const joinGame = new Command("joinGame")
   .description("Join an existing game in a Rankify instance")
@@ -24,14 +25,14 @@ export const joinGame = new Command("joinGame")
       const publicClient = await createPublic(options.rpc);
       const walletClient = await createWallet(options.rpc, resolvePk(options.key, spinner));
       const chainId = Number(await publicClient.getChainId());
-      
+
       const resolvedInstanceAddress = await CLIUtils.resolveInstanceAddress(
         instanceAddress,
         chainId,
         publicClient,
         spinner
       );
-      
+
       spinner.text = "Creating Rankify player client...";
       const account = walletClient.account?.address;
 
@@ -47,9 +48,9 @@ export const joinGame = new Command("joinGame")
         instanceAddress: resolvedInstanceAddress,
         account,
       });
-      
-      const gmWalletClient = await createWallet(options.rpc, resolvePk(options.gm, spinner));
-      
+
+      const gmWalletClient = await createWallet(options.rpc);
+
       const gameMaster = new GameMaster({
         walletClient: gmWalletClient,
         publicClient,
@@ -57,40 +58,45 @@ export const joinGame = new Command("joinGame")
       });
 
       spinner.text = "Getting public key...";
-      const message = "Sign this message to retrieve your public key";
-      const signature = await walletClient.signMessage({ message, account });
-      
-      const publicKey = signature as Hex;
-      const publicKeyHash = keccak256(encodePacked(["string"], [publicKey]));
-      
+
+      const privateKeyBytes = hexToBytes(resolvePk(options.key, spinner) as Hex);
+      const publicKeyBytes = secp256k1.getPublicKey(privateKeyBytes, false);
+      const publicKey = bytesToHex(publicKeyBytes) as Hex;
       const gameIdBigInt = BigInt(gameId);
-      
+
       spinner.text = "Validating game join eligibility...";
       const { result: isValid, errorMessage } = await gameMaster.validateJoinGame({
         instanceAddress: resolvedInstanceAddress,
         gameId: gameIdBigInt,
         participant: account,
       });
-      
+
       if (!isValid) {
         spinner.fail(`Cannot join game: ${errorMessage}`);
         process.exit(1);
       }
-      
+
       spinner.text = "Getting attestation from game master...";
       const blockTimestamp = await publicClient.getBlock({ blockTag: "latest" }).then((block) => block.timestamp);
       const timeToJoin = Number(blockTimestamp) + 60 * 10; // 10 minutes to join
-      
+
+      console.log({
+        instanceAddress: resolvedInstanceAddress,
+        gameId: gameIdBigInt,
+        participant: account,
+        participantPubKeyHash: keccak256(encodePacked(["string"], [publicKey])),
+      });
+
       const { signature: gmSignature, gmCommitment, deadline } = await gameMaster.signJoiningGame(
         {
           instanceAddress: resolvedInstanceAddress,
           gameId: gameIdBigInt,
           participant: account,
-          participantPubKeyHash: publicKeyHash,
+          participantPubKeyHash: keccak256(encodePacked(["string"], [publicKey])),
         },
         timeToJoin
       );
-      
+
       spinner.text = "Joining game...";
       const receipt = await player.joinGame({
         gameId: gameIdBigInt,
@@ -99,7 +105,7 @@ export const joinGame = new Command("joinGame")
         deadline: Number(deadline),
         pubkey: publicKey,
       });
-      
+
       spinner.succeed("Successfully joined the game");
       console.log(chalk.green(`\nJoined game with ID: ${gameIdBigInt.toString()}`));
       console.log(chalk.dim("Transaction hash:"), receipt.transactionHash);
