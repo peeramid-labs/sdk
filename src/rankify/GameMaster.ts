@@ -622,8 +622,7 @@ export class GameMaster {
     if (!vote) throw new Error("No votesHidden");
     if (!voter) throw new Error("No voter");
     const proposerIdx = await this.findPlayerOngoingProposalIndex({ instanceAddress, gameId, player: voter });
-    if (proposerIdx == -1) throw new Error("You are not a proposer in this game");
-    if (vote[proposerIdx] !== 0n) throw new Error("You cannot vote for your own proposal");
+    if (proposerIdx !== -1 && vote[proposerIdx] !== 0n) throw new Error("You cannot vote for your own proposal");
     if (!this.walletClient?.account?.address) throw new Error("No account address found");
     try {
       const { request } = await this.publicClient.simulateContract({
@@ -900,7 +899,9 @@ export class GameMaster {
 
     // Process events one by one to allow errors to propagate
     const votes = [];
+    console.log("Events:", evts);
     for (const event of evts) {
+      console.log("Event:", event);
       if (!event.args.player) throw new Error("No player in event");
       if (!event.args.sealedBallotId) throw new Error("No sealedBallotId in event");
 
@@ -1116,6 +1117,8 @@ export class GameMaster {
     const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
     const playerPubKey = await instance.getPlayerPubKey({ instanceAddress, gameId, player });
     logger(`Player public key: ${playerPubKey}`, 2);
+    console.log("Player public key:", playerPubKey);
+    console.log("Game key:", await this.gameKey({ gameId, contractAddress: instanceAddress }));
 
     return instance.sharedSigner({
       publicKey: playerPubKey,
