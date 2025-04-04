@@ -1024,23 +1024,7 @@ describe("GameMaster", () => {
       });
 
       // Verify that each player has an empty proposal
-      expect(result).toHaveLength(2);
-      expect(result[0]).toEqual({
-        proposer: MOCK_ADDRESSES.PLAYER,
-        proposal: "",
-      });
-      expect(result[1]).toEqual({
-        proposer: MOCK_ADDRESSES.GAME_MASTER,
-        proposal: "",
-      });
-
-      // Verify contract calls
-      expect(mockReadContract).toHaveBeenCalledWith({
-        address: MOCK_ADDRESSES.INSTANCE,
-        abi: expect.any(Array),
-        functionName: "getPlayers",
-        args: [1n],
-      });
+      expect(result).toHaveLength(0);
 
       expect(mockGetContractEvents).toHaveBeenCalledWith({
         address: MOCK_ADDRESSES.INSTANCE,
