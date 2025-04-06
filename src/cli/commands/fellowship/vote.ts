@@ -19,7 +19,6 @@ export const vote = new Command("vote")
     "-k, --key <privateKey>",
     "Private key or index to derive from mnemonic for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
   )
-  .option("-t, --turn <number>", "Turn number to vote in (defaults to current turn)")
   .action(async (instanceAddress, gameId, votesStr, options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -74,28 +73,13 @@ export const vote = new Command("vote")
 
       // Get current game state to determine turn if not specified
       spinner.text = "Getting game state...";
-      const gameState = await instanceBase.getGameStateDetails(gameIdBigInt);
-
-      const turnToVote = options.turn ? BigInt(options.turn) : gameState.currentTurn;
-      
-      spinner.text = "Validating vote...";
-      
-      // Check if voting is allowed for this turn
-      if (turnToVote !== gameState.currentTurn) {
-        spinner.fail(`Cannot vote for turn ${turnToVote}. Current turn is ${gameState.currentTurn}`);
-        process.exit(1);
-      }
-
-      if (voteValues.length !== gameState.players.length) {
-        spinner.fail(`Vote count mismatch. Expected ${gameState.players.length} votes, got ${voteValues.length}`);
-        process.exit(1);
-      }
-
+      const currentTurn = await instanceBase.getCurrentTurn(gameIdBigInt);
+    
       spinner.text = "Attesting vote...";
       console.log("Attesting vote...", {
         voter: account,
         gameId: gameIdBigInt,
-        turn: turnToVote,
+        turn: currentTurn,
         vote: voteValues,
         verifierAddress: resolvedInstanceAddress,
       });
@@ -103,7 +87,7 @@ export const vote = new Command("vote")
       const attestation = await gameMaster.attestVote({
         voter: account,
         gameId: gameIdBigInt,
-        turn: turnToVote,
+        turn: currentTurn,
         vote: voteValues,
         verifierAddress: resolvedInstanceAddress,
       });
@@ -138,7 +122,7 @@ export const vote = new Command("vote")
 
       spinner.succeed("Vote submitted successfully");
       console.log(chalk.green(`\nVoted in game with ID: ${gameIdBigInt.toString()}`));
-      console.log(chalk.green(`Turn: ${turnToVote.toString()}`));
+      console.log(chalk.green(`Turn: ${currentTurn.toString()}`));
       console.log(chalk.green(`Vote values: ${voteValues.join(", ")}`));
       console.log(chalk.dim("Transaction hash:"), receipt.transactionHash);
       

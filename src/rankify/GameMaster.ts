@@ -443,12 +443,7 @@ export class GameMaster {
   }): Promise<{ result: boolean; errorMessage: string }> => {
     const { gameId, participant, instanceAddress } = props;
     try {
-      const baseInstance = new InstanceBase({
-        instanceAddress,
-        publicClient: this.publicClient,
-        chainId: this.chainId,
-      });
-      const gameState = await baseInstance.getGameStateDetails(gameId);
+      const gameState = await this.getGameState({ gameId, instanceAddress });
       if (gameState.gamePhase !== gameStatusEnum.open) {
         return { result: false, errorMessage: "Game is not open for registration" };
       }
@@ -567,13 +562,13 @@ export class GameMaster {
     ballotHash: Hex;
     ballotId: string;
   }) => {
-    if (!gameId) throw new Error("No gameId");
-    if (!vote) throw new Error("No votesHidden");
-    if (!voter) throw new Error("No voter");
-    //TODO: add validation method - use in attest and here as well
-    const proposerIdx = await this.findPlayerOngoingProposalIndex({ instanceAddress, gameId, player: voter });
-    if (proposerIdx !== -1 && vote[proposerIdx] !== 0n) throw new Error("You cannot vote for your own proposal");
-    if (!this.walletClient?.account?.address) throw new Error("No account address found");
+    const players = await this.getPlayers({ instanceAddress, gameId });
+    const turn = await this.currentTurn({ instanceAddress, gameId });
+    const validationResult = await this.validateVote({ gameId, turn, voter, vote, instanceAddress, players: [...players] });
+    if (!validationResult.result) {
+      throw new Error('Vote validation failed: ' + validationResult.reason);
+    }
+
     try {
       const { request } = await this.publicClient.simulateContract({
         account: this.walletClient.account,
@@ -587,6 +582,56 @@ export class GameMaster {
       throw await handleRPCError(e);
     }
   };
+
+  private validateVote = async ({ gameId, turn, voter, vote, instanceAddress, players }: 
+    { gameId: bigint; turn: bigint; voter: Address; vote: bigint[]; instanceAddress: Address; players: Address[] }) => {
+
+    const decryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn: turn - 1n, players, permute: true });
+
+    //Invalid vote length
+    if (vote.length !== decryptedProposals.length) {
+      return { result: false, reason: "Invalid vote length" };
+    }
+
+    // Check if points used are correct (Quadratic voting system)
+    let pointsUsed = 0n;
+    for (let i = 0; i < vote.length; i++) {
+      if (vote[i] > 0n) {
+        pointsUsed += 1n ** vote[i];
+      }
+    }
+    const gameState = await this.getGameState({ gameId, instanceAddress });
+    if (pointsUsed > gameState.voteCredits) {
+      return { result: false, reason: "Too many points used" };
+    }
+    if (pointsUsed < gameState.voteCredits) {
+      return { result: false, reason: "Not all points used" };
+    }
+
+    // Check if voter voted for a non-proposed player or their own proposal
+    for (let i = 0; i < vote.length; i++) {
+      if (vote[i] === 0n) continue;
+      if (decryptedProposals[i].proposal === "" || decryptedProposals[i].proposer === zeroAddress) {
+        return { result: false, reason: "Vote for non existing proposal" };
+      }
+      if (decryptedProposals[i].proposer === voter) {
+        return { result: false, reason: "Voter cannot vote for their own proposal" };
+      }
+    }
+
+    // Valid vote
+    return { result: true, reason: "" };
+  };
+
+  private getGameState({ gameId, instanceAddress }: { gameId: bigint; instanceAddress: Address }) {
+    const baseInstance = new InstanceBase({
+      instanceAddress,
+      publicClient: this.publicClient,
+      chainId: this.chainId,
+    });
+    return baseInstance.getGameStateDetails(gameId);
+  }
+
 
   private padProposalsArrayWithZeroAddress = (proposals: { proposer: Address; proposal: string }[]) => {
     if (proposals.length < this.maxSlotSizeForProofs) {
@@ -971,7 +1016,7 @@ export class GameMaster {
 
       const tableData = players.map((player, idx) => ({
         player,
-        votes: votesDecrypted[idx].reduce((accumulator, currentValue) => accumulator + currentValue, 0n) > 0n ? 'voted' : 'not voted',
+        voted: votesDecrypted[idx]?.reduce((accumulator, currentValue) => accumulator + currentValue, 0n) > 0n ? 'voted' : 'not voted',
         proposal: newPaddedDecryptedProposals[idx]?.proposal.substring(0, 50) || "not-proposed",
       }));
       console.table(tableData);
@@ -1076,15 +1121,19 @@ export class GameMaster {
   }): Promise<VoteAttestation> => {
     logger(`Attesting vote for player ${voter} in game ${gameId}, turn ${turn}`);
 
-    //TODO: add validation that player cannot vote for non existing or own vote
-    const gameSize = (await this.getPlayers({ instanceAddress: verifierAddress, gameId })).length;
+    const players = await this.getPlayers({ instanceAddress: verifierAddress, gameId });
+    const validationResult = await this.validateVote({ gameId, turn, voter, vote, instanceAddress: verifierAddress, players: [...players] });
+    if (!validationResult.result) {
+      throw new Error('Vote validation failed: ' + validationResult.reason);
+    }
+
+    const gameSize = players.length;
     const instance = new InstanceBase({
       instanceAddress: verifierAddress,
       publicClient: this.publicClient,
       chainId: this.chainId,
     });
     const eip712 = await instance.getEIP712Domain();
-
     const playerSalt = await this.getTurnPlayersSalt({
       gameId,
       turn,
@@ -1092,20 +1141,17 @@ export class GameMaster {
       verifierAddress,
       size: gameSize,
     });
-
     const ballot = {
       vote: vote,
       salt: playerSalt,
     };
     const ballotHash: string = keccak256(encodePacked(["uint256[]", "bytes32"], [vote, playerSalt]));
-
     const turnKey = await this.calculateSharedTurnKey({
       instanceAddress: verifierAddress,
       gameId,
       turn,
       player: voter,
     });
-
     const ballotId = aes.encrypt(JSON.stringify(ballot.vote.map((v) => v.toString())), turnKey).toString();
     const gmSignature = await this.signVote({
       verifierAddress,
@@ -1131,6 +1177,7 @@ export class GameMaster {
       },
       2
     );
+
     return { vote, ballotHash, ballot, ballotId, gmSignature };
   };
 
