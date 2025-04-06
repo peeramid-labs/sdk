@@ -152,7 +152,7 @@ export class GameMaster {
     logger(
       `Getting proposals for instance ${instanceAddress}, game ${gameId}, turn ${turn.toString()}, proposer ${proposer}`
     );
-    const evts = await this.publicClient.getContractEvents({
+    const ProposalSubmittedEvents = await this.publicClient.getContractEvents({
       abi: RankifyDiamondInstanceAbi,
       address: instanceAddress,
       eventName: "ProposalSubmitted",
@@ -160,13 +160,13 @@ export class GameMaster {
       fromBlock: 0n,
     });
 
-    logger(`Found ${evts.length} proposals`);
+    logger(`Found ${ProposalSubmittedEvents.length} proposals`);
     const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
 
-    logger(`Decrypting ${evts.length} proposals`);
+    logger(`Decrypting ${ProposalSubmittedEvents.length} proposals`);
     const proposalsForPlayers = await Promise.all(
       (players)?.map(async (player) => {
-        const log = evts.find((log) => log.args.proposer === player);
+        const log = ProposalSubmittedEvents.find((log) => log.args.proposer === player);
         if (!log) {
           return {
             proposer: player,
@@ -851,20 +851,20 @@ export class GameMaster {
     logger(
       `Decrypting votes for game ${BigInt(gameId)} turn ${turn} at address ${instanceAddress} at ${await this.publicClient.getBlockNumber()} block`
     );
-    const evts = await this.publicClient.getContractEvents({
+    const VoteSubmittedEvents = await this.publicClient.getContractEvents({
       address: instanceAddress,
       abi: RankifyDiamondInstanceAbi,
       eventName: "VoteSubmitted",
       fromBlock: 0n,
       args: { turn, gameId },
     });
-    logger(`Found ${evts.length} events`);
-    if (evts.length === 0) return [];
+    logger(`Found ${VoteSubmittedEvents.length} events`);
+    if (VoteSubmittedEvents.length === 0) return [];
 
     //Decrypting votes from events
     const votes: { player: Address; votes: bigint[] }[] = [];
-    console.log("Events:", evts);
-    for (const event of evts) {
+    console.log("Events:", VoteSubmittedEvents);
+    for (const event of VoteSubmittedEvents) {
       console.log("Event:", event);
       if (!event.args.player) throw new Error("No player in event");
       if (!event.args.sealedBallotId) throw new Error("No sealedBallotId in event");
