@@ -20,6 +20,7 @@ export const addCommand = new Command("add")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
   .option("-d, --distributor <address>", "Address of the distributor")
   .option("-k, --key <privateKey>", "Private key with admin permissions or index to derive from mnemonic. If not provided, PRIVATE_KEY environment variable will be used")
+  .option("-y, --yes", "Auto-accept default values for all prompts", false)
   .action(async (options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -36,39 +37,56 @@ export const addCommand = new Command("add")
 
       spinner.stop();
 
-      // Use provided name, env var, or default
+      // Default values
+      const defaultName = process.env.DEFAULT_DISTRIBUTION_NAME ?? "MAO Distribution";
+      const defaultAddress = getArtifact(chainId, "MAODistribution").address;
+      
+      // Check if auto-accept defaults is enabled
+      const autoAcceptDefaults = options.yes;
+      
       let name = options.name;
-      if (!name) {
-        const defaultName = process.env.DEFAULT_DISTRIBUTION_NAME ?? "MAO Distribution";
-        const response = await inquirer.prompt([
-          {
-            type: "input",
-            name: "name",
-            message: "Enter distribution name:",
-            default: defaultName,
-            validate: (input: string) => {
-              if (!input.trim()) return "Name cannot be empty";
-              return true;
-            },
-          },
-        ]);
-        name = response.name;
-      }
       let distributionAddress = options.address;
-      if (!options.address) {
-        const response = await inquirer.prompt([
-          {
-            type: "input",
-            name: "address",
-            message: "Input distribution address to add to the distributor contract",
-            default: getArtifact(chainId, "MAODistribution").address,
-            validate: (input: string) => {
-              if (!input.trim()) return "Address cannot be empty";
-              return true;
+      
+      if (!name) {
+        if (autoAcceptDefaults) {
+          console.log(`Auto-accepting default distribution name: ${defaultName}`);
+          name = defaultName;
+        } else {
+          const response = await inquirer.prompt([
+            {
+              type: "input",
+              name: "name",
+              message: "Enter distribution name:",
+              default: defaultName,
+              validate: (input: string) => {
+                if (!input.trim()) return "Name cannot be empty";
+                return true;
+              },
             },
-          },
-        ]);
-        distributionAddress = response.address;
+          ]);
+          name = response.name;
+        }
+      }
+      
+      if (!distributionAddress) {
+        if (autoAcceptDefaults) {
+          console.log(`Auto-accepting default distribution address: ${defaultAddress}`);
+          distributionAddress = defaultAddress;
+        } else {
+          const response = await inquirer.prompt([
+            {
+              type: "input",
+              name: "address",
+              message: "Input distribution address to add to the distributor contract",
+              default: defaultAddress,
+              validate: (input: string) => {
+                if (!input.trim()) return "Address cannot be empty";
+                return true;
+              },
+            },
+          ]);
+          distributionAddress = response.address;
+        }
       }
 
       // Format name as bytes32

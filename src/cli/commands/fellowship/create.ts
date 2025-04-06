@@ -15,7 +15,8 @@ export const createFellowshipCommand = new Command("create")
     "-k, --key <privateKey>",
     "Private key for signing transactions or index to derive from mnemonic. If not provided, PRIVATE_KEY environment variable will be used"
   )
-  .option("-n, --dist-name <name>", "Distributors package name")
+  .option("-n, --dist-name <n>", "Distributors package name")
+  .option("-y, --yes", "Auto-accept default values for all prompts", false)
   .action(async (options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -29,28 +30,50 @@ export const createFellowshipCommand = new Command("create")
         walletClient,
       });
 
-      spinner.text = "Please provide fellowship details...";
-      spinner.stop();
+      // Default values for fellowship creation
+      const defaultValues = {
+        tokenName: "Fellowship Token",
+        tokenSymbol: "FLSHP",
+        principalCost: "1000000000",
+        timeConstant: "604800", // 1 week
+        metadata: "ipfs://QmVzSvWjysUfVHzGMQ4y2EduXrVYLApZ3KHQb2gUTR4x6P",
+        rankTokenUri: "ipfs://your-rank-token-uri",
+        owner: walletClient.account?.address,
+      };
 
-      const { tokenName, tokenSymbol, principalCost, timeConstant, metadata, rankTokenUri, owner } =
-        await inquirer.prompt([
+      // Check if auto-accept defaults is enabled
+      const autoAcceptDefaults = options.yes;
+      
+      let fellowshipDetails;
+      
+      if (autoAcceptDefaults) {
+        // Auto-accept all default values
+        console.log("Auto-accepting default values:");
+        console.log(defaultValues);
+        fellowshipDetails = defaultValues;
+      } else {
+        // Prompt user for values
+        spinner.text = "Please provide fellowship details...";
+        spinner.stop();
+
+        fellowshipDetails = await inquirer.prompt([
           {
             type: "input",
             name: "tokenName",
             message: "Enter token name:",
-            default: "Fellowship Token",
+            default: defaultValues.tokenName,
           },
           {
             type: "input",
             name: "tokenSymbol",
             message: "Enter token symbol:",
-            default: "FLSHP",
+            default: defaultValues.tokenSymbol,
           },
           {
             type: "input",
             name: "principalCost",
             message: "Enter principal cost (in wei):",
-            default: "1000000000",
+            default: defaultValues.principalCost,
             validate: (input: string) => {
               try {
                 BigInt(input);
@@ -64,7 +87,7 @@ export const createFellowshipCommand = new Command("create")
             type: "input",
             name: "timeConstant",
             message: "Enter time constant (in seconds):",
-            default: "604800", // 1 week
+            default: defaultValues.timeConstant, // 1 week
             validate: (input: string) => {
               const num = parseInt(input);
               return !isNaN(num) && num > 0 ? true : "Please enter a valid number greater than 0";
@@ -74,21 +97,24 @@ export const createFellowshipCommand = new Command("create")
             type: "input",
             name: "metadata",
             message: "Enter metadata URI:",
-            default: "ipfs://QmVzSvWjysUfVHzGMQ4y2EduXrVYLApZ3KHQb2gUTR4x6P",
+            default: defaultValues.metadata,
           },
           {
             type: "input",
             name: "rankTokenUri",
             message: "Enter rank token URI:",
-            default: "ipfs://your-rank-token-uri",
+            default: defaultValues.rankTokenUri,
           },
           {
             type: "input",
             name: "owner",
             message: "Enter owner address:",
-            default: walletClient.account?.address,
+            default: defaultValues.owner,
           },
         ]);
+      }
+      
+      const { tokenName, tokenSymbol, principalCost, timeConstant, metadata, rankTokenUri, owner } = fellowshipDetails;
 
       spinner.start("Creating fellowship...");
 
