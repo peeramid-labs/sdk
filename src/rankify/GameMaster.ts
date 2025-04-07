@@ -24,6 +24,7 @@ import cryptoJs from "crypto-js";
 import { CircuitZKit, Groth16Implementer } from "@solarity/zkit";
 import path from "path";
 import { permuteArray, reversePermutation } from "../utils/permutations";
+import { GameState } from "./InstanceBase";
 
 export interface ProposalsIntegrity {
   newProposals: ContractFunctionArgs<typeof RankifyDiamondInstanceAbi, "nonpayable", "endTurn">[2];
@@ -136,7 +137,6 @@ export class GameMaster {
     instanceAddress,
     gameId,
     turn,
-    proposer,
     players,
     padToMaxSize = false,
     permute = false,
@@ -144,19 +144,18 @@ export class GameMaster {
     instanceAddress: Address;
     gameId: bigint;
     turn: bigint;
-    proposer?: Address;
     players: Address[];
     padToMaxSize?: boolean;
     permute?: boolean;
   }) => {
     logger(
-      `Getting proposals for instance ${instanceAddress}, game ${gameId}, turn ${turn.toString()}, proposer ${proposer}`
+      `Getting proposals for instance ${instanceAddress}, game ${gameId}, turn ${turn.toString()}`
     );
     const ProposalSubmittedEvents = await this.publicClient.getContractEvents({
       abi: RankifyDiamondInstanceAbi,
       address: instanceAddress,
       eventName: "ProposalSubmitted",
-      args: { gameId: gameId, turn: turn, proposer },
+      args: { gameId: gameId, turn: turn },
       fromBlock: 0n,
     });
 
@@ -583,7 +582,33 @@ export class GameMaster {
     }
   };
 
-  private validateVote = async ({ gameId, turn, voter, vote, instanceAddress, players }: 
+  /**
+   * Gets the current turn progress in percent value
+   * @param instanceAddress - Address of the instance
+   * @param gameState - Current game state
+   * @param gameId - ID of the game
+   * @returns Current turn progress
+   */
+  private getTurnProgress = async ({ instanceAddress, gameState, gameId }: { instanceAddress: Address; gameState: GameState; gameId: bigint }) => {
+    const prevTurnProposals = await this.decryptProposals({ instanceAddress, gameId, turn: gameState.currentTurn - 1n, players: [...gameState.players] });
+    const proposalCountInPrevTurn = prevTurnProposals.filter(p => p.proposal !== "").length;
+    const proposalsMadeInCurrentTurn = await this.decryptProposals({ instanceAddress, gameId, turn: gameState.currentTurn, players: [...gameState.players] });
+    const proposalCountInCurrentTurn = proposalsMadeInCurrentTurn.filter(p => p.proposal !== "").length;
+
+    if (proposalCountInPrevTurn === 0) {
+      return (proposalCountInCurrentTurn / gameState.players.length) * 100;
+    } else {
+      const votesMadeInCurrentTurn = await this.decryptTurnVotes({ instanceAddress, gameId, turn: gameState.currentTurn, players: [...gameState.players] });
+      const votesCount = votesMadeInCurrentTurn.filter(v => this.hasVoted({ vote: v })).length;
+      return ((votesCount + proposalCountInCurrentTurn) / (gameState.players.length * 2)) * 100;
+    }
+  };
+
+  private hasVoted ({ vote }: { vote: bigint[] | undefined }) {
+    return vote?.reduce((a, b) => a + b, 0n) !== 0n;
+  };
+
+  private validateVote = async ({ gameId, turn, voter, vote, instanceAddress, players }:
     { gameId: bigint; turn: bigint; voter: Address; vote: bigint[]; instanceAddress: Address; players: Address[] }) => {
 
     const decryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn: turn - 1n, players, permute: true });
@@ -853,8 +878,6 @@ export class GameMaster {
     submissionParams: GmProposalParams;
     proposerSignature: Hex;
   }) => {
-    // let proposalData: GetAbiItemParameters<typeof RankifyDiamondInstanceAbi, "submitProposal">["args"];
-    // proposalData[0].
     const txParams: GetAbiItemParameters<typeof RankifyDiamondInstanceAbi, "submitProposal">["args"] = [
       {
         ...submissionParams,
@@ -945,12 +968,24 @@ export class GameMaster {
    * @returns Boolean indicating if turn can be ended
    */
   canEndTurn = async ({ instanceAddress, gameId }: { instanceAddress: Address; gameId: bigint }) => {
-    return this.publicClient.readContract({
+    const canEndTurn = await this.publicClient.readContract({
       address: instanceAddress,
       abi: RankifyDiamondInstanceAbi,
       functionName: "canEndTurn",
       args: [gameId],
     });
+    if (!canEndTurn) return false;
+
+    //Extra check to not allow to end turn if current phase timeout is not passed and progress is less than 100% (probably must be fixed in contracts!)
+    // TODO: if fixed in contracts, remove this check
+    const gameState = await this.getGameState({ instanceAddress, gameId });
+    const lastBlock = await this.publicClient.getBlock({ blockNumber: BigInt(await this.publicClient.getBlockNumber()) });
+    if (gameState.currentPhaseTimeoutAt > lastBlock.timestamp) {
+      const turnProgress = await this.getTurnProgress({ instanceAddress, gameState, gameId });
+      if (turnProgress <= 100) return false;
+    }
+
+    return true;
   };
 
   /**
@@ -997,14 +1032,14 @@ export class GameMaster {
   endTurn = async ({ instanceAddress, gameId }: { instanceAddress: Address; gameId: bigint }) => {
     logger(`Ending turn for game ${gameId}`, 2);
     try {
+      if (!(await this.canEndTurn({ instanceAddress, gameId }))) {
+        throw new Error("Cannot end turn");
+      }
+
       const turn = await this.currentTurn({ instanceAddress, gameId });
       const players = await this.getPlayers({ instanceAddress, gameId });
 
-      //TODO: add validation function here. with ar lot of stuff
       logger(`Current turn: ${turn}, Players count: ${players.length}`, 2);
-      if (!Array.isArray(players)) {
-        throw new Error("Expected players to be an array");
-      }
 
       const newPaddedDecryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn, players, padToMaxSize: true });
       logger(`newPaddedDecryptedProposals:`);
@@ -1016,7 +1051,7 @@ export class GameMaster {
 
       const tableData = players.map((player, idx) => ({
         player,
-        voted: votesDecrypted[idx]?.reduce((accumulator, currentValue) => accumulator + currentValue, 0n) > 0n ? 'voted' : 'not voted',
+        voted: this.hasVoted({ vote: votesDecrypted[idx] }),
         proposal: newPaddedDecryptedProposals[idx]?.proposal.substring(0, 50) || "not-proposed",
       }));
       console.table(tableData);
