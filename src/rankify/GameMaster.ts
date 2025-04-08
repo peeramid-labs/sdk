@@ -28,9 +28,9 @@ import { GameState } from "./InstanceBase";
 
 export interface ProposalsIntegrity {
   newProposals: ContractFunctionArgs<typeof RankifyDiamondInstanceAbi, "nonpayable", "endTurn">[2];
-  permutation: bigint[];
+  prevTurnPermutation: bigint[];
   proposalsNotPermuted: string[];
-  nullifier: bigint;
+  prevTurnSalt: bigint;
 }
 
 export type PrivateProposalsIntegrity15Groth16 = {
@@ -262,7 +262,7 @@ export class GameMaster {
     verifierAddress: Address;
   }): Promise<{
     permutation: number[];
-    secret: bigint;
+    turnSalt: bigint;
     commitment: bigint;
   }> => {
     // This is kept secret to generate witness
@@ -290,7 +290,7 @@ export class GameMaster {
 
     return {
       permutation,
-      secret: turnSalt,
+      turnSalt,
       commitment,
     };
   };
@@ -403,7 +403,7 @@ export class GameMaster {
       verifierAddress,
       size,
     }).then((perm) => {
-      return keccak256(encodePacked(["address", "uint256"], [player, perm.secret]));
+      return keccak256(encodePacked(["address", "uint256"], [player, perm.turnSalt]));
     });
     logger(`Generated vote salt for player ${player}`);
     return result;
@@ -1069,7 +1069,7 @@ export class GameMaster {
         account: this.walletClient.account,
         address: instanceAddress,
         functionName: "endTurn",
-        args: [gameId, votesDecrypted, attested.newProposals, attested.permutation, attested.nullifier],
+        args: [gameId, votesDecrypted, attested.newProposals, attested.prevTurnPermutation, attested.prevTurnSalt],
       });
       return this.walletClient.writeContract(request);
     } catch (e) {
@@ -1285,7 +1285,7 @@ export class GameMaster {
   }) => {
     let _proposals = [...proposals];
 
-    const { permutation: prevTurnPermutation, secret: nullifier } = await this.generateDeterministicPermutation({
+    const { permutation: prevTurnPermutation, turnSalt: prevTurnSalt } = await this.generateDeterministicPermutation({
       gameId,
       turn: turn - 1n,
       verifierAddress,
@@ -1357,8 +1357,8 @@ export class GameMaster {
     const c: readonly [bigint, bigint] = callData[2].map((c) => BigInt(c)) as [bigint, bigint];
     return {
       commitment: inputs.permutationCommitment,
-      nullifier,
-      permutation: prevTurnPermutation,
+      prevTurnSalt,
+      prevTurnPermutation,
       permutedProposals: permutedProposals.map((proposal) => proposal.proposal),
       a,
       b,
@@ -1387,7 +1387,7 @@ export class GameMaster {
   }): Promise<ProposalsIntegrity> {
     logger(`Generating proposals integrity for game ${gameId}, turn ${turn} with ${size} players.`);
 
-    const { commitment, nullifier, permutation, permutedProposals, a, b, c } = await this.generateEndTurnIntegrity({
+    const { commitment, prevTurnSalt, prevTurnPermutation, permutedProposals, a, b, c } = await this.generateEndTurnIntegrity({
       gameId,
       turn,
       verifierAddress,
@@ -1404,9 +1404,9 @@ export class GameMaster {
         proposals: permutedProposals,
         permutationCommitment: commitment,
       },
-      permutation: permutation.map((p) => BigInt(p)),
+      prevTurnPermutation: prevTurnPermutation.map((p) => BigInt(p)),
       proposalsNotPermuted: proposals.map((proposal) => proposal.proposal),
-      nullifier,
+      prevTurnSalt,
     };
   }
 
@@ -1437,7 +1437,7 @@ export class GameMaster {
     const permutedProposals: bigint[] = Array(this.maxSlotSizeForProofs).fill(0n);
 
     // Generate deterministic permutation
-    const { permutation, secret, commitment } = await this.generateDeterministicPermutation({
+    const { permutation, turnSalt: secret, commitment } = await this.generateDeterministicPermutation({
       gameId,
       turn,
       verifierAddress,

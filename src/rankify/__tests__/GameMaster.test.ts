@@ -597,15 +597,15 @@ describe("GameMaster", () => {
           proposals: expect.any(Array),
           permutationCommitment: expect.any(BigInt),
         },
-        permutation: expect.any(Array),
+        prevTurnPermutation: expect.any(Array),
         proposalsNotPermuted: expect.any(Array),
-        nullifier: expect.any(BigInt),
+        prevTurnSalt: expect.any(BigInt),
       });
 
       // Verify permutation properties
-      expect(result.permutation).toHaveLength(15);
-      expect(result.permutation.every((p) => typeof p === "bigint")).toBe(true);
-      expect(new Set(result.permutation).size).toBe(15); // All elements should be unique
+      expect(result.prevTurnPermutation).toHaveLength(15);
+      expect(result.prevTurnPermutation.every((p) => typeof p === "bigint")).toBe(true);
+      expect(new Set(result.prevTurnPermutation).size).toBe(15); // All elements should be unique
 
       // Test permuteArray matches the result
       const permutedByMethod = await gameMaster.permuteArray<string>({
@@ -665,8 +665,8 @@ describe("GameMaster", () => {
       });
 
       // Verify permutation size
-      expect(result.permutation).toHaveLength(15);
-      expect(new Set(result.permutation).size).toBe(15); // All elements should be unique
+      expect(result.prevTurnPermutation).toHaveLength(15);
+      expect(new Set(result.prevTurnPermutation).size).toBe(15); // All elements should be unique
 
       // Test permuteArray matches the result
       const permutedByMethod = await gameMaster.permuteArray<string>({
