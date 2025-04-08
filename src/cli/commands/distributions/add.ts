@@ -7,6 +7,11 @@ import inquirer from "inquirer";
 import { getArtifact } from "../../../utils";
 import { resolvePk } from "../../getPk";
 
+// Define enum for distribution defaults
+enum DistributionDefaults {
+  NAME = "MAO Distribution"
+}
+
 // Helper to pad string to 32 bytes, similar to ethers.utils.formatBytes32String
 function formatBytes32String(text: string): `0x${string}` {
   const buffer = Buffer.from(text.slice(0, 31), "utf8");
@@ -38,7 +43,7 @@ export const addCommand = new Command("add")
       spinner.stop();
 
       // Default values
-      const defaultName = process.env.DEFAULT_DISTRIBUTION_NAME ?? "MAO Distribution";
+      const defaultName = process.env.DEFAULT_DISTRIBUTION_NAME ?? DistributionDefaults.NAME;
       const defaultAddress = getArtifact(chainId, "MAODistribution").address;
       
       // Check if auto-accept defaults is enabled

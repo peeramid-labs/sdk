@@ -8,6 +8,16 @@ import { createPublic, createWallet } from "../../client";
 import { chainToPath } from "../../../utils/chainMapping";
 import { resolvePk } from "../../getPk";
 
+// Define enum for fellowship defaults
+enum FellowshipDefaults {
+  TOKEN_NAME = "Fellowship Token",
+  TOKEN_SYMBOL = "FLSHP",
+  PRINCIPAL_COST = "1000000000",
+  TIME_CONSTANT = "604800", // 1 week
+  METADATA = "ipfs://QmVzSvWjysUfVHzGMQ4y2EduXrVYLApZ3KHQb2gUTR4x6P",
+  RANK_TOKEN_URI = "ipfs://your-rank-token-uri"
+}
+
 export const createFellowshipCommand = new Command("create")
   .description("Create a new Fellowship")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
@@ -32,12 +42,12 @@ export const createFellowshipCommand = new Command("create")
 
       // Default values for fellowship creation
       const defaultValues = {
-        tokenName: "Fellowship Token",
-        tokenSymbol: "FLSHP",
-        principalCost: "1000000000",
-        timeConstant: "604800", // 1 week
-        metadata: "ipfs://QmVzSvWjysUfVHzGMQ4y2EduXrVYLApZ3KHQb2gUTR4x6P",
-        rankTokenUri: "ipfs://your-rank-token-uri",
+        tokenName: FellowshipDefaults.TOKEN_NAME,
+        tokenSymbol: FellowshipDefaults.TOKEN_SYMBOL,
+        principalCost: FellowshipDefaults.PRINCIPAL_COST,
+        timeConstant: FellowshipDefaults.TIME_CONSTANT,
+        metadata: FellowshipDefaults.METADATA,
+        rankTokenUri: FellowshipDefaults.RANK_TOKEN_URI,
         owner: walletClient.account?.address,
       };
 
