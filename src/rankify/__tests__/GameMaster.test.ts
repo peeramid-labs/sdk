@@ -114,7 +114,7 @@ describe("GameMaster", () => {
   });
 
   describe("decryptProposals", () => {
-    it("should decrypt proposals for a game turn", async () => {
+    it("should decrypt proposals for a game turn in default", async () => {
       const mockEvents = [
         {
           address: MOCK_ADDRESSES.INSTANCE,
@@ -162,29 +162,45 @@ describe("GameMaster", () => {
 
       // eslint-disable-next-line
       mockGetContractEvents.mockResolvedValueOnce([joinGameEvent] as any);
+      
 
       const result = await gameMaster.decryptProposals({
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
         gameId: 1n,
         turn: 1n,
+        players: [MOCK_ADDRESSES.PROPOSER],
       });
+
       expect(result).toEqual([
         {
           proposer: publicKeyToAddress(`0x${mockPublicKey}`) as Hex as Address,
           proposal: "test_proposal",
         },
       ]);
+
+
+      const resultPadded = await gameMaster.decryptProposals({
+        instanceAddress: MOCK_ADDRESSES.INSTANCE,
+        gameId: 1n,
+        turn: 1n,
+        players: [MOCK_ADDRESSES.PROPOSER],
+        padToMaxSize: true
+      });
+
+      expect(resultPadded.length).toEqual(15);
+
       mockGetContractEvents.mockClear();
     });
 
-    it("should return empty array when no proposals exist", async () => {
+    it("should return array item element for each player even if he didn't propose", async () => {
       mockGetContractEvents.mockResolvedValueOnce([]);
       const result = await gameMaster.decryptProposals({
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
         gameId: 1n,
         turn: 1n,
+        players: [MOCK_ADDRESSES.PROPOSER],
       });
-      expect(result).toEqual([]);
+      expect(result.length).toEqual(1);
     });
   });
 
@@ -915,6 +931,7 @@ describe("GameMaster", () => {
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
         gameId: 1n,
         turn: 1n,
+        players: [MOCK_ADDRESSES.PLAYER]
       });
 
       expect(mockGetContractEvents).toHaveBeenCalledWith({
@@ -925,12 +942,7 @@ describe("GameMaster", () => {
         fromBlock: 0n,
       });
 
-      expect(result).toEqual([
-        {
-          player: MOCK_ADDRESSES.PLAYER,
-          votes: [1n, 2n, 3n],
-        },
-      ]);
+      expect(result).toEqual([[1n, 2n, 3n]]);
     });
 
     it("should return empty array when no votes exist", async () => {
@@ -941,6 +953,7 @@ describe("GameMaster", () => {
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
         gameId: 1n,
         turn: 1n,
+        players: [MOCK_ADDRESSES.PLAYER]
       });
 
       expect(result).toEqual([]);
@@ -986,69 +999,6 @@ describe("GameMaster", () => {
           turn: 1n,
         })
       ).rejects.toThrow("Failed to decrypt vote");
-    });
-  });
-
-  describe("getProposalsVotedUpon", () => {
-    it("should handle case where no one proposed anything", async () => {
-      // Mock the players array
-      const mockPlayers = [MOCK_ADDRESSES.PLAYER, MOCK_ADDRESSES.GAME_MASTER];
-      mockReadContract.mockResolvedValueOnce(mockPlayers);
-
-      // Mock the TurnEnded event with no proposals
-      const mockTurnEndedEvent = {
-        address: MOCK_ADDRESSES.INSTANCE,
-        blockHash: MOCK_HASHES.BLOCK,
-        blockNumber: 1000n,
-        data: "0x" as const,
-        logIndex: 0,
-        transactionHash: MOCK_HASHES.TRANSACTION,
-        transactionIndex: 0,
-        removed: false,
-        topics: [] as [`0x${string}`, ...`0x${string}`[]] | [],
-        args: {
-          gameId: 1n,
-          turn: 1n,
-          newProposals: ["", ""],
-          players: mockPlayers,
-        },
-      };
-      mockGetContractEvents.mockReset();
-      mockGetContractEvents.mockResolvedValueOnce([mockTurnEndedEvent]);
-      mockGetContractEvents.mockResolvedValueOnce([]);
-
-      const result = await gameMaster.getProposalsVotedUpon({
-        instanceAddress: MOCK_ADDRESSES.INSTANCE,
-        gameId: 1n,
-        turn: 2n,
-      });
-
-      // Verify that each player has an empty proposal
-      expect(result).toHaveLength(2);
-      expect(result[0]).toEqual({
-        proposer: MOCK_ADDRESSES.PLAYER,
-        proposal: "",
-      });
-      expect(result[1]).toEqual({
-        proposer: MOCK_ADDRESSES.GAME_MASTER,
-        proposal: "",
-      });
-
-      // Verify contract calls
-      expect(mockReadContract).toHaveBeenCalledWith({
-        address: MOCK_ADDRESSES.INSTANCE,
-        abi: expect.any(Array),
-        functionName: "getPlayers",
-        args: [1n],
-      });
-
-      expect(mockGetContractEvents).toHaveBeenCalledWith({
-        address: MOCK_ADDRESSES.INSTANCE,
-        abi: expect.any(Array),
-        eventName: "TurnEnded",
-        args: { gameId: 1n, turn: 1n },
-        fromBlock: 0n,
-      });
     });
   });
 });

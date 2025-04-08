@@ -17,7 +17,7 @@ import { reversePermutation } from "../utils/permutations";
 import { MAODistributorClient, MAOInstanceContracts } from "./MAODistributor";
 import RankTokenClient from "./RankToken";
 
-interface GameState extends ContractFunctionReturnType<typeof instanceAbi, "view", "getGameState"> {
+export interface GameState extends ContractFunctionReturnType<typeof instanceAbi, "view", "getGameState"> {
   joinRequirements: ContractFunctionReturnType<typeof instanceAbi, "view", "getJoinRequirements">;
   requirementsPerContract: ContractFunctionReturnType<typeof instanceAbi, "view", "getJoinRequirementsByToken">[];
   scores: readonly [readonly `0x${string}`[], readonly bigint[]];

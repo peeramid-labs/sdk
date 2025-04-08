@@ -1041,11 +1041,11 @@ export class GameMaster {
 
       logger(`Current turn: ${turn}, Players count: ${players.length}`, 2);
 
-      const newPaddedDecryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn, players, padToMaxSize: true });
+      const newPaddedDecryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn, players: [...players], padToMaxSize: true });
       logger(`newPaddedDecryptedProposals:`);
       logger(newPaddedDecryptedProposals);
 
-      const votesDecrypted = await this.decryptTurnVotes({ instanceAddress, gameId, turn, players });
+      const votesDecrypted = await this.decryptTurnVotes({ instanceAddress, gameId, turn, players: [...players] });
       logger(`votesDecrypted:`);
       logger(votesDecrypted);
 

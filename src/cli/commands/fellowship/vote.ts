@@ -68,7 +68,7 @@ export const vote = new Command("vote")
       });
 
       // Parse votes from comma-separated string
-      const voteValues = votesStr.split(",").map(v => BigInt(v.trim()));
+      const voteValues = votesStr.split(",").map((v: string) => BigInt(v.trim()));
       const gameIdBigInt = BigInt(gameId);
 
       // Get current game state to determine turn if not specified
