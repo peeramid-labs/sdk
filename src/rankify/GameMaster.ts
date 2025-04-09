@@ -1046,7 +1046,7 @@ export class GameMaster {
 
       logger(`Current turn: ${turn}, Players count: ${players.length}`, 2);
 
-      const newPaddedDecryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn, players: [...players], permute: true});
+      const newPaddedDecryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn, players: [...players], padToMaxSize: true });
       logger(`newPaddedDecryptedProposals:`);
       logger(newPaddedDecryptedProposals);
 
