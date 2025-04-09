@@ -470,6 +470,11 @@ export class GameMaster {
     if (!this.walletClient.account) throw new Error("No account");
     logger(`Signing joining game..`);
     const { gameId, participant, instanceAddress, participantPubKeyHash } = props;
+
+    const { result: isValid, errorMessage } = await this.validateJoinGame({ gameId, participant, instanceAddress });
+    if (!isValid) {
+      throw new Error(errorMessage);
+    }
     const baseInstance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
     const eip712 = await baseInstance.getEIP712Domain();
     logger(
@@ -1041,7 +1046,7 @@ export class GameMaster {
 
       logger(`Current turn: ${turn}, Players count: ${players.length}`, 2);
 
-      const newPaddedDecryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn, players: [...players], padToMaxSize: true });
+      const newPaddedDecryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn, players: [...players], permute: true});
       logger(`newPaddedDecryptedProposals:`);
       logger(newPaddedDecryptedProposals);
 

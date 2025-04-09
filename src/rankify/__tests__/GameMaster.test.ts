@@ -206,6 +206,14 @@ describe("GameMaster", () => {
 
   describe("signJoiningGame", () => {
     it("should sign joining game event", async () => {
+      const mockGameState = {
+          contractAddresses: [] as readonly `0x${string}`[],
+          functionSelectors: [] as readonly `0x${string}`[],
+          args: [] as readonly unknown[],
+          contractIds: [] as readonly bigint[],
+          contractTypes: [] as readonly bigint[],
+      };
+
       const mockDomainData: readonly [
         `0x${string}`,
         bigint,
@@ -226,9 +234,17 @@ describe("GameMaster", () => {
         "1", // version
       ];
 
+      mockReadContract
+      .mockResolvedValueOnce(mockGameState)
+      .mockResolvedValueOnce([] as readonly `0x${string}`[])
+      .mockResolvedValueOnce(0n)
+      .mockResolvedValueOnce([] as readonly `0x${string}`[])
+      .mockResolvedValueOnce(0n)
+      .mockResolvedValueOnce({ gamePhase: gameStatusEnum.open, maxPlayerCnt: 5n, players: [], registrationOpenAt: 1000n, timeToJoin: 180n, timePerTurn: 3600n })
+      .mockResolvedValueOnce(mockDomainData);
+
       mockSignTypedData.mockResolvedValueOnce("0xsignedMessage" as `0x${string}`);
 
-      mockReadContract.mockResolvedValueOnce(mockDomainData);
 
       // Mock signTypedData on walletClient
       const mockSignature = "0xsignedMessage" as `0x${string}`;
