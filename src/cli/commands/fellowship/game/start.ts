@@ -83,14 +83,7 @@ export const start = new Command("start")
 
       const currentBlock = await publicClient.getBlock({ blockTag: "latest" });
       const currentTimestamp = Number(currentBlock.timestamp);
-      console.log(options.autoMine);
-      console.log(gameState.registrationOpenAt);
-      console.log(currentTimestamp);
-      console.log(gameState.timeToJoin);
-      console.log(gameState.registrationOpenAt + gameState.timeToJoin);
       const canStart = currentTimestamp > gameState.registrationOpenAt + gameState.timeToJoin;
-      console.log(canStart);
-      //process.exit(1);
 
       if (gameState.gamePhase !== gameStatusEnum.open) {
         spinner.fail("Game is not in the open phase and cannot be started");
