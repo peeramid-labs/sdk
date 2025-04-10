@@ -1,13 +1,13 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { getAddress } from "viem";
 import { createPublic, createWallet } from "../../client";
 import GameMaster from "../../../rankify/GameMaster";
+import { CLIUtils } from "../../utils";
 
 export const endTurn = new Command("endTurn")
   .description("End turn in a game")
-  .argument("<instance>", "Address of the Rankify instance")
+  .argument("<instance>", "Address or instanceId of the Rankify instance")
   .argument("<game>", "Index of the game")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
   .option(
@@ -30,7 +30,14 @@ export const endTurn = new Command("endTurn")
 
       spinner.start("Ending turn...");
 
-      const hash = await gameMaster.endTurn({ instanceAddress: getAddress(instanceAddress), gameId: BigInt(gameId) });
+      const resolvedInstanceAddress = await CLIUtils.resolveInstanceAddress(
+        instanceAddress,
+        chainId,
+        publicClient,
+        spinner
+      );
+      
+      const hash = await gameMaster.endTurn({ instanceAddress: resolvedInstanceAddress, gameId: BigInt(gameId) });
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       console.log(receipt);
       spinner.stop();

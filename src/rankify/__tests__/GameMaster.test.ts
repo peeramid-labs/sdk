@@ -114,7 +114,7 @@ describe("GameMaster", () => {
   });
 
   describe("decryptProposals", () => {
-    it("should decrypt proposals for a game turn", async () => {
+    it("should decrypt proposals for a game turn in default", async () => {
       const mockEvents = [
         {
           address: MOCK_ADDRESSES.INSTANCE,
@@ -162,34 +162,58 @@ describe("GameMaster", () => {
 
       // eslint-disable-next-line
       mockGetContractEvents.mockResolvedValueOnce([joinGameEvent] as any);
+      
 
       const result = await gameMaster.decryptProposals({
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
         gameId: 1n,
         turn: 1n,
+        players: [MOCK_ADDRESSES.PROPOSER],
       });
+
       expect(result).toEqual([
         {
           proposer: publicKeyToAddress(`0x${mockPublicKey}`) as Hex as Address,
           proposal: "test_proposal",
         },
       ]);
+
+
+      const resultPadded = await gameMaster.decryptProposals({
+        instanceAddress: MOCK_ADDRESSES.INSTANCE,
+        gameId: 1n,
+        turn: 1n,
+        players: [MOCK_ADDRESSES.PROPOSER],
+        padToMaxSize: true
+      });
+
+      expect(resultPadded.length).toEqual(15);
+
       mockGetContractEvents.mockClear();
     });
 
-    it("should return empty array when no proposals exist", async () => {
+    it("should return array item element for each player even if he didn't propose", async () => {
       mockGetContractEvents.mockResolvedValueOnce([]);
       const result = await gameMaster.decryptProposals({
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
         gameId: 1n,
         turn: 1n,
+        players: [MOCK_ADDRESSES.PROPOSER],
       });
-      expect(result).toEqual([]);
+      expect(result.length).toEqual(1);
     });
   });
 
   describe("signJoiningGame", () => {
     it("should sign joining game event", async () => {
+      const mockGameState = {
+          contractAddresses: [] as readonly `0x${string}`[],
+          functionSelectors: [] as readonly `0x${string}`[],
+          args: [] as readonly unknown[],
+          contractIds: [] as readonly bigint[],
+          contractTypes: [] as readonly bigint[],
+      };
+
       const mockDomainData: readonly [
         `0x${string}`,
         bigint,
@@ -210,9 +234,17 @@ describe("GameMaster", () => {
         "1", // version
       ];
 
+      mockReadContract
+      .mockResolvedValueOnce(mockGameState)
+      .mockResolvedValueOnce([] as readonly `0x${string}`[])
+      .mockResolvedValueOnce(0n)
+      .mockResolvedValueOnce([] as readonly `0x${string}`[])
+      .mockResolvedValueOnce(0n)
+      .mockResolvedValueOnce({ gamePhase: gameStatusEnum.open, maxPlayerCnt: 5n, players: [], registrationOpenAt: 1000n, timeToJoin: 180n, timePerTurn: 3600n })
+      .mockResolvedValueOnce(mockDomainData);
+
       mockSignTypedData.mockResolvedValueOnce("0xsignedMessage" as `0x${string}`);
 
-      mockReadContract.mockResolvedValueOnce(mockDomainData);
 
       // Mock signTypedData on walletClient
       const mockSignature = "0xsignedMessage" as `0x${string}`;
@@ -581,15 +613,15 @@ describe("GameMaster", () => {
           proposals: expect.any(Array),
           permutationCommitment: expect.any(BigInt),
         },
-        permutation: expect.any(Array),
+        prevTurnPermutation: expect.any(Array),
         proposalsNotPermuted: expect.any(Array),
-        nullifier: expect.any(BigInt),
+        prevTurnSalt: expect.any(BigInt),
       });
 
       // Verify permutation properties
-      expect(result.permutation).toHaveLength(15);
-      expect(result.permutation.every((p) => typeof p === "bigint")).toBe(true);
-      expect(new Set(result.permutation).size).toBe(15); // All elements should be unique
+      expect(result.prevTurnPermutation).toHaveLength(15);
+      expect(result.prevTurnPermutation.every((p) => typeof p === "bigint")).toBe(true);
+      expect(new Set(result.prevTurnPermutation).size).toBe(15); // All elements should be unique
 
       // Test permuteArray matches the result
       const permutedByMethod = await gameMaster.permuteArray<string>({
@@ -649,8 +681,8 @@ describe("GameMaster", () => {
       });
 
       // Verify permutation size
-      expect(result.permutation).toHaveLength(15);
-      expect(new Set(result.permutation).size).toBe(15); // All elements should be unique
+      expect(result.prevTurnPermutation).toHaveLength(15);
+      expect(new Set(result.prevTurnPermutation).size).toBe(15); // All elements should be unique
 
       // Test permuteArray matches the result
       const permutedByMethod = await gameMaster.permuteArray<string>({
@@ -915,6 +947,7 @@ describe("GameMaster", () => {
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
         gameId: 1n,
         turn: 1n,
+        players: [MOCK_ADDRESSES.PLAYER]
       });
 
       expect(mockGetContractEvents).toHaveBeenCalledWith({
@@ -925,12 +958,7 @@ describe("GameMaster", () => {
         fromBlock: 0n,
       });
 
-      expect(result).toEqual([
-        {
-          player: MOCK_ADDRESSES.PLAYER,
-          votes: [1n, 2n, 3n],
-        },
-      ]);
+      expect(result).toEqual([[1n, 2n, 3n]]);
     });
 
     it("should return empty array when no votes exist", async () => {
@@ -941,6 +969,7 @@ describe("GameMaster", () => {
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
         gameId: 1n,
         turn: 1n,
+        players: [MOCK_ADDRESSES.PLAYER]
       });
 
       expect(result).toEqual([]);
@@ -986,53 +1015,6 @@ describe("GameMaster", () => {
           turn: 1n,
         })
       ).rejects.toThrow("Failed to decrypt vote");
-    });
-  });
-
-  describe("getProposalsVotedUpon", () => {
-    it("should handle case where no one proposed anything", async () => {
-      // Mock the players array
-      const mockPlayers = [MOCK_ADDRESSES.PLAYER, MOCK_ADDRESSES.GAME_MASTER];
-      mockReadContract.mockResolvedValueOnce(mockPlayers);
-
-      // Mock the TurnEnded event with no proposals
-      const mockTurnEndedEvent = {
-        address: MOCK_ADDRESSES.INSTANCE,
-        blockHash: MOCK_HASHES.BLOCK,
-        blockNumber: 1000n,
-        data: "0x" as const,
-        logIndex: 0,
-        transactionHash: MOCK_HASHES.TRANSACTION,
-        transactionIndex: 0,
-        removed: false,
-        topics: [] as [`0x${string}`, ...`0x${string}`[]] | [],
-        args: {
-          gameId: 1n,
-          turn: 1n,
-          newProposals: ["", ""],
-          players: mockPlayers,
-        },
-      };
-      mockGetContractEvents.mockReset();
-      mockGetContractEvents.mockResolvedValueOnce([mockTurnEndedEvent]);
-      mockGetContractEvents.mockResolvedValueOnce([]);
-
-      const result = await gameMaster.getProposalsVotedUpon({
-        instanceAddress: MOCK_ADDRESSES.INSTANCE,
-        gameId: 1n,
-        turn: 2n,
-      });
-
-      // Verify that each player has an empty proposal
-      expect(result).toHaveLength(0);
-
-      expect(mockGetContractEvents).toHaveBeenCalledWith({
-        address: MOCK_ADDRESSES.INSTANCE,
-        abi: expect.any(Array),
-        eventName: "TurnEnded",
-        args: { gameId: 1n, turn: 1n },
-        fromBlock: 0n,
-      });
     });
   });
 });

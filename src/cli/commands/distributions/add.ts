@@ -5,6 +5,12 @@ import { MAODistributorClient } from "../../../rankify/MAODistributor";
 import { createPublic, createWallet } from "../../client";
 import inquirer from "inquirer";
 import { getArtifact } from "../../../utils";
+import { resolvePk } from "../../getPk";
+
+// Define enum for distribution defaults
+enum DistributionDefaults {
+  NAME = "MAO Distribution"
+}
 
 // Helper to pad string to 32 bytes, similar to ethers.utils.formatBytes32String
 function formatBytes32String(text: string): `0x${string}` {
@@ -18,12 +24,14 @@ export const addCommand = new Command("add")
   .description("Add a new distribution")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
   .option("-d, --distributor <address>", "Address of the distributor")
+  .option("-k, --key <privateKey>", "Private key with admin permissions or index to derive from mnemonic. If not provided, PRIVATE_KEY environment variable will be used")
+  .option("-y, --yes", "Auto-accept default values for all prompts", false)
   .action(async (options) => {
     const spinner = ora("Initializing clients...").start();
 
     try {
       const publicClient = await createPublic(options.rpc);
-      const walletClient = await createWallet(options.rpc, options.key);
+      const walletClient = await createWallet(options.rpc, resolvePk(options.key, spinner));
       const chainId = Number(await publicClient.getChainId());
 
       const maoDistributor = new MAODistributorClient(chainId, {
@@ -34,39 +42,56 @@ export const addCommand = new Command("add")
 
       spinner.stop();
 
-      // Use provided name, env var, or default
+      // Default values
+      const defaultName = process.env.DEFAULT_DISTRIBUTION_NAME ?? DistributionDefaults.NAME;
+      const defaultAddress = getArtifact(chainId, "MAODistribution").address;
+      
+      // Check if auto-accept defaults is enabled
+      const autoAcceptDefaults = options.yes;
+      
       let name = options.name;
-      if (!name) {
-        const defaultName = process.env.DEFAULT_DISTRIBUTION_NAME ?? "MAO Distribution";
-        const response = await inquirer.prompt([
-          {
-            type: "input",
-            name: "name",
-            message: "Enter distribution name:",
-            default: defaultName,
-            validate: (input: string) => {
-              if (!input.trim()) return "Name cannot be empty";
-              return true;
-            },
-          },
-        ]);
-        name = response.name;
-      }
       let distributionAddress = options.address;
-      if (!options.address) {
-        const response = await inquirer.prompt([
-          {
-            type: "input",
-            name: "address",
-            message: "Input distribution address to add to the distributor contract",
-            default: getArtifact(chainId, "MAODistribution").address,
-            validate: (input: string) => {
-              if (!input.trim()) return "Address cannot be empty";
-              return true;
+      
+      if (!name) {
+        if (autoAcceptDefaults) {
+          console.log(`Auto-accepting default distribution name: ${defaultName}`);
+          name = defaultName;
+        } else {
+          const response = await inquirer.prompt([
+            {
+              type: "input",
+              name: "name",
+              message: "Enter distribution name:",
+              default: defaultName,
+              validate: (input: string) => {
+                if (!input.trim()) return "Name cannot be empty";
+                return true;
+              },
             },
-          },
-        ]);
-        distributionAddress = response.address;
+          ]);
+          name = response.name;
+        }
+      }
+      
+      if (!distributionAddress) {
+        if (autoAcceptDefaults) {
+          console.log(`Auto-accepting default distribution address: ${defaultAddress}`);
+          distributionAddress = defaultAddress;
+        } else {
+          const response = await inquirer.prompt([
+            {
+              type: "input",
+              name: "address",
+              message: "Input distribution address to add to the distributor contract",
+              default: defaultAddress,
+              validate: (input: string) => {
+                if (!input.trim()) return "Address cannot be empty";
+                return true;
+              },
+            },
+          ]);
+          distributionAddress = response.address;
+        }
       }
 
       // Format name as bytes32

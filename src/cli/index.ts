@@ -6,6 +6,8 @@ import { distributionsCommand } from "./commands/distributions";
 import { instancesCommand } from "./commands/instances";
 import { multipassCommand } from "./commands/multipass";
 import { edsCommand } from "./commands/eds";
+import { getPkCommand } from "./commands/getPk";
+import { blockchainCommand } from "./commands/blockchain";
 const { version } = require("../../package.json");
 
 const program = new Command()
@@ -19,4 +21,6 @@ program.addCommand(distributionsCommand);
 program.addCommand(instancesCommand);
 program.addCommand(multipassCommand);
 program.addCommand(edsCommand);
+program.addCommand(getPkCommand);
+program.addCommand(blockchainCommand);
 program.parse();
