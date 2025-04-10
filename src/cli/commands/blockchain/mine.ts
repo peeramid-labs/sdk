@@ -4,7 +4,7 @@ import ora from "ora";
 import { createPublic, createWallet } from "../../client";
 import { BlockchainUtils } from "../../../utils/blockchain";
 
-export const mineBlock = new Command("mineBlock")
+export const mine = new Command("mine")
   .description("Increase next block timestamp and mine a new block")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
   .option(

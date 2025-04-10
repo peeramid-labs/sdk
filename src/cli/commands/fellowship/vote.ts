@@ -15,6 +15,7 @@ export const vote = new Command("vote")
   .argument("<gameId>", "ID of the game to vote in")
   .argument("<votes>", "Comma-separated list of vote values (e.g. 5,3,0,2,4)")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
+  .option("-i, --m-index <mnemonicIndex>", "Index to derive from mnemonic")
   .option(
     "-k, --key <privateKey>",
     "Private key or index to derive from mnemonic for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
@@ -24,7 +25,7 @@ export const vote = new Command("vote")
 
     try {
       const publicClient = await createPublic(options.rpc);
-      const walletClient = await createWallet(options.rpc, resolvePk(options.key, spinner));
+      const walletClient = await createWallet(options.rpc, resolvePk(options.mIndex ?? options.key, spinner));
       const chainId = Number(await publicClient.getChainId());
 
       const resolvedInstanceAddress = await CLIUtils.resolveInstanceAddress(

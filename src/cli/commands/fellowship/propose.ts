@@ -16,9 +16,14 @@ export const propose = new Command("propose")
   .argument("<instance>", "Address or index of the Rankify instance")
   .argument("<gameId>", "ID of the game to propose for")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
+  .option("-i, --m-index <mnemonicIndex>", "Index to derive from mnemonic")
   .option(
     "-k, --key <privateKey>",
-    "Private key or index to derive from mnemonic for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
+    "Private key if no mnemonic index is provided. If both not provided, PRIVATE_KEY environment variable will be used"
+  )
+  .option(
+    "-g, --gm-key <privateKey>",
+    "Game master private key for signing attestations. If not provided, PRIVATE_KEY environment variable will be used"
   )
   .option(
     "-t, --title <title>",
@@ -38,7 +43,7 @@ export const propose = new Command("propose")
     try {
       // Initialize clients
       const publicClient = await createPublic(options.rpc);
-      const privateKey = resolvePk(options.key, spinner);
+      const privateKey = resolvePk(options.mIndex ?? options.key, spinner);
       const walletClient = await createWallet(options.rpc, privateKey);
       const chainId = Number(await publicClient.getChainId());
       const account = walletClient.account?.address;
@@ -58,7 +63,7 @@ export const propose = new Command("propose")
 
       // Create game master client
       spinner.text = "Creating game master client...";
-      const gmWalletClient = await createWallet(options.rpc);
+      const gmWalletClient = await createWallet(options.rpc, options.gmKey);
       
       const gameMaster = new GameMaster({
         walletClient: gmWalletClient,

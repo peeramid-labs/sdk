@@ -15,6 +15,7 @@ export const startGame = new Command("startGame")
   .argument("<instance>", "Address or index of the Rankify instance")
   .argument("<gameId>", "ID of the game to start")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
+  .option("-i, --mIndex <mnemonicIndex>", "Index to derive from mnemonic")
   .option(
     "-k, --key <privateKey>",
     "Private key or index to derive from mnemonic for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
@@ -34,7 +35,7 @@ export const startGame = new Command("startGame")
 
     try {
       const publicClient = await createPublic(options.rpc);
-      const walletClient = await createWallet(options.rpc, resolvePk(options.key, spinner));
+      const walletClient = await createWallet(options.rpc, resolvePk(options.mIndex ?? options.mIndex, spinner));
       const chainId = Number(await publicClient.getChainId());
 
       const resolvedInstanceAddress = await CLIUtils.resolveInstanceAddress(
@@ -60,7 +61,7 @@ export const startGame = new Command("startGame")
         account,
       });
 
-      const gmWalletClient = await createWallet(options.rpc);
+      const gmWalletClient = await createWallet(options.rpc, options.gmKey);
 
       const gameMaster = new GameMaster({
         walletClient: gmWalletClient,

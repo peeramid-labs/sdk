@@ -13,17 +13,17 @@ export const joinGame = new Command("joinGame")
   .description("Join an existing game in a Rankify instance")
   .argument("<instance>", "Address or instanceId of the Rankify instance")
   .argument("<gameId>", "ID of the game to join")
-  .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
+  .option("-i, --m-index <mnemonicIndex>", "Index to derive from mnemonic")
   .option(
     "-k, --key <privateKey>",
-    "Private key or index to derive from mnemonic for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
+    "Private key or index to derive from mnemonic for signing transactions. Will be used if no mnemonic index is provided. If both not provided, PRIVATE_KEY environment variable will be used"
   )
   .action(async (instanceAddress, gameId, options) => {
     const spinner = ora("Initializing clients...").start();
 
     try {
       const publicClient = await createPublic(options.rpc);
-      const walletClient = await createWallet(options.rpc, resolvePk(options.key, spinner));
+      const walletClient = await createWallet(options.rpc, resolvePk(options.mIndex ?? options.key, spinner));
       const chainId = Number(await publicClient.getChainId());
 
       const resolvedInstanceAddress = await CLIUtils.resolveInstanceAddress(
@@ -59,7 +59,7 @@ export const joinGame = new Command("joinGame")
 
       spinner.text = "Getting public key...";
 
-      const privateKeyBytes = hexToBytes(resolvePk(options.key, spinner) as Hex);
+      const privateKeyBytes = hexToBytes(resolvePk(options.mIndex ?? options.key, spinner) as Hex);
       const publicKeyBytes = secp256k1.getPublicKey(privateKeyBytes, false);
       const publicKey = bytesToHex(publicKeyBytes) as Hex;
       const gameIdBigInt = BigInt(gameId);
