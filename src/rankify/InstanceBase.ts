@@ -73,7 +73,7 @@ export default class InstanceBase {
    * @throws {ApiError} If the game or turn is not found.
    */
   getHistoricTurn = async (gameId: bigint, turnId: bigint) => {
-    const logs = await this.publicClient.getContractEvents({
+    const logsWithProposals = await this.publicClient.getContractEvents({
       address: this.instanceAddress,
       abi: instanceAbi,
       fromBlock: await this.getCreationBlock(),
@@ -83,33 +83,57 @@ export default class InstanceBase {
         turn: turnId,
       },
     });
-    let logsReorganized = { ...logs[0] };
-    logsReorganized.args.newProposals = logsReorganized.args?.newProposals?.slice(
-      0,
-      logsReorganized.args?.players?.length
-    );
 
-    if (logsReorganized.args && logsReorganized.args.newProposals) {
-      logsReorganized.args.newProposals = await this.reorganizeProposals(
-        logsReorganized.args.newProposals,
-        turnId,
-        gameId
-      );
+    const logsWithVotesAndPermutation = await this.publicClient.getContractEvents({
+      address: this.instanceAddress,
+      abi: instanceAbi,
+      fromBlock: await this.getCreationBlock(),
+      eventName: "TurnEnded",
+      args: {
+        gameId,
+        turn: turnId + 1n,
+      },
+    });
+
+    if (logsWithProposals.length !== 1 || logsWithVotesAndPermutation.length !== 1) {
+      console.error("getHistoricTurn", gameId, turnId, "failed! length: ", logsWithProposals.length, logsWithVotesAndPermutation.length);
+      throw new ApiError("Data not found", { status: 404 });
     }
 
-    if (logsReorganized.args.votes && logsReorganized.args.proposerIndices) {
-      logsReorganized.args.votes = this.reorganizeVotes(
-        logsReorganized.args.votes,
-        logsReorganized.args.proposerIndices
-      );
-    }
+    const gameState = await this.getGameState(gameId);
+    const players = logsWithProposals[0].args?.players || [];
+    const permutation = logsWithVotesAndPermutation[0].args?.proposerIndices || [];
+    const proposalsPermuted = { ...logsWithProposals[0] }.args?.newProposals?.slice(0, logsWithProposals[0].args?.players?.length)
+    const proposalsOrdered = reversePermutation({ array: proposalsPermuted || [], permutation });
+    const votesPermuted = { ...logsWithVotesAndPermutation[0] }.args?.votes || [];
+    const votesOrdered = votesPermuted.map(vote => reversePermutation({ array: vote, permutation }));
+    const maxVotes = BigInt(Math.floor(Math.sqrt(Number(gameState.voteCredits))));
 
-    if (logs.length !== 1) {
-      console.error("getHistoricTurn", gameId, turnId, "failed:", logs.length);
-      throw new ApiError("Game not found", { status: 404 });
-    }
+    const returnObject = proposalsOrdered.map((proposal, proposersIndex) => {
+      const proposer = players[proposersIndex];
+      if (proposal === "") {
+        return {
+          player: proposer, proposal: "", score: 0n, scoreList: []
+        }
+      }
 
-    return logsReorganized;
+      const scoreList = votesOrdered.map((playersVote, votersIndex) => {
+        const isIdleVoter = playersVote.reduce((acc, vote) => acc + vote, 0n) === 0n;
+        if (votersIndex === proposersIndex) {
+          return { score: 0n, player: proposer }
+        }
+        return { score: isIdleVoter ? maxVotes : playersVote[proposersIndex], player: players[votersIndex] };
+      }).filter(score => score.score > 0n);
+      return {
+        player: proposer,
+        proposal,
+        score: scoreList.reduce((acc, score) => acc + score.score, 0n),
+        scoreList,
+        blockTimestamp: BigInt((logsWithProposals[0] as unknown as { blockTimestamp: Hex }).blockTimestamp),
+      };
+    });
+
+    return returnObject;
   };
 
   /**
@@ -122,35 +146,6 @@ export default class InstanceBase {
     return votes.map((playerVotes) => {
       return reversePermutation({ array: playerVotes, permutation: proposerIndices });
     });
-  };
-
-  /**
-   * Reorganizes proposals array based on proposerIndices mapping
-   * @param proposals - Array of proposals for each player
-   * @param proposerIndices - Array of indices mapping shuffled order to original order
-   * @returns Reorganized proposals array
-   */
-  reorganizeProposals = async (
-    proposals: readonly string[],
-    turnId: bigint,
-    gameId: bigint
-  ): Promise<readonly string[]> => {
-    const logs = await this.publicClient.getContractEvents({
-      address: this.instanceAddress,
-      abi: instanceAbi,
-      fromBlock: await this.getCreationBlock(),
-      eventName: "TurnEnded",
-      args: {
-        gameId,
-        turn: turnId + 1n,
-      },
-    });
-
-    if (logs.length === 0 || logs[0].args === undefined || logs[0].args.proposerIndices === undefined) {
-      return proposals;
-    }
-
-    return reversePermutation({ array: proposals, permutation: logs[0].args.proposerIndices });
   };
 
   getCreationBlock = async () => {
@@ -470,6 +465,21 @@ export default class InstanceBase {
         functionName: "getPlayers",
         args: [gameId],
       });
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
+  getGameState = async (gameId: bigint) => {
+    try {
+      const state = await this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "getGameState",
+        args: [gameId],
+      });
+      return state;
+
     } catch (e) {
       throw await handleRPCError(e);
     }
