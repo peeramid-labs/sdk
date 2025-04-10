@@ -2,8 +2,8 @@ import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
 import { getAddress } from "viem";
-import { createPublic, createWallet } from "../../client";
-import Player from "../../../rankify/Player";
+import { createPublic, createWallet } from "../../../client";
+import Player from "../../../../rankify/Player";
 
 export const cancel = new Command("cancel")
   .description("Cancel a game")
@@ -36,7 +36,7 @@ export const cancel = new Command("cancel")
       console.log(receipt);
       spinner.stop();
     } catch (error) {
-      spinner.fail("Failed to end turn");
+      spinner.fail("Failed to cancel game");
       console.error(chalk.red(`Error: ${error instanceof Error ? error.message + "\n" + error.stack : String(error)}`));
       process.exit(1);
     }

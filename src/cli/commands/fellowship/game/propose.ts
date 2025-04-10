@@ -1,15 +1,15 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { createPublic, createWallet } from "../../client";
-import { resolvePk } from "../../getPk";
-import GameMaster from "../../../rankify/GameMaster";
-import { CLIUtils } from "../../utils";
-import InstanceBase from "../../../rankify/InstanceBase";
-import RankifyPlayer from "../../../rankify/Player";
+import { createPublic, createWallet } from "../../../client";
+import { resolvePk } from "../../../getPk";
+import GameMaster from "../../../../rankify/GameMaster";
+import { CLIUtils } from "../../../utils";
+import InstanceBase from "../../../../rankify/InstanceBase";
+import RankifyPlayer from "../../../../rankify/Player";
 import { Address, Hex, bytesToHex, hexToBytes } from "viem";
 import * as secp256k1 from "@noble/secp256k1";
-import { gameStatusEnum } from "../../../types";
+import { gameStatusEnum } from "../../../../types";
 
 export const propose = new Command("propose")
   .description("Submit a proposal for a game turn")

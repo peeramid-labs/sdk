@@ -2,12 +2,12 @@ import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
 import { getAddress } from "viem";
-import { createPublic, createWallet } from "../../client";
-import RankifyPlayer from "../../../rankify/Player";
-import { resolvePk } from "../../getPk";
-import { CLIUtils } from "../../utils";
+import { createPublic, createWallet } from "../../../client";
+import RankifyPlayer from "../../../../rankify/Player";
+import { resolvePk } from "../../../getPk";
+import { CLIUtils } from "../../../utils";
 
-export const createGame = new Command("createGame")
+export const create = new Command("create")
   .description("Create a new game in a Rankify instance")
   .argument("<instance>", "Address or instanceId of the Rankify instance")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")

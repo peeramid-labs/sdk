@@ -2,12 +2,12 @@ import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
 import { type Hex } from "viem";
-import { createPublic, createWallet } from "../../client";
-import { resolvePk } from "../../getPk";
-import GameMaster from "../../../rankify/GameMaster";
-import { CLIUtils } from "../../utils";
-import InstanceBase from "../../../rankify/InstanceBase";
-import RankifyPlayer from "../../../rankify/Player";
+import { createPublic, createWallet } from "../../../client";
+import { resolvePk } from "../../../getPk";
+import GameMaster from "../../../../rankify/GameMaster";
+import { CLIUtils } from "../../../utils";
+import InstanceBase from "../../../../rankify/InstanceBase";
+import RankifyPlayer from "../../../../rankify/Player";
 
 export const vote = new Command("vote")
   .description("Submit a vote in a Rankify game")

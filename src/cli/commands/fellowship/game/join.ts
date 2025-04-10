@@ -1,18 +1,19 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { type Address, Hex, bytesToHex, encodePacked, hexToBytes, keccak256, toHex } from "viem";
-import { createPublic, createWallet } from "../../client";
-import RankifyPlayer from "../../../rankify/Player";
-import { resolvePk } from "../../getPk";
-import GameMaster from "../../../rankify/GameMaster";
-import { CLIUtils } from "../../utils";
+import { type Address, Hex, bytesToHex, encodePacked, hexToBytes, keccak256 } from "viem";
+import { createPublic, createWallet } from "../../../client";
+import RankifyPlayer from "../../../../rankify/Player";
+import { resolvePk } from "../../../getPk";
+import GameMaster from "../../../../rankify/GameMaster";
+import { CLIUtils } from "../../../utils";
 import * as secp256k1 from "@noble/secp256k1";
 
-export const joinGame = new Command("joinGame")
+export const join = new Command("join")
   .description("Join an existing game in a Rankify instance")
   .argument("<instance>", "Address or instanceId of the Rankify instance")
   .argument("<gameId>", "ID of the game to join")
+  .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
   .option("-i, --m-index <mnemonicIndex>", "Index to derive from mnemonic")
   .option(
     "-k, --key <privateKey>",
