@@ -81,10 +81,6 @@ export const start = new Command("start")
       });
       const gameState = await baseInstance.getGameStateDetails(gameIdBigInt);
 
-      const currentBlock = await publicClient.getBlock({ blockTag: "latest" });
-      const currentTimestamp = Number(currentBlock.timestamp);
-      const canStart = currentTimestamp > gameState.registrationOpenAt + gameState.timeToJoin;
-
       if (gameState.gamePhase !== gameStatusEnum.open) {
         spinner.fail("Game is not in the open phase and cannot be started");
         console.error(chalk.red(`Game phase: ${gameState.gamePhase}`));
@@ -109,13 +105,13 @@ export const start = new Command("start")
         
         // Calculate when the game was created and when it can be started
         const registrationOpenAt = Number(gameState.registrationOpenAt);
-        const startableTime = registrationOpenAt + timeToJoin;
+        const startTimeCalculated = registrationOpenAt + timeToJoin;
         
-        // If the current time is before the startable time, we need to mine blocks
-        if (currentTimestamp < startableTime) {
-          const timeNeeded = startableTime - currentTimestamp + 1; // Add 1 second buffer
+        // If the current time is before the start time, we need to mine blocks
+        if (currentTimestamp < startTimeCalculated) {
+          const timeNeeded = startTimeCalculated - currentTimestamp + 1; // Add 1 second buffer
           
-          spinner.info(`Game can be started at ${new Date(startableTime * 1000).toLocaleString()}`);
+          spinner.info(`Game can be started at ${new Date(startTimeCalculated * 1000).toLocaleString()}`);
           spinner.info(`Current blockchain time is ${new Date(currentTimestamp * 1000).toLocaleString()}`);
           spinner.info(`Need to advance time by ${timeNeeded} seconds to start the game`);
           
