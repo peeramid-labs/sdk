@@ -1,5 +1,17 @@
 # peeramid-labs/sdk
 
+## 3.8.0
+
+### Minor Changes
+
+- [#135](https://github.com/peeramid-labs/sdk/pull/135) [`ce983d701e4b41c8c05615f105a762732c218776`](https://github.com/peeramid-labs/sdk/commit/ce983d701e4b41c8c05615f105a762732c218776) Thanks [@peersky](https://github.com/peersky)! - Refactored GameMaster.ts and historicTurn in InstanceBase.ts. Created more cli commands and created bash script playbook scenarios
+
+### Patch Changes
+
+- [#135](https://github.com/peeramid-labs/sdk/pull/135) [`ce983d701e4b41c8c05615f105a762732c218776`](https://github.com/peeramid-labs/sdk/commit/ce983d701e4b41c8c05615f105a762732c218776) Thanks [@peersky](https://github.com/peersky)! - fixed bug when non-proposing was not correctly parsed in getProposalsVotedUpon
+
+- [#135](https://github.com/peeramid-labs/sdk/pull/135) [`ce983d701e4b41c8c05615f105a762732c218776`](https://github.com/peeramid-labs/sdk/commit/ce983d701e4b41c8c05615f105a762732c218776) Thanks [@peersky](https://github.com/peersky)! - cancel game cli
+
 ## 3.7.4
 
 ### Patch Changes
