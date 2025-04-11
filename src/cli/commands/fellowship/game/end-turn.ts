@@ -1,11 +1,11 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { createPublic, createWallet } from "../../client";
-import GameMaster from "../../../rankify/GameMaster";
-import { CLIUtils } from "../../utils";
+import { createPublic, createWallet } from "../../../client";
+import GameMaster from "../../../../rankify/GameMaster";
+import { CLIUtils } from "../../../utils";
 
-export const endTurn = new Command("endTurn")
+export const endTurn = new Command("end-turn")
   .description("End turn in a game")
   .argument("<instance>", "Address or instanceId of the Rankify instance")
   .argument("<game>", "Index of the game")

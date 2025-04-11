@@ -2,19 +2,17 @@ import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
 import { getAddress } from "viem";
-import { createPublic, createWallet } from "../../client";
-import RankifyPlayer from "../../../rankify/Player";
-import { resolvePk } from "../../getPk";
-import { CLIUtils } from "../../utils";
+import { createPublic, createWallet } from "../../../client";
+import RankifyPlayer from "../../../../rankify/Player";
+import { resolvePk } from "../../../getPk";
+import { CLIUtils } from "../../../utils";
 
-export const createGame = new Command("createGame")
+export const create = new Command("create")
   .description("Create a new game in a Rankify instance")
   .argument("<instance>", "Address or instanceId of the Rankify instance")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
-  .option(
-    "-k, --key <privateKey>",
-    "Private key or index to derive from mnemonic for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
-  )
+  .option("-i, --m-index <mnemonicIndex>", "Index to derive from mnemonic")
+  .option("-k, --key <privateKey>", "Will be used if no mnemonic index is provided. Private key with admin permissions. If not provided, PRIVATE_KEY environment variable will be used")
   .option("--gm <address>", "Game master address", "0xaA63aA2D921F23f204B6Bcb43c2844Fb83c82eb9")
   .option("--rank <number>", "Game rank", "1")
   .option("--max-players <number>", "Maximum number of players", "9")
@@ -31,7 +29,7 @@ export const createGame = new Command("createGame")
 
     try {
       const publicClient = await createPublic(options.rpc);
-      const walletClient = await createWallet(options.rpc, resolvePk(options.key, spinner));
+      const walletClient = await createWallet(options.rpc, resolvePk(options.mIndex ?? options.key, spinner));
       const chainId = Number(await publicClient.getChainId());
       
       const resolvedInstanceAddress = await CLIUtils.resolveInstanceAddress(

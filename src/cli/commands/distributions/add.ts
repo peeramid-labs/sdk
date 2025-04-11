@@ -24,14 +24,15 @@ export const addCommand = new Command("add")
   .description("Add a new distribution")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
   .option("-d, --distributor <address>", "Address of the distributor")
-  .option("-k, --key <privateKey>", "Private key with admin permissions or index to derive from mnemonic. If not provided, PRIVATE_KEY environment variable will be used")
+  .option("-i, --m-index <mnemonicIndex>", "Index to derive from mnemonic")
+  .option("-k, --key <privateKey>", "Will be used if no mnemonic index is provided. Private key with admin permissions. If not provided, PRIVATE_KEY environment variable will be used")
   .option("-y, --yes", "Auto-accept default values for all prompts", false)
   .action(async (options) => {
     const spinner = ora("Initializing clients...").start();
 
     try {
       const publicClient = await createPublic(options.rpc);
-      const walletClient = await createWallet(options.rpc, resolvePk(options.key, spinner));
+      const walletClient = await createWallet(options.rpc, resolvePk(options.mIndex ?? options.key, spinner));
       const chainId = Number(await publicClient.getChainId());
 
       const maoDistributor = new MAODistributorClient(chainId, {

@@ -1,20 +1,21 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { createPublic, createWallet } from "../../client";
-import RankifyPlayer from "../../../rankify/Player";
-import { resolvePk } from "../../getPk";
-import GameMaster from "../../../rankify/GameMaster";
-import { CLIUtils } from "../../utils";
-import InstanceBase from "../../../rankify/InstanceBase";
-import { gameStatusEnum } from "../../../types";
-import { BlockchainUtils } from "../../../utils/blockchain";
+import { createPublic, createWallet } from "../../../client";
+import RankifyPlayer from "../../../../rankify/Player";
+import { resolvePk } from "../../../getPk";
+import GameMaster from "../../../../rankify/GameMaster";
+import { CLIUtils } from "../../../utils";
+import InstanceBase from "../../../../rankify/InstanceBase";
+import { gameStatusEnum } from "../../../../types";
+import { BlockchainUtils } from "../../../../utils/blockchain";
 
-export const startGame = new Command("startGame")
+export const start = new Command("start")
   .description("Start a game in a Rankify instance")
   .argument("<instance>", "Address or index of the Rankify instance")
   .argument("<gameId>", "ID of the game to start")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
+  .option("-i, --mIndex <mnemonicIndex>", "Index to derive from mnemonic")
   .option(
     "-k, --key <privateKey>",
     "Private key or index to derive from mnemonic for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
@@ -34,7 +35,7 @@ export const startGame = new Command("startGame")
 
     try {
       const publicClient = await createPublic(options.rpc);
-      const walletClient = await createWallet(options.rpc, resolvePk(options.key, spinner));
+      const walletClient = await createWallet(options.rpc, resolvePk(options.mIndex ?? options.mIndex, spinner));
       const chainId = Number(await publicClient.getChainId());
 
       const resolvedInstanceAddress = await CLIUtils.resolveInstanceAddress(
@@ -60,7 +61,7 @@ export const startGame = new Command("startGame")
         account,
       });
 
-      const gmWalletClient = await createWallet(options.rpc);
+      const gmWalletClient = await createWallet(options.rpc, options.gmKey);
 
       const gameMaster = new GameMaster({
         walletClient: gmWalletClient,
@@ -79,17 +80,6 @@ export const startGame = new Command("startGame")
         chainId,
       });
       const gameState = await baseInstance.getGameStateDetails(gameIdBigInt);
-
-      const currentBlock = await publicClient.getBlock({ blockTag: "latest" });
-      const currentTimestamp = Number(currentBlock.timestamp);
-      console.log(options.autoMine);
-      console.log(gameState.registrationOpenAt);
-      console.log(currentTimestamp);
-      console.log(gameState.timeToJoin);
-      console.log(gameState.registrationOpenAt + gameState.timeToJoin);
-      const canStart = currentTimestamp > gameState.registrationOpenAt + gameState.timeToJoin;
-      console.log(canStart);
-      //process.exit(1);
 
       if (gameState.gamePhase !== gameStatusEnum.open) {
         spinner.fail("Game is not in the open phase and cannot be started");
@@ -115,13 +105,13 @@ export const startGame = new Command("startGame")
         
         // Calculate when the game was created and when it can be started
         const registrationOpenAt = Number(gameState.registrationOpenAt);
-        const startableTime = registrationOpenAt + timeToJoin;
+        const startTimeCalculated = registrationOpenAt + timeToJoin;
         
-        // If the current time is before the startable time, we need to mine blocks
-        if (currentTimestamp < startableTime) {
-          const timeNeeded = startableTime - currentTimestamp + 1; // Add 1 second buffer
+        // If the current time is before the start time, we need to mine blocks
+        if (currentTimestamp < startTimeCalculated) {
+          const timeNeeded = startTimeCalculated - currentTimestamp + 1; // Add 1 second buffer
           
-          spinner.info(`Game can be started at ${new Date(startableTime * 1000).toLocaleString()}`);
+          spinner.info(`Game can be started at ${new Date(startTimeCalculated * 1000).toLocaleString()}`);
           spinner.info(`Current blockchain time is ${new Date(currentTimestamp * 1000).toLocaleString()}`);
           spinner.info(`Need to advance time by ${timeNeeded} seconds to start the game`);
           

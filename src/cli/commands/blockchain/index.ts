@@ -1,6 +1,6 @@
 import { Command } from "commander";
-import { mineBlock } from "./mineBlock";
+import { mine } from "./mine";
 
 export const blockchainCommand = new Command("blockchain")
   .description("Blockchain utility commands")
-  .addCommand(mineBlock);
+  .addCommand(mine);

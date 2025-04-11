@@ -1,9 +1,9 @@
 import { Command } from "commander";
-import { createPublic } from "../../client";
-import InstanceBase from "../../../rankify/InstanceBase";
+import { createPublic } from "../../../client";
+import InstanceBase from "../../../../rankify/InstanceBase";
 import chalk from "chalk";
 
-export const games = new Command("games")
+export const list = new Command("list")
   .description("List games in a Rankify instance")
   .argument("<instance>", "Address of the Rankify instance")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
