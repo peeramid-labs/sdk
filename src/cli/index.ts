@@ -8,6 +8,7 @@ import { multipassCommand } from "./commands/multipass";
 import { edsCommand } from "./commands/eds";
 import { getPkCommand } from "./commands/getPk";
 import { blockchainCommand } from "./commands/blockchain";
+import { playbookCommand } from "./commands/playbook";
 const { version } = require("../../package.json");
 
 const program = new Command()
@@ -23,4 +24,5 @@ program.addCommand(multipassCommand);
 program.addCommand(edsCommand);
 program.addCommand(getPkCommand);
 program.addCommand(blockchainCommand);
+program.addCommand(playbookCommand);
 program.parse();
