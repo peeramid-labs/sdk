@@ -2,11 +2,11 @@ import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
 import { getAddress } from "viem";
-import { createPublic, createWallet } from "../../client";
-import GameMaster from "../../../rankify/GameMaster";
+import { createPublic, createWallet } from "../../../client";
+import Player from "../../../../rankify/Player";
 
-export const endTurn = new Command("endTurn")
-  .description("End turn in a game")
+export const cancel = new Command("cancel")
+  .description("Cancel a game")
   .argument("<instance>", "Address of the Rankify instance")
   .argument("<game>", "Index of the game")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
@@ -21,21 +21,22 @@ export const endTurn = new Command("endTurn")
       const publicClient = await createPublic(options.rpc);
       const walletClient = await createWallet(options.rpc, options.key);
       const chainId = Number(await publicClient.getChainId());
-
-      const gameMaster = new GameMaster({
+      if (!walletClient.account) throw new Error("No account found");
+      const player = new Player({
         publicClient,
         walletClient,
         chainId,
+        instanceAddress: getAddress(instanceAddress),
+        account: walletClient.account.address,
       });
 
-      spinner.start("Ending turn...");
+      spinner.start("Canceling thread...");
 
-      const hash = await gameMaster.endTurn({ instanceAddress: getAddress(instanceAddress), gameId: BigInt(gameId) });
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await player.cancelGame(BigInt(gameId));
       console.log(receipt);
       spinner.stop();
     } catch (error) {
-      spinner.fail("Failed to end turn");
+      spinner.fail("Failed to cancel game");
       console.error(chalk.red(`Error: ${error instanceof Error ? error.message + "\n" + error.stack : String(error)}`));
       process.exit(1);
     }

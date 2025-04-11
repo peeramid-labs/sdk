@@ -1,11 +1,10 @@
 import { Command } from "commander";
 import { createFellowshipCommand } from "./create";
-import { games } from "./games";
 import { list } from "./list";
 import { getMetadataCommand } from "./metadata";
 import { eip712Command } from "./eip712";
-import { endTurn } from "./endTurn";
 import { paramsCommand } from "./params";
+import { game } from "./game/index";
 
 export const fellowshipCommand = new Command("fellowship")
   .description("Fellowship contract commands")
@@ -13,6 +12,5 @@ export const fellowshipCommand = new Command("fellowship")
   .addCommand(list)
   .addCommand(getMetadataCommand)
   .addCommand(eip712Command)
-  .addCommand(games)
-  .addCommand(endTurn)
-  .addCommand(paramsCommand);
+  .addCommand(paramsCommand)
+  .addCommand(game);
