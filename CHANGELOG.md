@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.9.0
+
+### Minor Changes
+
+- [#140](https://github.com/peeramid-labs/sdk/pull/140) [`b1c0ab8fe3571194d019e930deb81d25677bc1d7`](https://github.com/peeramid-labs/sdk/commit/b1c0ab8fe3571194d019e930deb81d25677bc1d7) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Removed thread metadata validation. Bump MAO dist default name
+
 ## 3.8.0
 
 ### Minor Changes
