@@ -861,11 +861,12 @@ export default class InstanceBase {
         throw new Error("Invalid response: expected JSON object");
       }
 
-      if (!this.isGameMetadata(rawData, fellowshipMetadata ?? (await this.getFellowshipMetadata(ipfsGateway)))) {
-        throw new Error("Invalid metadata format");
-      }
+      //TODO: uncomment when fellowship metadata update interface is implemented and validation is added
+      // if (!this.isGameMetadata(rawData, fellowshipMetadata ?? (await this.getFellowshipMetadata(ipfsGateway)))) {
+      //   throw new Error("Invalid metadata format");
+      // }
 
-      return rawData;
+      return rawData as GameMetadata<FellowshipMetadata>;
     } catch (error) {
       console.error("Error fetching metadata:", error);
       throw error;
