@@ -838,7 +838,7 @@ export default class InstanceBase {
   getGameMetadata = async (
     ipfsGateway: string,
     gameId: bigint,
-    fellowshipMetadata?: FellowshipMetadata
+    //fellowshipMetadata?: FellowshipMetadata
   ): Promise<GameMetadata<FellowshipMetadata>> => {
     try {
       const { metadata } = await this.getGameStateDetails(gameId);
@@ -862,7 +862,7 @@ export default class InstanceBase {
       }
 
       //TODO: uncomment when fellowship metadata update interface is implemented and validation is added
-      // if (!this.isGameMetadata(rawData, fellowshipMetadata ?? (await this.getFellowshipMetadata(ipfsGateway)))) {
+      // if (!this.isGameMetadata(rawData, await this.getFellowshipMetadata(ipfsGateway))) {
       //   throw new Error("Invalid metadata format");
       // }
 
