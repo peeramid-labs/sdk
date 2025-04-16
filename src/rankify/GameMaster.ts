@@ -948,7 +948,6 @@ export class GameMaster {
       args: { turn, gameId },
     });
     logger(`Found ${VoteSubmittedEvents.length} events`);
-    if (VoteSubmittedEvents.length === 0) return [];
 
     //Decrypting votes from events
     const votes: { player: Address; votes: bigint[] }[] = [];

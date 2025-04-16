@@ -24,7 +24,6 @@ export const getPrivateKeyFromMnemonic = (
 
     console.log(`Address: ${account.address}`);
     const privateKey = `0x${Buffer.from(account.getHdKey().privateKey ?? '').toString('hex')}` as Hex;
-    console.log(`Private Key: ${privateKey}`);
 
     return privateKey;
   } catch (error) {
