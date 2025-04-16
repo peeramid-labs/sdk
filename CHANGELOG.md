@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.10.0
+
+### Minor Changes
+
+- [#142](https://github.com/peeramid-labs/sdk/pull/142) [`d0b821128b79edbd9140c612e6ac09d93d6f2ae4`](https://github.com/peeramid-labs/sdk/commit/d0b821128b79edbd9140c612e6ac09d93d6f2ae4) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Refactor event selection to always use instance creation block number instead of block 0n
+
 ## 3.9.0
 
 ### Minor Changes
