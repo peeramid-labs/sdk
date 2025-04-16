@@ -9,7 +9,7 @@ import {
   encodePacked,
   Hex,
 } from "viem";
-import { ApiError, handleRPCError } from "../utils/index";
+import { ApiError, findContractDeploymentBlock, handleRPCError } from "../utils/index";
 import { getSharedSecret } from "@noble/secp256k1";
 import { CONTENT_STORAGE, FellowshipMetadata, GameMetadata, gameStatusEnum, SUBMISSION_TYPES } from "../types";
 import instanceAbi from "../abis/RankifyDiamondInstance";
@@ -149,10 +149,9 @@ export default class InstanceBase {
   };
 
   getCreationBlock = async () => {
-    return 0n;
-    // if (this.creationBlock == 0n)
-    //   this.creationBlock = await findContractDeploymentBlock(this.publicClient, this.instanceAddress);
-    // return this.creationBlock;
+    if (this.creationBlock == 0n)
+      this.creationBlock = await findContractDeploymentBlock(this.publicClient, this.instanceAddress);
+    return this.creationBlock;
   };
 
   /**
@@ -757,7 +756,7 @@ export default class InstanceBase {
       abi: instanceAbi,
       eventName: "PlayerJoined",
       args: { gameId, participant: player },
-      fromBlock: 0n,
+      fromBlock: await this.getCreationBlock(),
     });
     const latestEvent = playerJoinedEvt
       .sort((a, b) => Number(a.blockNumber) - Number(b.blockNumber))
