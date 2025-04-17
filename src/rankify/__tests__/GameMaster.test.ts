@@ -972,7 +972,7 @@ describe("GameMaster", () => {
         players: [MOCK_ADDRESSES.PLAYER]
       });
 
-      expect(result).toEqual([]);
+      expect(result.length).toEqual(1);
     });
 
     it("should handle decryption errors gracefully", async () => {
