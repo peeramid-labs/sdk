@@ -108,6 +108,8 @@ export default class InstanceBase {
     const votesPermuted = { ...logsWithVotesAndPermutation[0] }.args?.votes || [];
     const votesOrdered = votesPermuted.map(vote => reversePermutation({ array: vote, permutation }));
     const maxVotes = BigInt(Math.floor(Math.sqrt(Number(gameState.voteCredits))));
+    const blockNumber = logsWithProposals[0].blockNumber;
+    const blockTimestamp = await this.getBlockTimestamp(blockNumber);
 
     const returnObject = proposalsOrdered.map((proposal, proposersIndex) => {
       const proposer = players[proposersIndex];
@@ -124,12 +126,13 @@ export default class InstanceBase {
         }
         return { score: isIdleVoter ? maxVotes : playersVote[proposersIndex], player: players[votersIndex] };
       }).filter(score => score.score > 0n);
+
       return {
         player: proposer,
         proposal,
         score: scoreList.reduce((acc, score) => acc + score.score, 0n),
         scoreList,
-        blockTimestamp: BigInt((logsWithProposals[0] as unknown as { blockTimestamp: Hex }).blockTimestamp),
+        blockTimestamp,
       };
     });
 
@@ -811,6 +814,11 @@ export default class InstanceBase {
 
       return true;
     });
+  }
+
+  private getBlockTimestamp = async (blockNumber: bigint): Promise<bigint> => {
+    const block = await this.publicClient.getBlock({ blockNumber });
+    return BigInt(block.timestamp);
   }
 
   private getMAOInstanceContracts = async (): Promise<MAOInstanceContracts> => {
