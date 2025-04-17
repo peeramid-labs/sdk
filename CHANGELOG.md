@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.10.2
+
+### Patch Changes
+
+- [#146](https://github.com/peeramid-labs/sdk/pull/146) [`2aa209574cfa9e7322a5ee5af27a06e05296bcc6`](https://github.com/peeramid-labs/sdk/commit/2aa209574cfa9e7322a5ee5af27a06e05296bcc6) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Added logic that gets blockTimestamp from block number
+
 ## 3.10.1
 
 ### Patch Changes
