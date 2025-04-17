@@ -1,5 +1,41 @@
 # peeramid-labs/sdk
 
+## 3.10.2
+
+### Patch Changes
+
+- [#146](https://github.com/peeramid-labs/sdk/pull/146) [`2aa209574cfa9e7322a5ee5af27a06e05296bcc6`](https://github.com/peeramid-labs/sdk/commit/2aa209574cfa9e7322a5ee5af27a06e05296bcc6) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Added logic that gets blockTimestamp from block number
+
+## 3.10.1
+
+### Patch Changes
+
+- [#144](https://github.com/peeramid-labs/sdk/pull/144) [`7107d7c5e2083672908eb66097469ca2e3080002`](https://github.com/peeramid-labs/sdk/commit/7107d7c5e2083672908eb66097469ca2e3080002) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Bug in vote decription if no one voted
+
+## 3.10.0
+
+### Minor Changes
+
+- [#142](https://github.com/peeramid-labs/sdk/pull/142) [`d0b821128b79edbd9140c612e6ac09d93d6f2ae4`](https://github.com/peeramid-labs/sdk/commit/d0b821128b79edbd9140c612e6ac09d93d6f2ae4) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Refactor event selection to always use instance creation block number instead of block 0n
+
+## 3.9.0
+
+### Minor Changes
+
+- [#140](https://github.com/peeramid-labs/sdk/pull/140) [`b1c0ab8fe3571194d019e930deb81d25677bc1d7`](https://github.com/peeramid-labs/sdk/commit/b1c0ab8fe3571194d019e930deb81d25677bc1d7) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Removed thread metadata validation. Bump MAO dist default name
+
+## 3.8.0
+
+### Minor Changes
+
+- [#135](https://github.com/peeramid-labs/sdk/pull/135) [`ce983d701e4b41c8c05615f105a762732c218776`](https://github.com/peeramid-labs/sdk/commit/ce983d701e4b41c8c05615f105a762732c218776) Thanks [@peersky](https://github.com/peersky)! - Refactored GameMaster.ts and historicTurn in InstanceBase.ts. Created more cli commands and created bash script playbook scenarios
+
+### Patch Changes
+
+- [#135](https://github.com/peeramid-labs/sdk/pull/135) [`ce983d701e4b41c8c05615f105a762732c218776`](https://github.com/peeramid-labs/sdk/commit/ce983d701e4b41c8c05615f105a762732c218776) Thanks [@peersky](https://github.com/peersky)! - fixed bug when non-proposing was not correctly parsed in getProposalsVotedUpon
+
+- [#135](https://github.com/peeramid-labs/sdk/pull/135) [`ce983d701e4b41c8c05615f105a762732c218776`](https://github.com/peeramid-labs/sdk/commit/ce983d701e4b41c8c05615f105a762732c218776) Thanks [@peersky](https://github.com/peersky)! - cancel game cli
+
 ## 3.7.4
 
 ### Patch Changes

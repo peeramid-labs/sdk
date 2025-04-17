@@ -14,7 +14,7 @@ import {
 import { RankifyDiamondInstanceAbi } from "../abis";
 import InstanceBase from "./InstanceBase";
 import { gameStatusEnum } from "../types";
-import { handleRPCError } from "../utils";
+import { findContractDeploymentBlock, handleRPCError } from "../utils";
 import { publicKeyToAddress } from "viem/accounts";
 import { logger } from "../utils/log";
 import { buildPoseidon } from "circomlibjs";
@@ -60,6 +60,7 @@ export class GameMaster {
   publicClient: PublicClient;
   chainId: number;
   private readonly maxSlotSizeForProofs = 15;
+  private creationBlockCache: Map<string, bigint> = new Map();
   /**
    * Creates a new GameMaster instance
 
@@ -156,7 +157,7 @@ export class GameMaster {
       address: instanceAddress,
       eventName: "ProposalSubmitted",
       args: { gameId: gameId, turn: turn },
-      fromBlock: 0n,
+      fromBlock: await this.getInstanceCreationBlock(instanceAddress),
     });
 
     logger(`Found ${ProposalSubmittedEvents.length} proposals`);
@@ -662,6 +663,21 @@ export class GameMaster {
     return baseInstance.getGameStateDetails(gameId);
   }
 
+  /**
+   * Gets the creation block for a contract address
+   * @param instanceAddress - The address of the contract
+   * @returns The block number where the contract was first deployed
+   */
+  private async getInstanceCreationBlock(instanceAddress: Address): Promise<bigint> {
+    if (this.creationBlockCache.has(instanceAddress)) {
+      return this.creationBlockCache.get(instanceAddress)!;
+    }
+    const creationBlock = await findContractDeploymentBlock(this.publicClient, instanceAddress);
+    this.creationBlockCache.set(instanceAddress, creationBlock);
+
+    return creationBlock;
+  }
+
 
   private padProposalsArrayWithZeroAddress = (proposals: { proposer: Address; proposal: string }[]) => {
     if (proposals.length < this.maxSlotSizeForProofs) {
@@ -928,11 +944,10 @@ export class GameMaster {
       address: instanceAddress,
       abi: RankifyDiamondInstanceAbi,
       eventName: "VoteSubmitted",
-      fromBlock: 0n,
+      fromBlock: await this.getInstanceCreationBlock(instanceAddress),
       args: { turn, gameId },
     });
     logger(`Found ${VoteSubmittedEvents.length} events`);
-    if (VoteSubmittedEvents.length === 0) return [];
 
     //Decrypting votes from events
     const votes: { player: Address; votes: bigint[] }[] = [];

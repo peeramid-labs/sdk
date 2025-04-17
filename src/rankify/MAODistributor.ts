@@ -91,7 +91,7 @@ export interface MAOInstanceContracts {
  * Handles creation, management and interaction with MAO instances
  */
 export class MAODistributorClient extends DistributorClient {
-  private static readonly DEFAULT_NAME = "MAO Distribution";
+  private static readonly DEFAULT_NAME = "MAO-V1.3";
   walletClient?: WalletClient;
 
   /**

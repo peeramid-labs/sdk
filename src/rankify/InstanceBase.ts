@@ -9,7 +9,7 @@ import {
   encodePacked,
   Hex,
 } from "viem";
-import { ApiError, handleRPCError } from "../utils/index";
+import { ApiError, findContractDeploymentBlock, handleRPCError } from "../utils/index";
 import { getSharedSecret } from "@noble/secp256k1";
 import { CONTENT_STORAGE, FellowshipMetadata, GameMetadata, gameStatusEnum, SUBMISSION_TYPES } from "../types";
 import instanceAbi from "../abis/RankifyDiamondInstance";
@@ -108,6 +108,8 @@ export default class InstanceBase {
     const votesPermuted = { ...logsWithVotesAndPermutation[0] }.args?.votes || [];
     const votesOrdered = votesPermuted.map(vote => reversePermutation({ array: vote, permutation }));
     const maxVotes = BigInt(Math.floor(Math.sqrt(Number(gameState.voteCredits))));
+    const blockNumber = logsWithProposals[0].blockNumber;
+    const blockTimestamp = await this.getBlockTimestamp(blockNumber);
 
     const returnObject = proposalsOrdered.map((proposal, proposersIndex) => {
       const proposer = players[proposersIndex];
@@ -129,7 +131,7 @@ export default class InstanceBase {
         proposal,
         score: scoreList.reduce((acc, score) => acc + score.score, 0n),
         scoreList,
-        blockTimestamp: BigInt((logsWithProposals[0] as unknown as { blockTimestamp: Hex }).blockTimestamp),
+        blockTimestamp,
       };
     });
 
@@ -149,10 +151,9 @@ export default class InstanceBase {
   };
 
   getCreationBlock = async () => {
-    return 0n;
-    // if (this.creationBlock == 0n)
-    //   this.creationBlock = await findContractDeploymentBlock(this.publicClient, this.instanceAddress);
-    // return this.creationBlock;
+    if (this.creationBlock == 0n)
+      this.creationBlock = await findContractDeploymentBlock(this.publicClient, this.instanceAddress);
+    return this.creationBlock;
   };
 
   /**
@@ -757,7 +758,7 @@ export default class InstanceBase {
       abi: instanceAbi,
       eventName: "PlayerJoined",
       args: { gameId, participant: player },
-      fromBlock: 0n,
+      fromBlock: await this.getCreationBlock(),
     });
     const latestEvent = playerJoinedEvt
       .sort((a, b) => Number(a.blockNumber) - Number(b.blockNumber))
@@ -814,6 +815,11 @@ export default class InstanceBase {
     });
   }
 
+  private getBlockTimestamp = async (blockNumber: bigint): Promise<bigint> => {
+    const block = await this.publicClient.getBlock({ blockNumber });
+    return BigInt(block.timestamp);
+  }
+
   private getMAOInstanceContracts = async (): Promise<MAOInstanceContracts> => {
     if (!this.instanceContracts) {
       const distributor = new MAODistributorClient(this.chainId, {
@@ -838,7 +844,7 @@ export default class InstanceBase {
   getGameMetadata = async (
     ipfsGateway: string,
     gameId: bigint,
-    fellowshipMetadata?: FellowshipMetadata
+    //fellowshipMetadata?: FellowshipMetadata
   ): Promise<GameMetadata<FellowshipMetadata>> => {
     try {
       const { metadata } = await this.getGameStateDetails(gameId);
@@ -861,11 +867,12 @@ export default class InstanceBase {
         throw new Error("Invalid response: expected JSON object");
       }
 
-      if (!this.isGameMetadata(rawData, fellowshipMetadata ?? (await this.getFellowshipMetadata(ipfsGateway)))) {
-        throw new Error("Invalid metadata format");
-      }
+      //TODO: uncomment when fellowship metadata update interface is implemented and validation is added
+      // if (!this.isGameMetadata(rawData, await this.getFellowshipMetadata(ipfsGateway))) {
+      //   throw new Error("Invalid metadata format");
+      // }
 
-      return rawData;
+      return rawData as GameMetadata<FellowshipMetadata>;
     } catch (error) {
       console.error("Error fetching metadata:", error);
       throw error;
