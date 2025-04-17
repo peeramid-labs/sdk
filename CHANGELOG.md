@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.10.1
+
+### Patch Changes
+
+- [#144](https://github.com/peeramid-labs/sdk/pull/144) [`7107d7c5e2083672908eb66097469ca2e3080002`](https://github.com/peeramid-labs/sdk/commit/7107d7c5e2083672908eb66097469ca2e3080002) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Bug in vote decription if no one voted
+
 ## 3.10.0
 
 ### Minor Changes
