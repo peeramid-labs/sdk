@@ -16,6 +16,8 @@ import instanceAbi from "../abis/RankifyDiamondInstance";
 import { reversePermutation } from "../utils/permutations";
 import { MAODistributorClient, MAOInstanceContracts } from "./MAODistributor";
 import RankTokenClient from "./RankToken";
+import { EnvioGraphQLClient } from "../utils/EnvioGraphQLClient";
+import { logger } from "../utils/logger";
 
 export interface GameState extends ContractFunctionReturnType<typeof instanceAbi, "view", "getGameState"> {
   joinRequirements: ContractFunctionReturnType<typeof instanceAbi, "view", "getJoinRequirements">;
@@ -42,6 +44,7 @@ export default class InstanceBase {
   instanceAddress: Address;
   creationBlock: bigint;
   instanceContracts?: MAOInstanceContracts;
+  envioClient: EnvioGraphQLClient;
 
   /**
    * Creates a new InstanceBase
@@ -49,22 +52,26 @@ export default class InstanceBase {
    * @param {PublicClient} params.publicClient - Public client for blockchain interactions
    * @param {number} params.chainId - Chain ID of the network
    * @param {Address} params.instanceAddress - Address of the Rankify instance contract
+   * @param {EnvioGraphQLClient} [params.envioClient] - Optional Envio GraphQL client
    */
   constructor({
     publicClient,
     chainId,
     instanceAddress,
     creationBlock = 0n,
+    envioClient,
   }: {
     publicClient: PublicClient;
     chainId: number;
     instanceAddress: Address;
     creationBlock?: bigint;
+    envioClient: EnvioGraphQLClient;
   }) {
     this.publicClient = publicClient;
     this.chainId = chainId;
     this.instanceAddress = instanceAddress;
     this.creationBlock = creationBlock;
+    this.envioClient = envioClient;
   }
 
   /**
@@ -73,40 +80,33 @@ export default class InstanceBase {
    * @throws {ApiError} If the game or turn is not found.
    */
   getHistoricTurn = async (gameId: bigint, turnId: bigint) => {
-    const logsWithProposals = await this.publicClient.getContractEvents({
-      address: this.instanceAddress,
-      abi: instanceAbi,
-      fromBlock: await this.getCreationBlock(),
-      eventName: "TurnEnded",
-      args: {
-        gameId,
-        turn: turnId,
-      },
-    });
-
-    const logsWithVotesAndPermutation = await this.publicClient.getContractEvents({
-      address: this.instanceAddress,
-      abi: instanceAbi,
-      fromBlock: await this.getCreationBlock(),
-      eventName: "TurnEnded",
-      args: {
-        gameId,
-        turn: turnId + 1n,
-      },
-    });
+    const [logsWithProposals, logsWithVotesAndPermutation] = await Promise.all([
+      this.envioClient.getTurnEndedEvents({ gameId, turn: turnId, contractAddress: this.instanceAddress }),
+      this.envioClient.getTurnEndedEvents({ gameId, turn: turnId + 1n, contractAddress: this.instanceAddress }),
+    ]);
 
     if (logsWithProposals.length !== 1 || logsWithVotesAndPermutation.length !== 1) {
-      console.error("getHistoricTurn", gameId, turnId, "failed! length: ", logsWithProposals.length, logsWithVotesAndPermutation.length);
+      console.error(
+        "getHistoricTurn",
+        gameId,
+        turnId,
+        "failed! length: ",
+        logsWithProposals.length,
+        logsWithVotesAndPermutation.length
+      );
       throw new ApiError("Data not found", { status: 404 });
     }
 
     const gameState = await this.getGameState(gameId);
-    const players = logsWithProposals[0].args?.players || [];
-    const permutation = logsWithVotesAndPermutation[0].args?.proposerIndices || [];
-    const proposalsPermuted = { ...logsWithProposals[0] }.args?.newProposals?.slice(0, logsWithProposals[0].args?.players?.length)
+    const players = logsWithProposals[0]?.players || [];
+    const permutation = logsWithVotesAndPermutation[0]?.proposerIndices || [];
+    const proposalsPermuted = { ...logsWithProposals[0] }?.newProposals?.slice(
+      0,
+      logsWithProposals[0]?.players?.length
+    );
     const proposalsOrdered = reversePermutation({ array: proposalsPermuted || [], permutation });
-    const votesPermuted = { ...logsWithVotesAndPermutation[0] }.args?.votes || [];
-    const votesOrdered = votesPermuted.map(vote => reversePermutation({ array: vote, permutation }));
+    const votesPermuted = { ...logsWithVotesAndPermutation[0] }?.votes || [];
+    const votesOrdered = votesPermuted.map((vote) => reversePermutation({ array: vote, permutation }));
     const maxVotes = BigInt(Math.floor(Math.sqrt(Number(gameState.voteCredits))));
     const blockNumber = logsWithProposals[0].blockNumber;
     const blockTimestamp = await this.getBlockTimestamp(blockNumber);
@@ -115,17 +115,22 @@ export default class InstanceBase {
       const proposer = players[proposersIndex];
       if (proposal === "") {
         return {
-          player: proposer, proposal: "", score: 0n, scoreList: []
-        }
+          player: proposer,
+          proposal: "",
+          score: 0n,
+          scoreList: [],
+        };
       }
 
-      const scoreList = votesOrdered.map((playersVote, votersIndex) => {
-        const isIdleVoter = playersVote.reduce((acc, vote) => acc + vote, 0n) === 0n;
-        if (votersIndex === proposersIndex) {
-          return { score: 0n, player: proposer }
-        }
-        return { score: isIdleVoter ? maxVotes : playersVote[proposersIndex], player: players[votersIndex] };
-      }).filter(score => score.score > 0n);
+      const scoreList = votesOrdered
+        .map((playersVote, votersIndex) => {
+          const isIdleVoter = playersVote.reduce((acc, vote) => acc + vote, 0n) === 0n;
+          if (votersIndex === proposersIndex) {
+            return { score: 0n, player: proposer };
+          }
+          return { score: isIdleVoter ? maxVotes : playersVote[proposersIndex], player: players[votersIndex] };
+        })
+        .filter((score) => score.score > 0n);
       return {
         player: proposer,
         proposal,
@@ -194,31 +199,18 @@ export default class InstanceBase {
    * @returns The voting information for the specified game and turn.
    */
   getVoting = async (gameId: bigint, turnId: bigint) => {
-    if (!gameId) throw new Error("gameId not set");
-    if (!turnId) throw new Error("turnId not set");
-    const voteEvents = await this.publicClient.getContractEvents({
-      address: this.instanceAddress,
-      abi: instanceAbi,
-      fromBlock: await this.getCreationBlock(),
-      eventName: "VoteSubmitted",
-      args: {
-        gameId,
-        turn: turnId,
-      },
+    const voteEvents = await this.envioClient.getVoteSubmittedEvents({
+      gameId,
+      turn: turnId,
+      contractAddress: this.instanceAddress,
     });
-
-    const proposalEvents = await this.publicClient.getContractEvents({
-      address: this.instanceAddress,
-      abi: instanceAbi,
-      fromBlock: await this.getCreationBlock(),
-      eventName: "ProposalSubmitted",
-      args: {
-        gameId,
-        turn: turnId,
-      },
-    });
-
-    return { voteEvents, proposalEvents };
+    return voteEvents.map((event) => ({
+      player: event.player as Address,
+      sealedBallotId: event.sealedBallotId,
+      gmSignature: event.gmSignature,
+      voterSignature: event.voterSignature,
+      ballotHash: event.ballotHash,
+    }));
   };
 
   /**
@@ -252,16 +244,14 @@ export default class InstanceBase {
         functionName: "getTurn",
         args: [gameId],
       });
-      const lastTurnEndedEvent = await this.publicClient.getContractEvents({
-        address: this.instanceAddress,
-        abi: instanceAbi,
-        fromBlock: await this.getCreationBlock(),
-        eventName: "TurnEnded",
-        args: { turn: currentTurn - 1n, gameId },
+      const lastTurnEndedEvent = await this.envioClient.getTurnEndedEvents({
+        gameId,
+        turn: currentTurn - 1n,
+        contractAddress: this.instanceAddress,
       });
-      lastTurnEndedEvent[0].args.newProposals = lastTurnEndedEvent[0]?.args?.newProposals?.slice(
+      lastTurnEndedEvent[0].newProposals = lastTurnEndedEvent[0]?.newProposals?.slice(
         0,
-        lastTurnEndedEvent[0]?.args?.players?.length
+        lastTurnEndedEvent[0]?.players?.length
       );
 
       if (lastTurnEndedEvent.length !== 1) {
@@ -269,7 +259,7 @@ export default class InstanceBase {
         throw new ApiError("Game not found", { status: 404 });
       }
 
-      const args = lastTurnEndedEvent[0].args as { newProposals: unknown[] };
+      const args = lastTurnEndedEvent[0] as { newProposals: unknown[] };
       return { currentTurn, proposals: args.newProposals };
     } catch (error) {
       throw await handleRPCError(error);
@@ -283,38 +273,30 @@ export default class InstanceBase {
    * @returns A Promise that resolves to the registration deadline timestamp.
    */
   getRegistrationDeadline = async (gameId: bigint, timeToJoin?: number) => {
-    const log = await this.publicClient.getContractEvents({
-      address: this.instanceAddress,
-      abi: instanceAbi,
-      fromBlock: await this.getCreationBlock(),
-      eventName: "RegistrationOpen",
-      args: {
-        gameId: gameId,
-      },
-    });
-
-    if (log.length !== 1) {
-      console.error("getRegistrationDeadline", gameId, "failed:", log.length);
-      throw new ApiError("Game not found", { status: 404 });
-    }
-
-    const block = await this.publicClient.getBlock({ blockNumber: log[0].blockNumber });
-
-    if (timeToJoin) {
-      return Number(block.timestamp) + timeToJoin;
-    }
-
     try {
-      const gameState = await this.publicClient.readContract({
-        address: this.instanceAddress,
-        abi: instanceAbi,
-        functionName: "getGameState",
-        args: [gameId],
+      const registrationEvents = await this.envioClient.getRegistrationOpenEvents({
+        gameId,
+        contractAddress: this.instanceAddress,
       });
 
-      return Number(block.timestamp) + Number(gameState.timeToJoin);
-    } catch (e) {
-      throw await handleRPCError(e);
+      if (timeToJoin) {
+        return Number(registrationEvents[0].blockTimestamp) + timeToJoin;
+      }
+
+      try {
+        const gameState = await this.publicClient.readContract({
+          address: this.instanceAddress,
+          abi: instanceAbi,
+          functionName: "getGameState",
+          args: [gameId],
+        });
+
+        return Number(registrationEvents[0].blockTimestamp) + Number(gameState.timeToJoin);
+      } catch (e) {
+        throw await handleRPCError(e);
+      }
+    } catch (err) {
+      logger(`Error fetching events from Envio: ${err}`);
     }
   };
 
