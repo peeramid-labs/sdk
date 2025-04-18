@@ -15,6 +15,7 @@ import instanceAbi from "../abis/RankifyDiamondInstance";
 import InstanceBase from "./InstanceBase";
 import { handleRPCError } from "../utils";
 import { GmProposalParams } from "../types/contracts";
+import EnvioGraphQLClient from "../utils/EnvioGraphQLClient";
 
 type stateMutability = "nonpayable" | "payable";
 export type NewGameParams = {
@@ -49,17 +50,20 @@ export default class RankifyPlayer extends InstanceBase {
     chainId,
     instanceAddress,
     account,
+    envioClient,
   }: {
     publicClient: PublicClient;
     walletClient: WalletClient;
     chainId: number;
     instanceAddress: Address;
     account: Address;
+    envioClient: EnvioGraphQLClient;
   }) {
     super({
       publicClient,
       chainId,
       instanceAddress,
+      envioClient,
     });
     this.walletClient = walletClient;
     this.account = account;

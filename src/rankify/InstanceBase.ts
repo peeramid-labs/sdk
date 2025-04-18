@@ -342,15 +342,13 @@ export default class InstanceBase {
 
     if (currentTurn === 0n) return 0;
 
-    const eventName = currentTurn === 1n ? "GameStarted" : "TurnEnded";
-    const args = currentTurn === 1n ? { gameId } : { gameId, turnId: currentTurn - 1n };
-
-    const logs = await this.publicClient.getContractEvents({
-      address: this.instanceAddress,
-      abi: instanceAbi,
-      fromBlock: await this.getCreationBlock(),
-      eventName: eventName,
-      args: args,
+    const logs =  currentTurn === 1n  ? await this.envioClient.getGameStartedEvents({
+      gameId,
+      contractAddress: this.instanceAddress,
+    }) : await this.envioClient.getTurnEndedEvents({
+      turn: currentTurn - 1n,
+      gameId,
+      contractAddress: this.instanceAddress,
     });
 
     if (logs.length !== 1) {
@@ -401,20 +399,11 @@ export default class InstanceBase {
    * @returns A Promise that resolves to the list of proposal scores.
    */
   getProposalScoresList = async (gameId: bigint) => {
-    if (!gameId) throw new Error("gameId not set");
-    try {
-      const logs = await this.publicClient.getContractEvents({
-        address: this.instanceAddress,
-        abi: instanceAbi,
-        eventName: "ProposalScore",
-        fromBlock: await this.getCreationBlock(),
-        args: { gameId },
-      });
 
-      return logs;
-    } catch (e) {
-      throw await handleRPCError(e);
-    }
+      return this.envioClient.getProposalScoreEvents({
+        gameId,
+      contractAddress: this.instanceAddress,
+    });
   };
 
   /**
@@ -462,7 +451,6 @@ export default class InstanceBase {
         args: [gameId],
       });
       return state;
-
     } catch (e) {
       throw await handleRPCError(e);
     }
@@ -529,17 +517,14 @@ export default class InstanceBase {
       let returnPlayers = players;
 
       if (state.hasEnded) {
-        const GameOverEvents = await this.publicClient.getContractEvents({
-          address: this.instanceAddress,
-          abi: instanceAbi,
-          eventName: "GameOver",
-          args: { gameId },
-          fromBlock: await this.getCreationBlock(),
+        const GameOverEvents = await this.envioClient.getGameOverEvents({
+          gameId,
+          contractAddress: this.instanceAddress
         });
         const evt = GameOverEvents[0];
-        if (evt.args?.scores && evt.args?.players) {
-          returnPlayers = evt.args.players;
-          scores = [returnPlayers, evt.args.scores];
+        if (evt?.scores && evt?.players) {
+          returnPlayers = evt.players;
+          scores = [returnPlayers, evt.scores];
         }
       }
 
@@ -735,22 +720,20 @@ export default class InstanceBase {
     gameId: bigint;
     player: Address;
   }): Promise<Hex> => {
-    const playerJoinedEvt = await this.publicClient.getContractEvents({
-      address: instanceAddress,
-      abi: instanceAbi,
-      eventName: "PlayerJoined",
-      args: { gameId, participant: player },
-      fromBlock: await this.getCreationBlock(),
+    const playerJoinedEvents = await this.envioClient.getPlayerJoinedEvents({
+      gameId,
+      participant: player,
+      contractAddress: instanceAddress,
     });
-    const latestEvent = playerJoinedEvt
+    const latestEvent = playerJoinedEvents
       .sort((a, b) => Number(a.blockNumber) - Number(b.blockNumber))
       .sort((a, b) => a.transactionIndex - b.transactionIndex)
       .sort((a, b) => a.logIndex - b.logIndex)[0];
-    if (!latestEvent.args.voterPubKey) throw new Error("No voterPubKey found in event data, that is unexpected");
+    if (!latestEvent.voterPubKey) throw new Error("No voterPubKey found in event data, that is unexpected");
 
     if (!player) throw new Error("No player found in event data, that is unexpected");
 
-    return latestEvent.args.voterPubKey as Hex;
+    return latestEvent.voterPubKey as Hex;
   };
 
   // Type guard for FellowshipMetadata
@@ -800,15 +783,16 @@ export default class InstanceBase {
   private getBlockTimestamp = async (blockNumber: bigint): Promise<bigint> => {
     const block = await this.publicClient.getBlock({ blockNumber });
     return BigInt(block.timestamp);
-  }
+  };
 
   private getMAOInstanceContracts = async (): Promise<MAOInstanceContracts> => {
     if (!this.instanceContracts) {
       const distributor = new MAODistributorClient(this.chainId, {
         publicClient: this.publicClient,
+        envioClient: this.envioClient,
       });
       const instanceId = await distributor.getInstanceFromAddress(this.instanceAddress);
-      this.instanceContracts = await distributor.getMAOInstance({ instanceId: instanceId as bigint });
+      this.instanceContracts = await distributor.getMAOInstance({ instanceId: instanceId  });
     }
     return this.instanceContracts;
   };
@@ -825,7 +809,7 @@ export default class InstanceBase {
 
   getGameMetadata = async (
     ipfsGateway: string,
-    gameId: bigint,
+    gameId: bigint
     //fellowshipMetadata?: FellowshipMetadata
   ): Promise<GameMetadata<FellowshipMetadata>> => {
     try {

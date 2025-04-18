@@ -61,6 +61,16 @@ type GraphQLQueryVariables = {
   contractAddress?: string;
 };
 
+export interface MAOInstanceData {
+  distributionId: string;
+  newInstanceId: string;
+  version?: string;
+  instances: string[];
+  args: string;
+  blockNumber: string;
+  blockTimestamp: string;
+}
+
 /**
  * Client for interacting with Envio GraphQL API to retrieve indexed blockchain events
  */
@@ -109,7 +119,7 @@ export class EnvioGraphQLClient {
     const variables: GraphQLQueryVariables = { limit, offset };
 
     if (creator) {
-      variables.creator = creator.toLowerCase();
+      variables.creator = creator;
     }
 
     if (gameId !== undefined) {
@@ -117,7 +127,7 @@ export class EnvioGraphQLClient {
     }
 
     if (gm) {
-      variables.gm = gm.toLowerCase();
+      variables.gm = gm;
     }
 
     variables.contractAddress = contractAddress;
@@ -193,7 +203,7 @@ export class EnvioGraphQLClient {
     };
 
     if (participant) {
-      variables.participant = participant.toLowerCase();
+      variables.participant = participant;
     }
 
     variables.contractAddress = contractAddress;
@@ -216,6 +226,8 @@ export class EnvioGraphQLClient {
           blockNumber
           blockTimestamp
           srcAddress
+          transactionIndex
+          logIndex
         }
       }
     `;
@@ -231,6 +243,8 @@ export class EnvioGraphQLClient {
           blockNumber: string;
           blockTimestamp: string;
           srcAddress: string;
+          transactionIndex: number;
+          logIndex: number;
         }>;
       }>(query, variables);
 
@@ -240,6 +254,8 @@ export class EnvioGraphQLClient {
         blockNumber: BigInt(event.blockNumber),
         contractAddress: event.srcAddress as Address,
         participant: event.participant as Address,
+        transactionIndex: event.transactionIndex,
+        logIndex: event.logIndex,
       }));
     } catch (error) {
       console.error("Error fetching player joined events:", error);
@@ -270,10 +286,10 @@ export class EnvioGraphQLClient {
     }
 
     if (proposer) {
-      variables.proposer = proposer.toLowerCase();
+      variables.proposer = proposer;
     }
 
-    variables.contractAddress = contractAddress.toLowerCase();
+    variables.contractAddress = contractAddress;
 
     const query = gql`
       query GetProposalSubmittedEvents($gameId: String!, $turn: String, $proposer: String, $contractAddress: String) {
@@ -552,6 +568,80 @@ export class EnvioGraphQLClient {
   }
 
   /**
+   * Get proposal score events for a specific game and turn
+   */
+  async getProposalScoreEvents({
+    gameId,
+    turn,
+    contractAddress,
+  }: {
+    gameId: bigint;
+    turn?: bigint;
+    contractAddress: Address;
+  }) {
+    const variables: GraphQLQueryVariables = {
+      gameId: gameId.toString(),
+    };
+
+    if (turn !== undefined) {
+      variables.turn = turn.toString();
+    }
+
+    variables.contractAddress = contractAddress;
+
+    const query = gql`
+      query GetProposalScoreEvents($gameId: String!, $turn: String, $contractAddress: String) {
+        RankifyInstance_ProposalScore(
+          where: {
+            gameId: { _eq: $gameId }
+            ${turn !== undefined ? ", turn: { _eq: $turn }" : ""}
+            ${contractAddress ? ", srcAddress: { _eq: $contractAddress }" : ""}
+          }
+          order_by: { blockTimestamp: desc }
+        ) {
+          id
+          gameId
+          turn
+          proposalHash
+          proposal
+          score
+          blockNumber
+          blockTimestamp
+          srcAddress
+        }
+      }
+    `;
+
+    try {
+      const result = await this.client.request<{
+        RankifyInstance_ProposalScore: Array<{
+          id: string;
+          gameId: string;
+          turn: string;
+          proposalHash: string;
+          proposal: string;
+          score: string;
+          blockNumber: string;
+          blockTimestamp: string;
+          srcAddress: string;
+        }>;
+      }>(query, variables);
+
+      return result.RankifyInstance_ProposalScore.map((event) => ({
+        ...event,
+        gameId: BigInt(event.gameId),
+        turn: BigInt(event.turn),
+        score: BigInt(event.score),
+        blockNumber: BigInt(event.blockNumber),
+        contractAddress: event.srcAddress as Address,
+      }));
+    } catch (error) {
+      console.error("Error fetching proposal score events:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Get game over events for a specific game
    */
   async getGameOverEvents({ gameId, contractAddress }: { gameId: bigint; contractAddress: Address }) {
@@ -604,6 +694,232 @@ export class EnvioGraphQLClient {
       }));
     } catch (error) {
       console.error("Error fetching game over events:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get game started events for a specific game
+   */
+  async getGameStartedEvents({ gameId, contractAddress }: { gameId: bigint; contractAddress: Address }) {
+    const variables: GraphQLQueryVariables = {
+      gameId: gameId.toString(),
+    };
+
+    variables.contractAddress = contractAddress;
+
+    const query = gql`
+      query GetGameStartedEvents($gameId: String!, $contractAddress: String) {
+        RankifyInstance_GameStarted(
+          where: {
+            gameId: { _eq: $gameId }
+            ${contractAddress ? ", srcAddress: { _eq: $contractAddress }" : ""}
+          },
+          limit: 1,
+          order_by: { blockTimestamp: desc }
+        ) {
+          id
+          gameId
+          blockNumber
+          blockTimestamp
+          srcAddress
+        }
+      }
+    `;
+
+    try {
+      const result = await this.client.request<{
+        RankifyInstance_GameStarted: Array<{
+          id: string;
+          gameId: string;
+          blockNumber: string;
+          blockTimestamp: string;
+          srcAddress: string;
+        }>;
+      }>(query, variables);
+
+      return result.RankifyInstance_GameStarted.map((event) => ({
+        ...event,
+        gameId: BigInt(event.gameId),
+        blockNumber: BigInt(event.blockNumber),
+        contractAddress: event.srcAddress as Address,
+      }));
+    } catch (error) {
+      console.error("Error fetching game started events:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Query MAO instances from the Envio GraphQL API
+   * @param params Query parameters for filtering instances
+   * @returns Array of MAO instance data
+   */
+  async queryInstances(params: {
+    distributor?: Address;
+    creator?: Address;
+    instance?: Address;
+    distributionId?: string;
+    instanceId?: string;
+  }): Promise<MAOInstanceData[]> {
+    const variables: GraphQLQueryVariables = {};
+
+    if (params.distributor) {
+      variables.contractAddress = params.distributor;
+    }
+
+    if (params.creator) {
+      variables.creator = params.creator;
+    }
+
+    // If instance is provided, use it as a filter
+    let instanceFilter = "";
+    if (params.instance) {
+      instanceFilter = `, instance: { _eq: "${params.instance}" }`;
+    }
+
+    const query = gql`
+      query GetInstances($contractAddress: String, $creator: String) {
+        DAODistributor_Instantiated(
+          where: {
+            ${params.distributor ? "instances: { _contains: $contractAddress }" : ""}
+            ${params.creator ? `${params.distributor ? ", " : ""}creator: { _eq: $creator }` : ""}
+            ${instanceFilter}
+            ${params.distributionId ? `distributionId: { _eq: "${params.distributionId}" }` : ""}
+            ${params.instanceId ? `newInstanceId: { _eq: "${params.instanceId}" }` : ""}
+          }
+          order_by: { blockTimestamp: desc }
+        ) {
+          id
+          distributionId
+          newInstanceId
+          instances
+          args
+          blockNumber
+          blockTimestamp
+          version
+        }
+      }
+    `;
+
+    try {
+      const result = await this.client.request<{
+        DAODistributor_Instantiated: Array<{
+          id: string;
+          distributionId: string;
+          newInstanceId: string;
+          instances: string[];
+          args: string;
+          blockNumber: string;
+          blockTimestamp: string;
+          version?: string;
+        }>;
+      }>(query, variables);
+
+      return result.DAODistributor_Instantiated.map((event) => ({
+        distributionId: event.distributionId,
+        newInstanceId: event.newInstanceId,
+        version: event.version,
+        instances: event.instances,
+        args: event.args,
+        blockNumber: event.blockNumber,
+        blockTimestamp: event.blockTimestamp,
+      })).filter((data) => data.instances !== null);
+    } catch (error) {
+      console.error("Error querying instances:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get multiple game states with pagination
+   */
+  async getGameStates({
+    skip = 0,
+    first = 10,
+    orderBy = "createdAt",
+    orderDirection = "desc",
+    contractAddress,
+  }: {
+    skip?: number;
+    first?: number;
+    orderBy?: string;
+    orderDirection?: "asc" | "desc";
+    contractAddress: Address;
+  }) {
+    const variables: GraphQLQueryVariables = {
+      limit: first,
+      offset: skip,
+      contractAddress: contractAddress,
+    };
+
+    const query = gql`
+      query GetGames($limit: Int, $offset: Int, $contractAddress: String) {
+        RankifyInstance_gameCreated(
+          where: {
+            srcAddress: { _eq: $contractAddress }
+          }
+          limit: $limit
+          offset: $offset
+          order_by: { blockTimestamp: ${orderDirection} }
+        ) {
+          gameId
+          gm
+          creator
+          rank
+          blockNumber
+          blockTimestamp
+          srcAddress
+        }
+      }
+    `;
+
+    try {
+      const result = await this.client.request<{
+        RankifyInstance_gameCreated: Array<{
+          gameId: string;
+          gm: string;
+          creator: string;
+          rank: string;
+          blockNumber: string;
+          blockTimestamp: string;
+          srcAddress: string;
+        }>;
+      }>(query, variables);
+
+      // Fetch additional state info for each game
+      const gameStates = await Promise.all(
+        result.RankifyInstance_gameCreated.map(async (game) => {
+          const gameId = BigInt(game.gameId);
+          const [turnEndedEvents, gameOverEvents] = await Promise.all([
+            this.getTurnEndedEvents({ gameId, contractAddress }),
+            this.getGameOverEvents({ gameId, contractAddress }),
+          ]);
+
+          // Determine current state
+          const turn = turnEndedEvents.length > 0 ? turnEndedEvents[0].turn + 1n : 0n;
+          const hasStarted = turn > 0n;
+          const isLastTurn = gameOverEvents.length > 0;
+          const hasEnded = gameOverEvents.length > 0;
+
+          return {
+            gameId,
+            gm: game.gm as Address,
+            creator: game.creator as Address,
+            rank: BigInt(game.rank),
+            turn,
+            hasStarted,
+            isLastTurn,
+            hasEnded,
+            createdAt: game.blockTimestamp,
+            contractAddress,
+          };
+        })
+      );
+
+      return gameStates;
+    } catch (error) {
+      console.error("Error fetching game states:", error);
       throw error;
     }
   }
