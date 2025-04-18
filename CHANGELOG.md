@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.10.3
+
+### Patch Changes
+
+- [#149](https://github.com/peeramid-labs/sdk/pull/149) [`409ed64f0eaffd3f5d648b73786f17ef57f62406`](https://github.com/peeramid-labs/sdk/commit/409ed64f0eaffd3f5d648b73786f17ef57f62406) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Chanhed calculation if turn has ended
+
 ## 3.10.2
 
 ### Patch Changes
