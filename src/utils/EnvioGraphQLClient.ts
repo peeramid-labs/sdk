@@ -26,7 +26,7 @@ export interface EnvioGraphQLClientConfig {
  * Default Envio GraphQL client configuration
  */
 const DEFAULT_CONFIG: EnvioGraphQLClientConfig = {
-  endpoint: "http://localhost:8080/graphql",
+  endpoint: process.env.INDEXER_URL || "http://localhost:8080/v1/graphql",
   fallbackToRPC: true,
 };
 
@@ -59,6 +59,9 @@ type GraphQLQueryVariables = {
   limit?: number;
   offset?: number;
   contractAddress?: string;
+  instanceAddress?: string;
+  distributionId?: string;
+  instanceId?: string;
 };
 
 export interface MAOInstanceData {
@@ -84,6 +87,13 @@ export class EnvioGraphQLClient {
    */
   constructor(config: Partial<EnvioGraphQLClientConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
+
+    // Log the endpoint we're using
+    console.debug(`Initializing EnvioGraphQLClient with endpoint: ${this.config.endpoint}`);
+
+    if (this.config.endpoint === DEFAULT_CONFIG.endpoint) {
+      console.debug(`Using default endpoint ${DEFAULT_CONFIG.endpoint}. Set INDEXER_URL environment variable to override.`);
+    }
 
     const headers: HeadersInit = {
       "Content-Type": "application/json",
@@ -507,13 +517,27 @@ export class EnvioGraphQLClient {
 
     variables.contractAddress = contractAddress;
 
+    // Build where clause parts with proper comma handling
+    const whereParts: string[] = [];
+
+    whereParts.push("gameId: { _eq: $gameId }");
+
+    if (turn !== undefined) {
+      whereParts.push("turn: { _eq: $turn }");
+    }
+
+    if (contractAddress) {
+      whereParts.push("srcAddress: { _eq: $contractAddress }");
+    }
+
+    // Join where parts with commas
+    const whereClause = whereParts.join(", ");
+
     const query = gql`
       query GetTurnEndedEvents($gameId: String!, $turn: String, $contractAddress: String) {
         RankifyInstance_TurnEnded(
           where: {
-            gameId: { _eq: $gameId }
-            ${turn !== undefined ? ", turn: { _eq: $turn }" : ""}
-            ${contractAddress ? ", srcAddress: { _eq: $contractAddress }" : ""}
+            ${whereClause}
           }
           order_by: { turn: desc }
           limit: 1
@@ -589,13 +613,27 @@ export class EnvioGraphQLClient {
 
     variables.contractAddress = contractAddress;
 
+    // Build where clause parts with proper comma handling
+    const whereParts: string[] = [];
+
+    whereParts.push("gameId: { _eq: $gameId }");
+
+    if (turn !== undefined) {
+      whereParts.push("turn: { _eq: $turn }");
+    }
+
+    if (contractAddress) {
+      whereParts.push("srcAddress: { _eq: $contractAddress }");
+    }
+
+    // Join where parts with commas
+    const whereClause = whereParts.join(", ");
+
     const query = gql`
       query GetProposalScoreEvents($gameId: String!, $turn: String, $contractAddress: String) {
         RankifyInstance_ProposalScore(
           where: {
-            gameId: { _eq: $gameId }
-            ${turn !== undefined ? ", turn: { _eq: $turn }" : ""}
-            ${contractAddress ? ", srcAddress: { _eq: $contractAddress }" : ""}
+            ${whereClause}
           }
           order_by: { blockTimestamp: desc }
         ) {
@@ -651,12 +689,23 @@ export class EnvioGraphQLClient {
 
     variables.contractAddress = contractAddress;
 
+    // Build where clause parts with proper comma handling
+    const whereParts: string[] = [];
+
+    whereParts.push("gameId: { _eq: $gameId }");
+
+    if (contractAddress) {
+      whereParts.push("srcAddress: { _eq: $contractAddress }");
+    }
+
+    // Join where parts with commas
+    const whereClause = whereParts.join(", ");
+
     const query = gql`
       query GetGameOverEvents($gameId: String!, $contractAddress: String) {
         RankifyInstance_GameOver(
           where: {
-            gameId: { _eq: $gameId }
-            ${contractAddress ? ", srcAddress: { _eq: $contractAddress }" : ""}
+            ${whereClause}
           },
           limit: 1
         ) {
@@ -708,12 +757,23 @@ export class EnvioGraphQLClient {
 
     variables.contractAddress = contractAddress;
 
+    // Build where clause parts with proper comma handling
+    const whereParts: string[] = [];
+
+    whereParts.push("gameId: { _eq: $gameId }");
+
+    if (contractAddress) {
+      whereParts.push("srcAddress: { _eq: $contractAddress }");
+    }
+
+    // Join where parts with commas
+    const whereClause = whereParts.join(", ");
+
     const query = gql`
       query GetGameStartedEvents($gameId: String!, $contractAddress: String) {
         RankifyInstance_GameStarted(
           where: {
-            gameId: { _eq: $gameId }
-            ${contractAddress ? ", srcAddress: { _eq: $contractAddress }" : ""}
+            ${whereClause}
           },
           limit: 1,
           order_by: { blockTimestamp: desc }
@@ -760,49 +820,55 @@ export class EnvioGraphQLClient {
     creator?: Address;
     instance?: Address;
     distributionId?: string;
-    instanceId?: string;
+    instanceId?: bigint | string;
   }): Promise<MAOInstanceData[]> {
-    const variables: GraphQLQueryVariables = {};
-
-    if (params.distributor) {
-      variables.contractAddress = params.distributor;
-    }
-
-    if (params.creator) {
-      variables.creator = params.creator;
-    }
-
-    // If instance is provided, use it as a filter
-    let instanceFilter = "";
-    if (params.instance) {
-      instanceFilter = `, instance: { _eq: "${params.instance}" }`;
-    }
-
-    const query = gql`
-      query GetInstances($contractAddress: String, $creator: String) {
-        DAODistributor_Instantiated(
-          where: {
-            ${params.distributor ? "instances: { _contains: $contractAddress }" : ""}
-            ${params.creator ? `${params.distributor ? ", " : ""}creator: { _eq: $creator }` : ""}
-            ${instanceFilter}
-            ${params.distributionId ? `distributionId: { _eq: "${params.distributionId}" }` : ""}
-            ${params.instanceId ? `newInstanceId: { _eq: "${params.instanceId}" }` : ""}
-          }
-          order_by: { blockTimestamp: desc }
-        ) {
-          id
-          distributionId
-          newInstanceId
-          instances
-          args
-          blockNumber
-          blockTimestamp
-          version
-        }
-      }
-    `;
-
     try {
+      // Construct a simple direct query with the specific filters needed
+      // No variables, just direct string interpolation
+      const instanceIdStr = params.instanceId ? params.instanceId.toString() : null;
+      const distributorStr = params.distributor || null;
+      const distributionIdStr = params.distributionId || null;
+
+      // Build a simple where clause directly
+      const conditions = [];
+
+      if (instanceIdStr) {
+        conditions.push(`newInstanceId: { _eq: "${instanceIdStr}" }`);
+      }
+
+      if (distributionIdStr) {
+        conditions.push(`distributionId: { _eq: "${distributionIdStr}" }`);
+      }
+
+      const whereClause = conditions.length > 0 ? conditions.join(", ") : "";
+
+      console.debug("Query params:", JSON.stringify({
+        instanceId: instanceIdStr,
+        distributionId: distributionIdStr
+      }));
+      console.debug("Where clause:", whereClause);
+
+      // Simple direct query with no variables
+      const query = gql`
+        query {
+          DAODistributor_Instantiated(
+            where: {
+              ${whereClause}
+            }
+            order_by: { blockTimestamp: desc }
+          ) {
+            id
+            distributionId
+            newInstanceId
+            instances
+            args
+            blockNumber
+            blockTimestamp
+            version
+          }
+        }
+      `;
+
       const result = await this.client.request<{
         DAODistributor_Instantiated: Array<{
           id: string;
@@ -814,7 +880,13 @@ export class EnvioGraphQLClient {
           blockTimestamp: string;
           version?: string;
         }>;
-      }>(query, variables);
+      }>(query);
+
+      if (!result.DAODistributor_Instantiated || result.DAODistributor_Instantiated.length === 0) {
+        console.warn("No instances found with the given parameters");
+      } else {
+        console.debug(`Found ${result.DAODistributor_Instantiated.length} instance(s)`);
+      }
 
       return result.DAODistributor_Instantiated.map((event) => ({
         distributionId: event.distributionId,
@@ -827,6 +899,22 @@ export class EnvioGraphQLClient {
       })).filter((data) => data.instances !== null);
     } catch (error) {
       console.error("Error querying instances:", error);
+      console.error("Query endpoint:", this.config.endpoint);
+      console.error("Query parameters:", JSON.stringify(params));
+
+      // If it's a 404 error, the server might be down or unreachable
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error &&
+        typeof error.response === 'object' &&
+        error.response !== null &&
+        'status' in error.response &&
+        error.response.status === 404
+      ) {
+        console.error("Server returned 404 - Check if the Envio indexer is running and accessible at", this.config.endpoint);
+      }
+
       throw error;
     }
   }
