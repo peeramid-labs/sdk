@@ -1,5 +1,5 @@
 #!/bin/bash
-
+export INDEXER_URL=http://localhost:8080/v1/graphql
 # Check if required parameters are provided
 if [ $# -lt 1 ]; then
     echo "Usage: $0 <fellowshipId> <gameId> <runToTurn> [finishTurn]"

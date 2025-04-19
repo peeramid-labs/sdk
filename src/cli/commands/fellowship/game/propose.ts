@@ -10,6 +10,7 @@ import RankifyPlayer from "../../../../rankify/Player";
 import { Address, Hex, bytesToHex, hexToBytes } from "viem";
 import * as secp256k1 from "@noble/secp256k1";
 import { gameStatusEnum } from "../../../../types";
+import EnvioGraphQLClient from "../../../../utils/EnvioGraphQLClient";
 
 export const propose = new Command("propose")
   .description("Submit a proposal for a game turn")
@@ -37,9 +38,9 @@ export const propose = new Command("propose")
     "-f, --file <filePath>",
     "Path to a markdown file containing the proposal content"
   )
+  .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
   .action(async (instanceAddress, gameId, options) => {
     const spinner = ora("Initializing clients...").start();
-
     try {
       // Initialize clients
       const publicClient = await createPublic(options.rpc);
@@ -47,7 +48,9 @@ export const propose = new Command("propose")
       const walletClient = await createWallet(options.rpc, privateKey);
       const chainId = Number(await publicClient.getChainId());
       const account = walletClient.account?.address;
-
+      const envioClient = new EnvioGraphQLClient({
+        endpoint: process.env.INDEXER_URL ?? options.envio,
+      });
       if (!account) {
         spinner.fail("No account available");
         throw new Error("No account available");
@@ -58,17 +61,19 @@ export const propose = new Command("propose")
         instanceAddress,
         chainId,
         publicClient,
+        envioClient,
         spinner
       );
 
       // Create game master client
       spinner.text = "Creating game master client...";
       const gmWalletClient = await createWallet(options.rpc, options.gmKey);
-      
+
       const gameMaster = new GameMaster({
         walletClient: gmWalletClient,
         publicClient,
         chainId,
+        envioClient,
       });
 
       // Create player client
@@ -79,6 +84,9 @@ export const propose = new Command("propose")
         chainId,
         instanceAddress: resolvedInstanceAddress,
         account,
+        envioClient: new EnvioGraphQLClient({
+          endpoint: process.env.INDEXER_URL ?? options.envio,
+        }),
       });
 
       // Get game state to check if proposal can be submitted
@@ -90,13 +98,14 @@ export const propose = new Command("propose")
         instanceAddress: resolvedInstanceAddress,
         publicClient,
         chainId,
+        envioClient,
       });
-      
+
       const gameState = await baseInstance.getGameStateDetails(gameIdBigInt);
 
       // Check if game is in a valid state for proposals
-      if (gameState.gamePhase !== gameStatusEnum.started && 
-          gameState.gamePhase !== gameStatusEnum.lastTurn && 
+      if (gameState.gamePhase !== gameStatusEnum.started &&
+          gameState.gamePhase !== gameStatusEnum.lastTurn &&
           gameState.gamePhase !== gameStatusEnum.overtime) {
         spinner.fail("Game is not in an active phase that accepts proposals");
         console.error(chalk.red(`Game phase: ${gameState.gamePhase}`));
@@ -139,7 +148,7 @@ export const propose = new Command("propose")
         proposerPubKey: publicKey,
         turn: gameState.currentTurn,
       });
-      
+
       // Attest the proposal
       spinner.text = "Attesting proposal...";
       const { submissionParams } = await gameMaster.attestProposal({

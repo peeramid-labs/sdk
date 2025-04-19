@@ -4,6 +4,7 @@ import ora from "ora";
 import { createPublic, createWallet } from "../../../client";
 import GameMaster from "../../../../rankify/GameMaster";
 import { CLIUtils } from "../../../utils";
+import EnvioGraphQLClient from "../../../../utils/EnvioGraphQLClient";
 
 export const endTurn = new Command("end-turn")
   .description("End turn in a game")
@@ -21,11 +22,15 @@ export const endTurn = new Command("end-turn")
       const publicClient = await createPublic(options.rpc);
       const walletClient = await createWallet(options.rpc, options.key);
       const chainId = Number(await publicClient.getChainId());
+      const envioClient = new EnvioGraphQLClient({
+        endpoint: process.env.INDEXER_URL ?? options.envio,
+      });
 
       const gameMaster = new GameMaster({
         publicClient,
         walletClient,
         chainId,
+        envioClient,
       });
 
       spinner.start("Ending turn...");
@@ -34,9 +39,10 @@ export const endTurn = new Command("end-turn")
         instanceAddress,
         chainId,
         publicClient,
+        envioClient,
         spinner
       );
-      
+
       const hash = await gameMaster.endTurn({ instanceAddress: resolvedInstanceAddress, gameId: BigInt(gameId) });
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       console.log(receipt);
