@@ -101,7 +101,7 @@ export interface MAOInstanceContracts {
  * Handles creation, management and interaction with MAO instances
  */
 export class MAODistributorClient extends DistributorClient {
-  private static readonly DEFAULT_NAME = "MAO-V1.3";
+  private static readonly DEFAULT_NAME = "MAO-v1.3";
   walletClient?: WalletClient;
 
   /**
@@ -297,10 +297,13 @@ export class MAODistributorClient extends DistributorClient {
     name?: string;
     instanceId: bigint;
   }): Promise<MAOInstanceContracts> {
+    // Convert instanceId to string before passing to queryInstances
+    const instanceIdStr = instanceId.toString();
+
     const logs = await this.envioClient.queryInstances({
       instance: this.address,
-        distributionId: stringToHex(name, { size: 32 }),
-        instanceId: instanceId.toString(),
+      distributionId: stringToHex(name, { size: 32 }),
+      instanceId: instanceIdStr,
     });
 
     if (logs.length === 0) {
@@ -391,7 +394,7 @@ export class MAODistributorClient extends DistributorClient {
   /**
    * Create a new MAODistribution instance
    * @param args Distribution arguments (encoded as bytes)
-   * @param name Distributor name (defaults to "MAO Distribution")
+   * @param name Distributor name (defaults to "MAO-v1.3")
    * @returns Array of created contract addresses
    */
   async instantiate(
@@ -399,7 +402,7 @@ export class MAODistributorClient extends DistributorClient {
     name: string = MAODistributorClient.DEFAULT_NAME,
     chain: Chain
   ): Promise<MAOInstanceContracts> {
-    logger("Instantiating MAO Distribution");
+    logger("Instantiating MAO-v1.3");
     if (!args) throw new Error("args is required");
     if (!this.walletClient) throw new Error("walletClient is required, use constructor with walletClient");
     const abiItem = getAbiItem({ abi: MaoDistributionAbi, name: "distributionSchema" });
