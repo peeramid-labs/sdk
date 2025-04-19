@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.10.4
+
+### Patch Changes
+
+- [#152](https://github.com/peeramid-labs/sdk/pull/152) [`cc8460ee8a3e6db464bbb80ecede135109e538b3`](https://github.com/peeramid-labs/sdk/commit/cc8460ee8a3e6db464bbb80ecede135109e538b3) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Return empty array in historic turn if no endTurn event found
+
 ## 3.10.3
 
 ### Patch Changes
