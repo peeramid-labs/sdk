@@ -55,6 +55,8 @@
     "circomlibjs": "^0.1.7",
     "commander": "^13.0.0",
     "crypto-js": "^4.2.0",
+    "graphql": "^16.10.0",
+    "graphql-request": "^7.1.2",
     "inquirer": "^12.3.0",
     "lodash": "^4.17.21",
     "ora": "^5.4.1",

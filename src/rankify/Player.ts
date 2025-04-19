@@ -8,12 +8,15 @@ import {
   TransactionReceipt,
   keccak256,
   encodePacked,
+  parseEventLogs,
 } from "viem";
 import { getContract } from "../utils/artifacts";
 import instanceAbi from "../abis/RankifyDiamondInstance";
 import InstanceBase from "./InstanceBase";
 import { handleRPCError } from "../utils";
 import { GmProposalParams } from "../types/contracts";
+import EnvioGraphQLClient from "../utils/EnvioGraphQLClient";
+
 type stateMutability = "nonpayable" | "payable";
 export type NewGameParams = {
   minGameTime: bigint;
@@ -47,17 +50,20 @@ export default class RankifyPlayer extends InstanceBase {
     chainId,
     instanceAddress,
     account,
+    envioClient,
   }: {
     publicClient: PublicClient;
     walletClient: WalletClient;
     chainId: number;
     instanceAddress: Address;
     account: Address;
+    envioClient: EnvioGraphQLClient;
   }) {
     super({
       publicClient,
       chainId,
       instanceAddress,
+      envioClient,
     });
     this.walletClient = walletClient;
     this.account = account;
@@ -129,13 +135,10 @@ export default class RankifyPlayer extends InstanceBase {
       const hash = await this.walletClient.writeContract(request);
       const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
 
-      const events = await this.publicClient.getContractEvents({
-        address: this.instanceAddress,
+      const events = parseEventLogs({
         abi: instanceAbi,
+        logs: receipt.logs,
         eventName: "gameCreated",
-        args: {},
-        fromBlock: receipt.blockNumber,
-        toBlock: receipt.blockNumber,
       });
 
       if (events.length > 1) {

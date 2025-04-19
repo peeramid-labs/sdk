@@ -4,10 +4,12 @@ import ora from "ora";
 import { MAODistributorClient } from "../../../rankify/MAODistributor";
 import { createPublic, createWallet } from "../../client";
 import { DAODistributorAbi } from "../../../abis";
+import EnvioGraphQLClient from "../../../utils/EnvioGraphQLClient";
 
 export const stateCommand = new Command("state")
   .description("Get the state of a distribution")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
+  .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
   .action(async (options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -18,6 +20,9 @@ export const stateCommand = new Command("state")
     const maoDistributor = new MAODistributorClient(chainId, {
       publicClient,
       walletClient,
+      envioClient: new EnvioGraphQLClient({
+        endpoint: process.env.INDEXER_URL ?? options.envio,
+      }),
     });
 
     const owner = await publicClient.readContract({

@@ -17,6 +17,9 @@ export * from "./types";
 export * from "./rankify/MAODistributor";
 export { default as RankTokenClient } from "./rankify/RankToken";
 
+// GraphQL client for indexed data
+export { default as EnvioGraphQLClient, type EnvioGraphQLClientConfig } from "./utils/EnvioGraphQLClient";
+
 // Type exports
 export { type MAOInstances, type GmProposalParams } from "./types/contracts";
 

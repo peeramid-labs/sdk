@@ -25,6 +25,7 @@ import { CircuitZKit, Groth16Implementer } from "@solarity/zkit";
 import path from "path";
 import { permuteArray, reversePermutation } from "../utils/permutations";
 import { GameState } from "./InstanceBase";
+import EnvioGraphQLClient from "../utils/EnvioGraphQLClient";
 
 export interface ProposalsIntegrity {
   newProposals: ContractFunctionArgs<typeof RankifyDiamondInstanceAbi, "nonpayable", "endTurn">[2];
@@ -61,25 +62,31 @@ export class GameMaster {
   chainId: number;
   private readonly maxSlotSizeForProofs = 15;
   private creationBlockCache: Map<string, bigint> = new Map();
+  envioClient: EnvioGraphQLClient;
+
   /**
    * Creates a new GameMaster instance
 
    * @param walletClient - Viem wallet client for transactions
    * @param publicClient - Viem public client for reading state
    * @param chainId - Chain ID of the network
+   * @param envioClient - Envio GraphQL client for reading indexed events
    */
   constructor({
     walletClient,
     chainId,
     publicClient,
+    envioClient,
   }: {
     walletClient: WalletClient;
     publicClient: PublicClient;
     chainId: number;
+    envioClient: EnvioGraphQLClient;
   }) {
     this.chainId = chainId;
     this.publicClient = publicClient;
     this.walletClient = walletClient;
+    this.envioClient = envioClient;
   }
 
   /**
@@ -107,7 +114,7 @@ export class GameMaster {
     instance?: InstanceBase;
   }) => {
     const _instance =
-      instance ?? new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
+      instance ?? new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId, envioClient: this.envioClient });
     const proposerPubKey = await _instance.getPlayerPubKey({
       instanceAddress,
       gameId,
@@ -131,7 +138,7 @@ export class GameMaster {
    * Decrypts proposals for a specific game turn
    * @param gameId - ID of the game
    * @param turn - Turn number
-   * @param proposer - Optional proposer address to filter proposals
+   * @param players - List of player addresses
    * @returns Array of decrypted proposals with proposer addresses
    */
   decryptProposals = async ({
@@ -149,24 +156,21 @@ export class GameMaster {
     padToMaxSize?: boolean;
     permute?: boolean;
   }) => {
-    logger(
-      `Getting proposals for instance ${instanceAddress}, game ${gameId}, turn ${turn.toString()}`
-    );
-    const ProposalSubmittedEvents = await this.publicClient.getContractEvents({
-      abi: RankifyDiamondInstanceAbi,
-      address: instanceAddress,
-      eventName: "ProposalSubmitted",
-      args: { gameId: gameId, turn: turn },
-      fromBlock: await this.getInstanceCreationBlock(instanceAddress),
+    const ProposalSubmittedEvents = await this.envioClient.getProposalSubmittedEvents({
+      gameId,
+      turn,
+      contractAddress: instanceAddress,
     });
 
+    logger(`Found ${ProposalSubmittedEvents.length} proposals from Envio`);
+    logger(`Decrypting ${ProposalSubmittedEvents.length} proposals`);
     logger(`Found ${ProposalSubmittedEvents.length} proposals`);
-    const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
+    const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId, envioClient: this.envioClient });
 
     logger(`Decrypting ${ProposalSubmittedEvents.length} proposals`);
     const proposalsForPlayers = await Promise.all(
       (players)?.map(async (player) => {
-        const log = ProposalSubmittedEvents.find((log) => log.args.proposer === player);
+        const log = ProposalSubmittedEvents.find((log) => log.proposer === player);
         if (!log) {
           return {
             proposer: player,
@@ -174,17 +178,17 @@ export class GameMaster {
           };
         }
         else {
-          logger(`Decrypting proposal ${log.args.proposer}`);
-          if (!log.args.proposer) throw new Error("No proposer");
-          if (!log.args.encryptedProposal) throw new Error("No proposalEncryptedByGM");
+          logger(`Decrypting proposal ${log.proposer}`);
+          if (!log.proposer) throw new Error("No proposer");
+          if (!log.encryptedProposal) throw new Error("No proposalEncryptedByGM");
           return {
-            proposer: log.args.proposer,
+            proposer: log.proposer,
             proposal: await this.decryptProposal({
-              proposal: log.args.encryptedProposal,
+              proposal: log.encryptedProposal,
               turn: turn,
               instanceAddress: instanceAddress,
               gameId: gameId,
-              proposer: log.args.proposer,
+              proposer: log.proposer,
               instance,
             }),
           };
@@ -363,6 +367,7 @@ export class GameMaster {
       instanceAddress: verifierAddress,
       publicClient: this.publicClient,
       chainId: this.chainId,
+      envioClient: this.envioClient,
     });
     const seed = instance.pkdf({
       privateKey: gameKey,
@@ -476,7 +481,7 @@ export class GameMaster {
     if (!isValid) {
       throw new Error(errorMessage);
     }
-    const baseInstance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
+    const baseInstance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId, envioClient: this.envioClient });
     const eip712 = await baseInstance.getEIP712Domain();
     logger(
       {
@@ -659,6 +664,7 @@ export class GameMaster {
       instanceAddress,
       publicClient: this.publicClient,
       chainId: this.chainId,
+      envioClient: this.envioClient,
     });
     return baseInstance.getGameStateDetails(gameId);
   }
@@ -755,7 +761,7 @@ export class GameMaster {
     proposer: Address;
     turn: bigint;
   }) => {
-    const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
+    const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId, envioClient: this.envioClient });
     const proposerPubKey = await instance.getPlayerPubKey({
       instanceAddress,
       gameId,
@@ -802,7 +808,7 @@ export class GameMaster {
     gameId: bigint;
     proposerPubKey: Hex;
   }) => {
-    const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
+    const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId, envioClient: this.envioClient });
     const sharedKey = instance.sharedSigner({
       publicKey: proposerPubKey,
       privateKey: await this.gameKey({ gameId, contractAddress: instanceAddress }),
@@ -842,7 +848,7 @@ export class GameMaster {
     const proposerAddress = publicKeyToAddress(proposerPubKey);
     logger(`Creating proposal secrets for player ${proposerAddress} in game ${gameId}`);
     const poseidon = await buildPoseidon();
-    const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
+    const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId, envioClient: this.envioClient });
     const { encryptedProposal, sharedKey } = await this.encryptProposal({
       proposal,
       turn,
@@ -937,36 +943,35 @@ export class GameMaster {
     turn: bigint;
     players: Address[];
   }) => {
-    logger(
-      `Decrypting votes for game ${BigInt(gameId)} turn ${turn} at address ${instanceAddress} at ${await this.publicClient.getBlockNumber()} block`
-    );
-    const VoteSubmittedEvents = await this.publicClient.getContractEvents({
-      address: instanceAddress,
-      abi: RankifyDiamondInstanceAbi,
-      eventName: "VoteSubmitted",
-      fromBlock: await this.getInstanceCreationBlock(instanceAddress),
-      args: { turn, gameId },
-    });
-    logger(`Found ${VoteSubmittedEvents.length} events`);
+    logger(`Decrypting votes for game ${BigInt(gameId)} turn ${turn} at address ${instanceAddress}`);
 
-    //Decrypting votes from events
+    const VoteSubmittedEvents = await this.envioClient.getVoteSubmittedEvents({
+      gameId,
+      turn,
+      contractAddress: instanceAddress,
+    });
+
+    logger(`Found ${VoteSubmittedEvents.length} vote events`);
+    if (!VoteSubmittedEvents || VoteSubmittedEvents.length === 0) {
+      return players.map(() => players.map(() => 0n));
+    }
+
+    // Decrypting votes from events
     const votes: { player: Address; votes: bigint[] }[] = [];
-    console.log("Events:", VoteSubmittedEvents);
     for (const event of VoteSubmittedEvents) {
-      console.log("Event:", event);
-      if (!event.args.player) throw new Error("No player in event");
-      if (!event.args.sealedBallotId) throw new Error("No sealedBallotId in event");
+      if (!event.player) throw new Error("No player in event");
+      if (!event.sealedBallotId) throw new Error("No sealedBallotId in event");
 
       const turnKey = await this.calculateSharedTurnKey({
         instanceAddress,
         gameId,
         turn,
-        player: event.args.player,
+        player: event.player as Address,
       });
 
-      const decryptedVotes = await this.decryptVote(event.args.sealedBallotId, turnKey);
+      const decryptedVotes = await this.decryptVote(event.sealedBallotId, turnKey);
       votes.push({
-        player: event.args.player,
+        player: event.player as Address,
         votes: decryptedVotes,
       });
     }
@@ -1124,7 +1129,7 @@ export class GameMaster {
     player: Address;
   }) => {
     logger(`Calculating shared turn key for player ${player} in game ${gameId} at address ${instanceAddress}`);
-    const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId });
+    const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId, envioClient: this.envioClient });
     const playerPubKey = await instance.getPlayerPubKey({ instanceAddress, gameId, player });
     logger(`Player public key: ${playerPubKey}`, 2);
     console.log("Player public key:", playerPubKey);
@@ -1187,6 +1192,7 @@ export class GameMaster {
       instanceAddress: verifierAddress,
       publicClient: this.publicClient,
       chainId: this.chainId,
+      envioClient: this.envioClient,
     });
     const eip712 = await instance.getEIP712Domain();
     const playerSalt = await this.getTurnPlayersSalt({

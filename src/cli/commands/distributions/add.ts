@@ -6,10 +6,11 @@ import { createPublic, createWallet } from "../../client";
 import inquirer from "inquirer";
 import { getArtifact } from "../../../utils";
 import { resolvePk } from "../../getPk";
+import EnvioGraphQLClient from "../../../utils/EnvioGraphQLClient";
 
 // Define enum for distribution defaults
 enum DistributionDefaults {
-  NAME = "MAO Distribution"
+  NAME = "MAO-v1.3"
 }
 
 // Helper to pad string to 32 bytes, similar to ethers.utils.formatBytes32String
@@ -27,6 +28,7 @@ export const addCommand = new Command("add")
   .option("-i, --m-index <mnemonicIndex>", "Index to derive from mnemonic")
   .option("-k, --key <privateKey>", "Will be used if no mnemonic index is provided. Private key with admin permissions. If not provided, PRIVATE_KEY environment variable will be used")
   .option("-y, --yes", "Auto-accept default values for all prompts", false)
+  .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
   .action(async (options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -39,6 +41,9 @@ export const addCommand = new Command("add")
         address: options.distributor ?? undefined,
         publicClient,
         walletClient,
+        envioClient: new EnvioGraphQLClient({
+          endpoint: process.env.INDEXER_URL ?? options.envio,
+        }),
       });
 
       spinner.stop();
@@ -46,13 +51,13 @@ export const addCommand = new Command("add")
       // Default values
       const defaultName = process.env.DEFAULT_DISTRIBUTION_NAME ?? DistributionDefaults.NAME;
       const defaultAddress = getArtifact(chainId, "MAODistribution").address;
-      
+
       // Check if auto-accept defaults is enabled
       const autoAcceptDefaults = options.yes;
-      
+
       let name = options.name;
       let distributionAddress = options.address;
-      
+
       if (!name) {
         if (autoAcceptDefaults) {
           console.log(`Auto-accepting default distribution name: ${defaultName}`);
@@ -73,7 +78,7 @@ export const addCommand = new Command("add")
           name = response.name;
         }
       }
-      
+
       if (!distributionAddress) {
         if (autoAcceptDefaults) {
           console.log(`Auto-accepting default distribution address: ${defaultAddress}`);

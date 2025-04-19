@@ -4,10 +4,12 @@ import ora from "ora";
 import { MAODistributorClient } from "../../../rankify/MAODistributor";
 import { createPublic, createWallet } from "../../client";
 import inquirer from "inquirer";
+import EnvioGraphQLClient from "../../../utils/EnvioGraphQLClient";
 
 export const removeCommand = new Command("remove")
   .description("Remove a distribution")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
+  .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
   .action(async (options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -19,6 +21,9 @@ export const removeCommand = new Command("remove")
       const maoDistributor = new MAODistributorClient(chainId, {
         publicClient,
         walletClient,
+        envioClient: new EnvioGraphQLClient({
+          endpoint: process.env.INDEXER_URL ?? options.envio,
+        }),
       });
 
       spinner.stop();

@@ -4,11 +4,13 @@ import chalk from "chalk";
 import ora from "ora";
 import InstanceBase from "../../../rankify/InstanceBase";
 import { getAddress } from "viem";
+import EnvioGraphQLClient from "../../../utils/EnvioGraphQLClient";
 
 export const eip712Command = new Command("eip712")
   .description("Get EIP712 domain data for the fellowship contract")
   .argument("<instance>", "Address of the Rankify instance")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
+  .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
   .action(async (instance, options) => {
     const spinner = ora("Initializing client...").start();
 
@@ -21,6 +23,9 @@ export const eip712Command = new Command("eip712")
         publicClient,
         chainId,
         instanceAddress: getAddress(instance),
+        envioClient: new EnvioGraphQLClient({
+          endpoint: process.env.INDEXER_URL ?? options.envio,
+        }),
       });
 
       const domain = await rankify.getEIP712Domain();

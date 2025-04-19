@@ -13,6 +13,7 @@ You will need to export env variables (you can put them in env file and source i
 
 `export MNEMONIC="xxx" export PRIVATE_KEY="xxx" #GM PK
 export RPC_URL="xxx"`
+export INDEXER_URL="http://localhost:8080/v1/graphql"
 
 ## Important
 In package.json type must be set to commonjs!

@@ -7,6 +7,7 @@ import { MAODistributorClient } from "../../../rankify/MAODistributor";
 import { createPublic, createWallet } from "../../client";
 import { chainToPath } from "../../../utils/chainMapping";
 import { resolvePk } from "../../getPk";
+import EnvioGraphQLClient from "../../../utils/EnvioGraphQLClient";
 
 // Define enum for fellowship defaults
 enum FellowshipDefaults {
@@ -25,6 +26,7 @@ export const createFellowshipCommand = new Command("create")
   .option("-k, --key <privateKey>", "Will be used if no mnemonic index is provided. Private key with admin permissions. If not provided, PRIVATE_KEY environment variable will be used")
   .option("-n, --dist-name <n>", "Distributors package name")
   .option("-y, --yes", "Auto-accept default values for all prompts", false)
+  .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
   .action(async (options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -36,6 +38,9 @@ export const createFellowshipCommand = new Command("create")
       const maoDistributor = new MAODistributorClient(chainId, {
         publicClient,
         walletClient,
+        envioClient: new EnvioGraphQLClient({
+          endpoint: process.env.INDEXER_URL ?? options.envio,
+        }),
       });
 
       // Default values for fellowship creation
@@ -51,9 +56,9 @@ export const createFellowshipCommand = new Command("create")
 
       // Check if auto-accept defaults is enabled
       const autoAcceptDefaults = options.yes;
-      
+
       let fellowshipDetails;
-      
+
       if (autoAcceptDefaults) {
         // Auto-accept all default values
         console.log("Auto-accepting default values:");
@@ -121,7 +126,7 @@ export const createFellowshipCommand = new Command("create")
           },
         ]);
       }
-      
+
       const { tokenName, tokenSymbol, principalCost, timeConstant, metadata, rankTokenUri, owner } = fellowshipDetails;
 
       spinner.start("Creating fellowship...");
