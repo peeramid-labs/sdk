@@ -1,5 +1,6 @@
 import { Address, Hex } from "viem";
 import { GraphQLClient, gql } from "graphql-request";
+import { logger } from "./logger";
 
 /**
  * Envio GraphQL API client configuration
@@ -821,20 +822,18 @@ export class EnvioGraphQLClient {
   async queryInstances(params: {
     distributor?: Address;
     creator?: Address;
-    instance?: Address;
     distributionId?: string;
     instanceId?: bigint | string;
   }): Promise<MAOInstanceData[]> {
     try {
-      // Construct a simple direct query with the specific filters needed
-      // No variables, just direct string interpolation
-      const instanceIdStr = params.instanceId ? params.instanceId.toString() : null;
-      const distributorStr = params.distributor || null;
-      const distributionIdStr = params.distributionId || null;
+      // Convert parameters to strings
+      const instanceIdStr = params.instanceId ? params.instanceId.toString() : undefined;
+      const distributionIdStr = params.distributionId || undefined;
 
-      // Build a simple where clause directly
+      // Build where conditions using the proper Envio GraphQL syntax
       const conditions = [];
 
+      // Add simple equality conditions using _eq operator
       if (instanceIdStr) {
         conditions.push(`newInstanceId: { _eq: "${instanceIdStr}" }`);
       }
@@ -843,22 +842,22 @@ export class EnvioGraphQLClient {
         conditions.push(`distributionId: { _eq: "${distributionIdStr}" }`);
       }
 
-      const whereClause = conditions.length > 0 ? conditions.join(", ") : "";
+      // For a simple query, let's just use these two main identifiers
+      // and filter the results client-side for other criteria
 
-      console.debug("Query params:", JSON.stringify({
+      console.log("Querying DAODistributor_Instantiated with params:", {
         instanceId: instanceIdStr,
-        distributionId: distributionIdStr
-      }));
-      console.debug("Where clause:", whereClause);
+        distributionId: distributionIdStr,
+      });
 
-      // Simple direct query with no variables
       const query = gql`
         query {
           DAODistributor_Instantiated(
             where: {
-              ${whereClause}
+              ${conditions.length > 0 ? conditions.join(", ") : ""}
             }
             order_by: { blockTimestamp: desc }
+            limit: ${instanceIdStr ? 1 : 100}
           ) {
             id
             distributionId
@@ -871,6 +870,10 @@ export class EnvioGraphQLClient {
           }
         }
       `;
+
+      // Log the query for debugging (as a string)
+      logger("GraphQL query:", 3);
+      logger(query, 3);
 
       const result = await this.client.request<{
         DAODistributor_Instantiated: Array<{
@@ -886,12 +889,18 @@ export class EnvioGraphQLClient {
       }>(query);
 
       if (!result.DAODistributor_Instantiated || result.DAODistributor_Instantiated.length === 0) {
-        console.warn("No instances found with the given parameters");
-      } else {
-        console.debug(`Found ${result.DAODistributor_Instantiated.length} instance(s)`);
+        logger("No instances found with the given parameters", 3);
+        return [];
       }
 
-      return result.DAODistributor_Instantiated.map((event) => ({
+      logger(`Found ${result.DAODistributor_Instantiated.length} instance(s)`, 3);
+
+      // Filter results client-side based on additional criteria
+      let results = result.DAODistributor_Instantiated;
+
+
+      // Return the filtered results
+      return results.map((event) => ({
         distributionId: event.distributionId,
         newInstanceId: event.newInstanceId,
         version: event.version,
@@ -899,13 +908,16 @@ export class EnvioGraphQLClient {
         args: event.args,
         blockNumber: event.blockNumber,
         blockTimestamp: event.blockTimestamp,
-      })).filter((data) => data.instances !== null);
+      }));
     } catch (error) {
       console.error("Error querying instances:", error);
-      console.error("Query endpoint:", this.config.endpoint);
-      console.error("Query parameters:", JSON.stringify(params));
 
-      // If it's a 404 error, the server might be down or unreachable
+      // Log more details about the error to help diagnose issues
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+
       if (
         typeof error === 'object' &&
         error !== null &&
@@ -916,6 +928,15 @@ export class EnvioGraphQLClient {
         error.response.status === 404
       ) {
         console.error("Server returned 404 - Check if the Envio indexer is running and accessible at", this.config.endpoint);
+      } else if (
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error &&
+        typeof error.response === 'object' &&
+        error.response !== null &&
+        'errors' in error.response
+      ) {
+        console.error("GraphQL errors:", error.response.errors);
       }
 
       throw error;

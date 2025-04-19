@@ -301,7 +301,6 @@ export class MAODistributorClient extends DistributorClient {
     const instanceIdStr = instanceId.toString();
 
     const logs = await this.envioClient.queryInstances({
-      instance: this.address,
       distributionId: stringToHex(name, { size: 32 }),
       instanceId: instanceIdStr,
     });
