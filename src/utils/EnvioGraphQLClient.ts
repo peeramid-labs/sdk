@@ -142,14 +142,32 @@ export class EnvioGraphQLClient {
 
     variables.contractAddress = contractAddress;
 
+    // We need to handle the dynamic where clause differently because of the conditional commas
+    const whereClauseParts = [];
+
+    if (creator) {
+      whereClauseParts.push("creator: { _eq: $creator }");
+    }
+
+    if (gameId !== undefined) {
+      whereClauseParts.push("gameId: { _eq: $gameId }");
+    }
+
+    if (gm) {
+      whereClauseParts.push("gm: { _eq: $gm }");
+    }
+
+    if (contractAddress) {
+      whereClauseParts.push("srcAddress: { _eq: $contractAddress }");
+    }
+
+    const whereClause = whereClauseParts.join(", ");
+
     const query = gql`
-      query GetGameCreatedEvents($creator: String, $gameId: String, $gm: String, $contractAddress: String, $limit: Int, $offset: Int) {
+      query GetGameCreatedEvents($creator: String, $gameId: Int, $gm: String, $contractAddress: String, $limit: Int, $offset: Int) {
         RankifyInstance_gameCreated(
           where: {
-            ${creator ? "creator: { _eq: $creator }" : ""}
-            ${gameId !== undefined ? `${creator ? ", " : ""}gameId: { _eq: $gameId }` : ""}
-            ${gm ? `${creator || gameId !== undefined ? ", " : ""}gm: { _eq: $gm }` : ""}
-            ${contractAddress ? `${creator || gameId !== undefined || gm ? ", " : ""}srcAddress: { _eq: $contractAddress }` : ""}
+            ${whereClause}
           }
           limit: $limit
           offset: $offset
@@ -168,6 +186,12 @@ export class EnvioGraphQLClient {
     `;
 
     try {
+      // Convert string to number for numeric fields
+      const numericVariables = {
+        ...variables,
+        gameId: gameId !== undefined ? Number(variables.gameId) : undefined,
+      };
+
       const result = await this.client.request<{
         RankifyInstance_gameCreated: Array<{
           id: string;
@@ -179,7 +203,7 @@ export class EnvioGraphQLClient {
           blockTimestamp: string;
           srcAddress: string;
         }>;
-      }>(query, variables);
+      }>(query, numericVariables);
 
       return result.RankifyInstance_gameCreated.map((event) => ({
         ...event,
@@ -287,47 +311,53 @@ export class EnvioGraphQLClient {
     proposer?: Address;
     contractAddress: Address;
   }) {
-    const variables: GraphQLQueryVariables = {
-      gameId: gameId.toString(),
-    };
-
-    if (turn !== undefined) {
-      variables.turn = turn.toString();
-    }
-
-    if (proposer) {
-      variables.proposer = proposer;
-    }
-
-    variables.contractAddress = contractAddress;
-
-    const query = gql`
-      query GetProposalSubmittedEvents($gameId: String!, $turn: String, $proposer: String, $contractAddress: String) {
-        RankifyInstance_ProposalSubmitted(
-          where: {
-            gameId: { _eq: $gameId }
-            ${turn !== undefined ? ", turn: { _eq: $turn }" : ""}
-            ${proposer ? ", proposer: { _eq: $proposer }" : ""}
-            ${contractAddress ? ", srcAddress: { _eq: $contractAddress }" : ""}
-          }
-          order_by: { blockTimestamp: asc }
-        ) {
-          id
-          gameId
-          turn
-          proposer
-          commitment
-          encryptedProposal
-          gmSignature
-          proposerSignature
-          blockNumber
-          blockTimestamp
-          srcAddress
-        }
-      }
-    `;
-
     try {
+      // Use direct string interpolation for the query - no variables for numeric fields
+      const gameIdStr = gameId.toString();
+      const turnStr = turn !== undefined ? turn.toString() : undefined;
+
+      // Build where conditions
+      const whereParts = [];
+      whereParts.push(`gameId: { _eq: ${gameIdStr} }`);
+
+      if (turnStr !== undefined) {
+        whereParts.push(`turn: { _eq: ${turnStr} }`);
+      }
+
+      if (proposer) {
+        whereParts.push(`proposer: { _eq: "${proposer}" }`);
+      }
+
+      if (contractAddress) {
+        whereParts.push(`srcAddress: { _eq: "${contractAddress}" }`);
+      }
+
+      const whereClause = whereParts.join(", ");
+
+      // Simpler query with direct string literals instead of variables
+      const query = gql`
+        query {
+          RankifyInstance_ProposalSubmitted(
+            where: {
+              ${whereClause}
+            }
+            order_by: { blockTimestamp: asc }
+          ) {
+            id
+            gameId
+            turn
+            proposer
+            commitment
+            encryptedProposal
+            gmSignature
+            proposerSignature
+            blockNumber
+            blockTimestamp
+            srcAddress
+          }
+        }
+      `;
+
       const result = await this.client.request<{
         RankifyInstance_ProposalSubmitted: Array<{
           id: string;
@@ -342,7 +372,7 @@ export class EnvioGraphQLClient {
           blockTimestamp: string;
           srcAddress: string;
         }>;
-      }>(query, variables);
+      }>(query);
 
       return result.RankifyInstance_ProposalSubmitted.map((event) => ({
         ...event,
@@ -373,47 +403,53 @@ export class EnvioGraphQLClient {
     player?: Address;
     contractAddress: Address;
   }) {
-    const variables: GraphQLQueryVariables = {
-      gameId: gameId.toString(),
-    };
-
-    if (turn !== undefined) {
-      variables.turn = turn.toString();
-    }
-
-    if (player) {
-      variables.player = player;
-    }
-
-    variables.contractAddress = contractAddress;
-
-    const query = gql`
-      query GetVoteSubmittedEvents($gameId: String!, $turn: String, $player: String, $contractAddress: String) {
-        RankifyInstance_VoteSubmitted(
-          where: {
-            gameId: { _eq: $gameId }
-            ${turn !== undefined ? ", turn: { _eq: $turn }" : ""}
-            ${player ? ", player: { _eq: $player }" : ""}
-            ${contractAddress ? ", srcAddress: { _eq: $contractAddress }" : ""}
-          }
-          order_by: { blockTimestamp: asc }
-        ) {
-          id
-          gameId
-          turn
-          player
-          sealedBallotId
-          gmSignature
-          voterSignature
-          ballotHash
-          blockNumber
-          blockTimestamp
-          srcAddress
-        }
-      }
-    `;
-
     try {
+      // Use direct string interpolation for the query - no variables for numeric fields
+      const gameIdStr = gameId.toString();
+      const turnStr = turn !== undefined ? turn.toString() : undefined;
+
+      // Build where conditions
+      const whereParts = [];
+      whereParts.push(`gameId: { _eq: ${gameIdStr} }`);
+
+      if (turnStr !== undefined) {
+        whereParts.push(`turn: { _eq: ${turnStr} }`);
+      }
+
+      if (player) {
+        whereParts.push(`player: { _eq: "${player}" }`);
+      }
+
+      if (contractAddress) {
+        whereParts.push(`srcAddress: { _eq: "${contractAddress}" }`);
+      }
+
+      const whereClause = whereParts.join(", ");
+
+      // Simpler query with direct string literals instead of variables
+      const query = gql`
+        query {
+          RankifyInstance_VoteSubmitted(
+            where: {
+              ${whereClause}
+            }
+            order_by: { blockTimestamp: asc }
+          ) {
+            id
+            gameId
+            turn
+            player
+            sealedBallotId
+            gmSignature
+            voterSignature
+            ballotHash
+            blockNumber
+            blockTimestamp
+            srcAddress
+          }
+        }
+      `;
+
       const result = await this.client.request<{
         RankifyInstance_VoteSubmitted: Array<{
           id: string;
@@ -428,7 +464,7 @@ export class EnvioGraphQLClient {
           blockTimestamp: string;
           srcAddress: string;
         }>;
-      }>(query, variables);
+      }>(query);
 
       return result.RankifyInstance_VoteSubmitted.map((event) => ({
         ...event,
@@ -455,7 +491,7 @@ export class EnvioGraphQLClient {
     variables.contractAddress = contractAddress;
 
     const query = gql`
-      query GetRegistrationOpenEvents($gameId: String!, $contractAddress: String) {
+      query GetRegistrationOpenEvents($gameId: Int!, $contractAddress: String) {
         RankifyInstance_RegistrationOpen(
           where: {
             gameId: { _eq: $gameId }
@@ -473,6 +509,12 @@ export class EnvioGraphQLClient {
     `;
 
     try {
+      // Convert string to number for numeric fields
+      const numericVariables = {
+        ...variables,
+        gameId: Number(variables.gameId),
+      };
+
       const result = await this.client.request<{
         RankifyInstance_RegistrationOpen: Array<{
           id: string;
@@ -481,7 +523,7 @@ export class EnvioGraphQLClient {
           blockTimestamp: string;
           srcAddress: string;
         }>;
-      }>(query, variables);
+      }>(query, numericVariables);
 
       return result.RankifyInstance_RegistrationOpen.map((event) => ({
         ...event,
@@ -534,7 +576,7 @@ export class EnvioGraphQLClient {
     const whereClause = whereParts.join(", ");
 
     const query = gql`
-      query GetTurnEndedEvents($gameId: String!, $turn: String, $contractAddress: String) {
+      query GetTurnEndedEvents($gameId: Int!, $turn: Int, $contractAddress: String) {
         RankifyInstance_TurnEnded(
           where: {
             ${whereClause}
@@ -558,6 +600,13 @@ export class EnvioGraphQLClient {
     `;
 
     try {
+      // Convert string to number for numeric fields
+      const numericVariables = {
+        ...variables,
+        gameId: Number(variables.gameId),
+        turn: variables.turn ? Number(variables.turn) : undefined,
+      };
+
       const result = await this.client.request<{
         RankifyInstance_TurnEnded: Array<{
           id: string;
@@ -572,7 +621,7 @@ export class EnvioGraphQLClient {
           blockTimestamp: string;
           srcAddress: string;
         }>;
-      }>(query, variables);
+      }>(query, numericVariables);
 
       return result.RankifyInstance_TurnEnded.map((event) => ({
         ...event,
@@ -630,7 +679,7 @@ export class EnvioGraphQLClient {
     const whereClause = whereParts.join(", ");
 
     const query = gql`
-      query GetProposalScoreEvents($gameId: String!, $turn: String, $contractAddress: String) {
+      query GetProposalScoreEvents($gameId: Int!, $turn: Int, $contractAddress: String) {
         RankifyInstance_ProposalScore(
           where: {
             ${whereClause}
@@ -651,6 +700,13 @@ export class EnvioGraphQLClient {
     `;
 
     try {
+      // Convert string to number for numeric fields
+      const numericVariables = {
+        ...variables,
+        gameId: Number(variables.gameId),
+        turn: variables.turn ? Number(variables.turn) : undefined,
+      };
+
       const result = await this.client.request<{
         RankifyInstance_ProposalScore: Array<{
           id: string;
@@ -663,7 +719,7 @@ export class EnvioGraphQLClient {
           blockTimestamp: string;
           srcAddress: string;
         }>;
-      }>(query, variables);
+      }>(query, numericVariables);
 
       return result.RankifyInstance_ProposalScore.map((event) => ({
         ...event,
@@ -702,7 +758,7 @@ export class EnvioGraphQLClient {
     const whereClause = whereParts.join(", ");
 
     const query = gql`
-      query GetGameOverEvents($gameId: String!, $contractAddress: String) {
+      query GetGameOverEvents($gameId: Int!, $contractAddress: String) {
         RankifyInstance_GameOver(
           where: {
             ${whereClause}
@@ -721,6 +777,12 @@ export class EnvioGraphQLClient {
     `;
 
     try {
+      // Convert string to number for numeric fields
+      const numericVariables = {
+        ...variables,
+        gameId: Number(variables.gameId),
+      };
+
       const result = await this.client.request<{
         RankifyInstance_GameOver: Array<{
           id: string;
@@ -731,7 +793,7 @@ export class EnvioGraphQLClient {
           blockTimestamp: string;
           srcAddress: string;
         }>;
-      }>(query, variables);
+      }>(query, numericVariables);
 
       return result.RankifyInstance_GameOver.map((event) => ({
         ...event,
@@ -770,7 +832,7 @@ export class EnvioGraphQLClient {
     const whereClause = whereParts.join(", ");
 
     const query = gql`
-      query GetGameStartedEvents($gameId: String!, $contractAddress: String) {
+      query GetGameStartedEvents($gameId: Int!, $contractAddress: String) {
         RankifyInstance_GameStarted(
           where: {
             ${whereClause}
@@ -788,6 +850,12 @@ export class EnvioGraphQLClient {
     `;
 
     try {
+      // Convert string to number for numeric fields
+      const numericVariables = {
+        ...variables,
+        gameId: Number(variables.gameId),
+      };
+
       const result = await this.client.request<{
         RankifyInstance_GameStarted: Array<{
           id: string;
@@ -796,7 +864,7 @@ export class EnvioGraphQLClient {
           blockTimestamp: string;
           srcAddress: string;
         }>;
-      }>(query, variables);
+      }>(query, numericVariables);
 
       return result.RankifyInstance_GameStarted.map((event) => ({
         ...event,
