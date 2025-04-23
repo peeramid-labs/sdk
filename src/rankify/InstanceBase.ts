@@ -418,7 +418,7 @@ export default class InstanceBase {
    * @param gameId - The ID of the game.
    * @returns A Promise that resolves to the list of proposal scores.
    */
-  getProposalScoresList = async (gameId: bigint) => {
+  getProposalScoresList = async (gameId: bigint, turn: bigint) => {
     if (!gameId) throw new Error("gameId not set");
     try {
       const logs = await this.publicClient.getContractEvents({
@@ -426,7 +426,7 @@ export default class InstanceBase {
         abi: instanceAbi,
         eventName: "ProposalScore",
         fromBlock: await this.getCreationBlock(),
-        args: { gameId },
+        args: { gameId, turn },
       });
 
       return logs;
