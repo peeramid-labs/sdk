@@ -215,41 +215,47 @@ export class EnvioGraphQLClient {
     participant?: Address;
     contractAddress: Address;
   }) {
-    const variables: GraphQLQueryVariables = {
-      gameId: gameId.toString(),
-    };
-
-    if (participant) {
-      variables.participant = participant;
-    }
-
-    variables.contractAddress = contractAddress;
-
-    const query = gql`
-      query GetPlayerJoinedEvents($gameId: String!, $participant: String, $contractAddress: String) {
-        RankifyInstance_PlayerJoined(
-          where: {
-            gameId: { _eq: $gameId }
-            ${participant ? ", participant: { _eq: $participant }" : ""}
-            ${contractAddress ? ", srcAddress: { _eq: $contractAddress }" : ""}
-          }
-          order_by: { blockTimestamp: asc }
-        ) {
-          id
-          gameId
-          participant
-          gmCommitment
-          voterPubKey
-          blockNumber
-          blockTimestamp
-          srcAddress
-          transactionIndex
-          logIndex
-        }
-      }
-    `;
-
     try {
+      // Use direct string interpolation for the query - no variables for numeric fields
+      const gameIdStr = gameId.toString();
+
+      // Build where conditions
+      const whereParts = [];
+      whereParts.push(`gameId: { _eq: ${gameIdStr} }`);
+
+      if (participant) {
+        whereParts.push(`participant: { _eq: "${participant}" }`);
+      }
+
+      if (contractAddress) {
+        whereParts.push(`srcAddress: { _eq: "${contractAddress}" }`);
+      }
+
+      const whereClause = whereParts.join(", ");
+
+      // Simpler query with direct string literals instead of variables
+      const query = gql`
+        query {
+          RankifyInstance_PlayerJoined(
+            where: {
+              ${whereClause}
+            }
+            order_by: { blockTimestamp: asc }
+          ) {
+            id
+            gameId
+            participant
+            gmCommitment
+            voterPubKey
+            blockNumber
+            blockTimestamp
+            srcAddress
+            transactionIndex
+            logIndex
+          }
+        }
+      `;
+
       const result = await this.client.request<{
         RankifyInstance_PlayerJoined: Array<{
           id: string;
@@ -263,7 +269,7 @@ export class EnvioGraphQLClient {
           transactionIndex: number;
           logIndex: number;
         }>;
-      }>(query, variables);
+      }>(query);
 
       return result.RankifyInstance_PlayerJoined.map((event) => ({
         ...event,
@@ -357,6 +363,8 @@ export class EnvioGraphQLClient {
         }>;
       }>(query);
 
+      console.log("result!!!:");
+      console.log(result);
       return result.RankifyInstance_ProposalSubmitted.map((event) => ({
         ...event,
         gameId: BigInt(event.gameId),

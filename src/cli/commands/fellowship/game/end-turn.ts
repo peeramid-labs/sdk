@@ -16,6 +16,7 @@ export const endTurn = new Command("end-turn")
     "Private key for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
   )
   .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
+  .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
   .action(async (instanceAddress, gameId, options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -27,15 +28,6 @@ export const endTurn = new Command("end-turn")
         endpoint: process.env.INDEXER_URL ?? options.envio,
       });
 
-      const gameMaster = new GameMaster({
-        publicClient,
-        walletClient,
-        chainId,
-        envioClient,
-      });
-
-      spinner.start("Ending turn...");
-
       const resolvedInstanceAddress = await CLIUtils.resolveInstanceAddress(
         instanceAddress,
         chainId,
@@ -45,10 +37,19 @@ export const endTurn = new Command("end-turn")
         spinner
       );
 
+      const gameMaster = new GameMaster({
+        walletClient,
+        publicClient,
+        chainId,
+        envioClient,
+      });
+
+      spinner.text = "Ending turn...";
       const hash = await gameMaster.endTurn({ instanceAddress: resolvedInstanceAddress, gameId: BigInt(gameId) });
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
-      console.log(receipt);
-      spinner.stop();
+      
+      spinner.succeed("Turn ended successfully");
+      console.log(chalk.green(`\nTransaction hash: ${receipt.transactionHash}`));
     } catch (error) {
       spinner.fail("Failed to end turn");
       console.error(chalk.red(`Error: ${error instanceof Error ? error.message + "\n" + error.stack : String(error)}`));
