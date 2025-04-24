@@ -17,13 +17,12 @@ export const vote = new Command("vote")
   .argument("<votes>", "Comma-separated list of vote values (e.g. 5,3,0,2,4)")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
   .option("-i, --m-index <mnemonicIndex>", "Index to derive from mnemonic")
-  .option("-d, --distribution-name <name>", "Distribution name", "MAO-v1.3")
+  .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
   .option(
     "-k, --key <privateKey>",
     "Private key or index to derive from mnemonic for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
   )
   .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
-  .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
   .action(async (instanceAddress, gameId, votesStr, options) => {
     const spinner = ora("Initializing clients...").start();
 

@@ -9,6 +9,7 @@ import GameMaster from "../../../../rankify/GameMaster";
 import { CLIUtils } from "../../../utils";
 import * as secp256k1 from "@noble/secp256k1";
 import EnvioGraphQLClient from "../../../../utils/EnvioGraphQLClient";
+
 export const join = new Command("join")
   .description("Join an existing game in a Rankify instance")
   .argument("<instance>", "Address or instanceId of the Rankify instance")
@@ -19,7 +20,8 @@ export const join = new Command("join")
     "-k, --key <privateKey>",
     "Private key or index to derive from mnemonic for signing transactions. Will be used if no mnemonic index is provided. If both not provided, PRIVATE_KEY environment variable will be used"
   )
-  .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
+  .option("-n, --distribution-name <name>", "Distribution name", "MAO Distribution")
+  .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
   .action(async (instanceAddress, gameId, options) => {
     const spinner = ora("Initializing clients...").start();
 
