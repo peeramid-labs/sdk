@@ -27,6 +27,7 @@ export const createFellowshipCommand = new Command("create")
   .option("-n, --dist-name <n>", "Distributors package name")
   .option("-y, --yes", "Auto-accept default values for all prompts", false)
   .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
+  .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
   .action(async (options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -165,7 +166,7 @@ export const createFellowshipCommand = new Command("create")
         },
       };
 
-      const contracts = await maoDistributor.instantiate(args, options.distName, chain);
+      const contracts = await maoDistributor.instantiate(args, options.distributionName, chain);
 
       spinner.succeed("Fellowship created successfully!");
 

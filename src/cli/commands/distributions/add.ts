@@ -8,11 +8,6 @@ import { getArtifact } from "../../../utils";
 import { resolvePk } from "../../getPk";
 import EnvioGraphQLClient from "../../../utils/EnvioGraphQLClient";
 
-// Define enum for distribution defaults
-enum DistributionDefaults {
-  NAME = "MAO-v1.3"
-}
-
 // Helper to pad string to 32 bytes, similar to ethers.utils.formatBytes32String
 function formatBytes32String(text: string): `0x${string}` {
   const buffer = Buffer.from(text.slice(0, 31), "utf8");
@@ -28,6 +23,7 @@ export const addCommand = new Command("add")
   .option("-i, --m-index <mnemonicIndex>", "Index to derive from mnemonic")
   .option("-k, --key <privateKey>", "Will be used if no mnemonic index is provided. Private key with admin permissions. If not provided, PRIVATE_KEY environment variable will be used")
   .option("-y, --yes", "Auto-accept default values for all prompts", false)
+  .option("-n, --distribution-name <name>", "Distribution name", "MAO Distribution")
   .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
   .action(async (options) => {
     const spinner = ora("Initializing clients...").start();
@@ -49,7 +45,7 @@ export const addCommand = new Command("add")
       spinner.stop();
 
       // Default values
-      const defaultName = process.env.DEFAULT_DISTRIBUTION_NAME ?? DistributionDefaults.NAME;
+      const defaultName = options.distributionName;
       const defaultAddress = getArtifact(chainId, "MAODistribution").address;
 
       // Check if auto-accept defaults is enabled

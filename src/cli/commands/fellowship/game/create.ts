@@ -26,6 +26,7 @@ export const create = new Command("create")
   .option("--metadata <string>", "Game metadata (ipfs url)", "ipfs://QmXLnWFvdbVzbHN3dqbhfnPPPtHSiKxx2B8gySLaRHhFmW")
   .option("--open-now", "Open registration immediately after creation", false)
   .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
+  .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
   .action(async (instanceAddress, options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -42,7 +43,8 @@ export const create = new Command("create")
         chainId,
         publicClient,
         envioClient,
-        spinner
+        options.distributionName,
+        spinner,
       );
 
       spinner.text = "Creating Rankify player client...";

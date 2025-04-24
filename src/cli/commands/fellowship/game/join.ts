@@ -19,6 +19,7 @@ export const join = new Command("join")
     "-k, --key <privateKey>",
     "Private key or index to derive from mnemonic for signing transactions. Will be used if no mnemonic index is provided. If both not provided, PRIVATE_KEY environment variable will be used"
   )
+  .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
   .action(async (instanceAddress, gameId, options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -34,6 +35,7 @@ export const join = new Command("join")
         chainId,
         publicClient,
         envioClient,
+        options.distributionName,
         spinner
       );
 

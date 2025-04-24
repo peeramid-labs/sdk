@@ -15,6 +15,7 @@ export const endTurn = new Command("end-turn")
     "-k, --key <privateKey>",
     "Private key for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
   )
+  .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
   .action(async (instanceAddress, gameId, options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -40,6 +41,7 @@ export const endTurn = new Command("end-turn")
         chainId,
         publicClient,
         envioClient,
+        options.distributionName,
         spinner
       );
 

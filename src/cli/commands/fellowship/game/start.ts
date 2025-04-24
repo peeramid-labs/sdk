@@ -31,7 +31,7 @@ export const start = new Command("start")
     false
   )
   .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
-
+  .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
   .action(async (instanceAddress, gameId, options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -47,6 +47,7 @@ export const start = new Command("start")
         chainId,
         publicClient,
         envioClient,
+        options.distributionName,
         spinner
       );
 

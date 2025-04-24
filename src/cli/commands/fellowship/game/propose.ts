@@ -39,6 +39,7 @@ export const propose = new Command("propose")
     "Path to a markdown file containing the proposal content"
   )
   .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
+  .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
   .action(async (instanceAddress, gameId, options) => {
     const spinner = ora("Initializing clients...").start();
     try {
@@ -62,6 +63,7 @@ export const propose = new Command("propose")
         chainId,
         publicClient,
         envioClient,
+        options.distributionName,
         spinner
       );
 
