@@ -363,8 +363,6 @@ export class EnvioGraphQLClient {
         }>;
       }>(query);
 
-      console.log("result!!!:");
-      console.log(result);
       return result.RankifyInstance_ProposalSubmitted.map((event) => ({
         ...event,
         gameId: BigInt(event.gameId),

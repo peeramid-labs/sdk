@@ -1,9 +1,10 @@
-import { describe, expect, test, jest } from "@jest/globals";
+import { describe, expect, test, jest, beforeEach } from "@jest/globals";
 import * as viem from "viem";
 import { GetContractEventsReturnType, type Address } from "viem";
 import { DistributorAbi } from "../../abis/Distributor";
 import { DistributorClient } from "../Distributor";
-
+import { MOCK_ADDRESSES, createMockEnvioClient } from "../../__tests__/utils";
+import { MAOInstanceData } from "../../utils/EnvioGraphQLClient";
 // Create spies
 const mockGetContract = jest.spyOn(viem, "getContract");
 jest.spyOn(viem, "createPublicClient");
@@ -14,6 +15,8 @@ const mockReadContract = jest.fn();
 const mockDistributorAddress = "0x1234567890123456789012345678901234567890";
 
 describe("DistributorClient", () => {
+  const mockEnvioClient = createMockEnvioClient();
+
   // Mock public client
   const mockPublicClient = {
     request: jest.fn(),
@@ -27,6 +30,7 @@ describe("DistributorClient", () => {
     address: mockDistributorAddress as Address,
     // eslint-disable-next-line
     publicClient: mockPublicClient as any,
+    envioClient: mockEnvioClient,
   });
 
   beforeEach(() => {
@@ -67,43 +71,27 @@ describe("DistributorClient", () => {
         ["0x1234", "0x5678"],
         ["0x9abc", "0xdef0"],
       ];
-      const resolved: GetContractEventsReturnType<typeof DistributorAbi, "Instantiated"> = [];
-      resolved.push({
-        args: { instances: mockInstances[0], version: 1n, newInstanceId: 1n },
-        address: "0x1234567890123456789012345678901234567890",
-        blockHash: "0x1234567890123456789012345678901234567890123456789012345678901234",
-        blockNumber: BigInt(1),
-        data: "0x",
-        logIndex: 0,
-        transactionHash: "0x1234567890123456789012345678901234567890123456789012345678901234",
-        transactionIndex: 0,
-        removed: false,
-        eventName: "Instantiated",
-        topics: ["0x0", "0x1", "0x2", "0x3"],
-      });
-      resolved.push({
-        args: { instances: mockInstances[1], version: 1n, newInstanceId: 2n },
-        address: "0x1234567890123456789012345678901234567890",
-        blockHash: "0x1234567890123456789012345678901234567890123456789012345678901234",
-        blockNumber: BigInt(1),
-        data: "0x",
-        logIndex: 0,
-        transactionHash: "0x1234567890123456789012345678901234567890123456789012345678901234",
-        transactionIndex: 0,
-        removed: false,
-        eventName: "Instantiated",
-        topics: ["0x0", "0x1", "0x2", "0x3"],
-      });
+      const resolved = [] as MAOInstanceData[];
 
-      const mockContract = {
-        getEvents: {
-          Instantiated: jest
-            .fn<() => Promise<GetContractEventsReturnType<typeof DistributorAbi, "Instantiated">>>()
-            .mockResolvedValue(resolved),
-        },
-      };
-      // eslint-disable-next-line
-      mockGetContract.mockReturnValue(mockContract as any);
+      resolved.push({
+        distributionId: "0x0000000000000000000000000000000000000000000000000000000000000001",
+        newInstanceId: "1",
+        instances: mockInstances[0],
+        version: "1",
+        blockNumber: "1",
+        blockTimestamp: "1",
+        args: "",
+      });
+      resolved.push({
+        distributionId: "0x0000000000000000000000000000000000000000000000000000000000000001",
+        newInstanceId: "2",
+        instances: mockInstances[1],
+        version: "1",
+        blockNumber: "1",
+        blockTimestamp: "1",
+        args: "",
+      });
+      jest.spyOn(mockEnvioClient, 'queryInstances').mockResolvedValue(resolved);
 
       const result = await distributor.getInstances(
         "0x0000000000000000000000000000000000000000000000000000000000000001"
@@ -112,163 +100,104 @@ describe("DistributorClient", () => {
         { addresses: mockInstances[0], version: 1n, newInstanceId: 1n },
         { addresses: mockInstances[1], version: 1n, newInstanceId: 2n },
       ]);
-      expect(mockGetContract).toHaveBeenCalledWith({
-        address: mockDistributorAddress,
-        abi: DistributorAbi,
-        client: mockPublicClient,
+      expect(mockEnvioClient.queryInstances).toHaveBeenCalledWith({
+        distributionId: "0x0000000000000000000000000000000000000000000000000000000000000001",
       });
-      expect(mockContract.getEvents.Instantiated).toHaveBeenCalledWith(
-        {
-          distributionId: "0x0000000000000000000000000000000000000000000000000000000000000001",
-        },
-        { fromBlock: 1n, toBlock: "latest" }
-      );
     });
   });
 
   describe("getInstance", () => {
     test("should return instance for a distribution ID and instance ID", async () => {
       const mockInstance: Address[] = ["0x1234", "0x5678"];
-      const mockContract = {
-        getEvents: {
-          Instantiated: jest
-            .fn<() => Promise<GetContractEventsReturnType<typeof DistributorAbi, "Instantiated">>>()
-            .mockResolvedValue([
-              {
-                args: { instances: mockInstance, newInstanceId: 1n, version: 1n },
-                address: "0x1234567890123456789012345678901234567890",
-                blockHash: "0x1234567890123456789012345678901234567890123456789012345678901234",
-                blockNumber: BigInt(1),
-                data: "0x",
-                logIndex: 0,
-                transactionHash: "0x1234567890123456789012345678901234567890123456789012345678901234",
-                transactionIndex: 0,
-                removed: false,
-                eventName: "Instantiated",
-                topics: ["0x0", "0x1", "0x2", "0x3"],
-              },
-            ]),
-        },
-      };
-      // eslint-disable-next-line
-      mockGetContract.mockReturnValue(mockContract as any);
+      const resolved = [{
+        distributionId: "0x0000000000000000000000000000000000000000000000000000000000000001",
+        newInstanceId: "1",
+        instances: mockInstance,
+        version: "1",
+        blockNumber: "1",
+        blockTimestamp: "1",
+        args: "",
+      }];
+      jest.spyOn(mockEnvioClient, 'queryInstances').mockResolvedValue(resolved);
 
       const result = await distributor.getInstance(
         "0x0000000000000000000000000000000000000000000000000000000000000001",
         1n
       );
       expect(result).toEqual(mockInstance);
-      expect(mockGetContract).toHaveBeenCalledWith({
-        address: mockDistributorAddress,
-        abi: DistributorAbi,
-        client: mockPublicClient,
+      expect(mockEnvioClient.queryInstances).toHaveBeenCalledWith({
+        distributionId: "0x0000000000000000000000000000000000000000000000000000000000000001",
+        instanceId: "1",
       });
-      expect(mockContract.getEvents.Instantiated).toHaveBeenCalledWith(
-        {
-          distributionId: "0x0000000000000000000000000000000000000000000000000000000000000001",
-          newInstanceId: 1n,
-        },
-        { fromBlock: 1n, toBlock: "latest" }
-      );
     });
 
     test("should throw error when multiple instances found", async () => {
-      const mockContract = {
-        getEvents: {
-          Instantiated: jest
-            .fn<() => Promise<GetContractEventsReturnType<typeof DistributorAbi, "Instantiated">>>()
-            .mockResolvedValue([
-              {
-                args: { instances: ["0x1234"], version: 1n, newInstanceId: 1n },
-                address: "0x1234567890123456789012345678901234567890",
-                blockHash: "0x1234567890123456789012345678901234567890123456789012345678901234",
-                blockNumber: BigInt(1),
-                data: "0x",
-                logIndex: 0,
-                transactionHash: "0x1234567890123456789012345678901234567890123456789012345678901234",
-                transactionIndex: 0,
-                removed: false,
-                eventName: "Instantiated",
-                topics: ["0x0", "0x1", "0x2", "0x3"],
-              },
-              {
-                args: { instances: ["0x5678"], version: 1n, newInstanceId: 1n },
-                address: "0x1234567890123456789012345678901234567890",
-                blockHash: "0x1234567890123456789012345678901234567890123456789012345678901234",
-                blockNumber: BigInt(1),
-                data: "0x",
-                logIndex: 1,
-                transactionHash: "0x1234567890123456789012345678901234567890123456789012345678901234",
-                transactionIndex: 0,
-                removed: false,
-                eventName: "Instantiated",
-                topics: ["0x0", "0x1", "0x2", "0x3"],
-              },
-            ]),
+      const resolved = [
+        {
+          distributionId: "0x0000000000000000000000000000000000000000000000000000000000000001",
+          newInstanceId: "1",
+          instances: ["0x1234"],
+          version: "1",
+          blockNumber: "1",
+          blockTimestamp: "1",
+          args: "",
         },
-      };
-      // eslint-disable-next-line
-      mockGetContract.mockReturnValue(mockContract as any);
+        {
+          distributionId: "0x0000000000000000000000000000000000000000000000000000000000000001",
+          newInstanceId: "1",
+          instances: ["0x5678"],
+          version: "1",
+          blockNumber: "1",
+          blockTimestamp: "1",
+          args: "",
+        }
+      ];
+      jest.spyOn(mockEnvioClient, 'queryInstances').mockResolvedValue(resolved);
 
       await expect(
         distributor.getInstance("0x0000000000000000000000000000000000000000000000000000000000000001", 1n)
       ).rejects.toThrow(
         "Multiple instances found for distributor 0x0000000000000000000000000000000000000000000000000000000000000001 and instance 1"
       );
+      expect(mockEnvioClient.queryInstances).toHaveBeenCalledWith({
+        distributionId: "0x0000000000000000000000000000000000000000000000000000000000000001",
+        instanceId: "1",
+      });
     });
 
     test("should throw error when no instances found", async () => {
-      // eslint-disable-next-line
-      (mockGetContract as any).mockReturnValueOnce({
-        getEvents: {
-          Instantiated: jest
-            .fn<() => Promise<GetContractEventsReturnType<typeof DistributorAbi, "Instantiated">>>()
-            .mockResolvedValue([]),
-        },
-      });
-      // mockContractEvents.mockReturnValueOnce([]);
+      jest.spyOn(mockEnvioClient, 'queryInstances').mockResolvedValue([]);
 
       await expect(
         distributor.getInstance("0x0000000000000000000000000000000000000000000000000000000000000001", 1n)
       ).rejects.toThrow(
         "No instances found for distributor 0x0000000000000000000000000000000000000000000000000000000000000001 and instance 1"
       );
+      expect(mockEnvioClient.queryInstances).toHaveBeenCalledWith({
+        distributionId: "0x0000000000000000000000000000000000000000000000000000000000000001",
+        instanceId: "1",
+      });
     });
   });
 
   describe("getNamedDistributionInstances", () => {
     test("should convert name to hex and return instances", async () => {
       const mockInstances: Address[][] = [["0x1234", "0x5678"]];
-      const mockContract = {
-        getEvents: {
-          Instantiated: jest
-            .fn<() => Promise<GetContractEventsReturnType<typeof DistributorAbi, "Instantiated">>>()
-            .mockResolvedValue([
-              {
-                args: { instances: mockInstances[0], version: 1n, newInstanceId: 1n },
-                address: "0x1234567890123456789012345678901234567890",
-                blockHash: "0x1234567890123456789012345678901234567890123456789012345678901234",
-                blockNumber: BigInt(1),
-                data: "0x",
-                logIndex: 0,
-                transactionHash: "0x1234567890123456789012345678901234567890123456789012345678901234",
-                transactionIndex: 0,
-                removed: false,
-                eventName: "Instantiated",
-                topics: ["0x0", "0x1", "0x2", "0x3"],
-              },
-            ]),
-        },
-      };
-      // eslint-disable-next-line
-      mockGetContract.mockReturnValue(mockContract as any);
+      const resolved = [{
+        distributionId: "0x7465737400000000000000000000000000000000000000000000000000000000", // "test" in hex
+        newInstanceId: "1",
+        instances: mockInstances[0],
+        version: "1",
+        blockNumber: "1",
+        blockTimestamp: "1",
+        args: "",
+      }];
+      jest.spyOn(mockEnvioClient, 'queryInstances').mockResolvedValue(resolved);
 
       const result = await distributor.getNamedDistributionInstances({ namedDistribution: "test" });
       expect(result).toEqual(mockInstances);
-      expect(mockGetContract).toHaveBeenCalledWith({
-        address: mockDistributorAddress,
-        abi: DistributorAbi,
-        client: mockPublicClient,
+      expect(mockEnvioClient.queryInstances).toHaveBeenCalledWith({
+        distributionId: "0x7465737400000000000000000000000000000000000000000000000000000000",
       });
     });
   });
@@ -276,36 +205,22 @@ describe("DistributorClient", () => {
   describe("getNamedDistributionInstance", () => {
     test("should convert name to hex and return specific instance", async () => {
       const mockInstances: Address[] = ["0x1234", "0x5678"];
-      const mockContract = {
-        getEvents: {
-          Instantiated: jest
-            .fn<() => Promise<GetContractEventsReturnType<typeof DistributorAbi, "Instantiated">>>()
-            .mockResolvedValue([
-              {
-                args: { instances: mockInstances, version: 1n, newInstanceId: 1n },
-                address: "0x1234567890123456789012345678901234567890",
-                blockHash: "0x1234567890123456789012345678901234567890123456789012345678901234",
-                blockNumber: BigInt(1),
-                data: "0x",
-                logIndex: 0,
-                transactionHash: "0x1234567890123456789012345678901234567890123456789012345678901234",
-                transactionIndex: 0,
-                removed: false,
-                eventName: "Instantiated",
-                topics: ["0x0", "0x1", "0x2", "0x3"],
-              },
-            ]),
-        },
-      };
-      // eslint-disable-next-line
-      mockGetContract.mockReturnValue(mockContract as any);
+      const resolved = [{
+        distributionId: "0x7465737400000000000000000000000000000000000000000000000000000000", // "test" in hex
+        newInstanceId: "1",
+        instances: mockInstances,
+        version: "1",
+        blockNumber: "1",
+        blockTimestamp: "1",
+        args: "",
+      }];
+      jest.spyOn(mockEnvioClient, 'queryInstances').mockResolvedValue(resolved);
 
       const result = await distributor.getNamedDistributionInstance("test", 1n);
       expect(result).toEqual(mockInstances);
-      expect(mockGetContract).toHaveBeenCalledWith({
-        address: mockDistributorAddress,
-        abi: DistributorAbi,
-        client: mockPublicClient,
+      expect(mockEnvioClient.queryInstances).toHaveBeenCalledWith({
+        distributionId: "0x7465737400000000000000000000000000000000000000000000000000000000",
+        instanceId: "1",
       });
     });
   });

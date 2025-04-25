@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+import { describe, it, expect, beforeEach, afterEach, jest } from "@jest/globals";
 import {
   type PublicClient,
   type WalletClient,
@@ -7,10 +7,24 @@ import {
   type Log,
   type Address,
 } from "viem";
-import { MOCK_ADDRESSES, MOCK_HASHES, createMockPublicClient, createMockWalletClient } from "../../__tests__/utils";
+import { MOCK_ADDRESSES, MOCK_HASHES, createMockEnvioClient, createMockPublicClient, createMockWalletClient } from "../../__tests__/utils";
 import { gameStatusEnum } from "../../types";
 import aes from "crypto-js/aes";
-import { RankifyDiamondInstanceAbi } from "../../abis";
+import InstanceBase from "../InstanceBase";
+import { GameMaster } from "../GameMaster";
+import { publicKeyToAddress } from "viem/accounts";
+
+
+const mockPrivateKey = "0000000000000000000000000000000000000000000000000000000000000001";
+const mockPublicKey = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
+const mockSharedSigner = jest.fn().mockImplementation(() => "0x0123456789abcdef" as Hex);
+const mockGetPlayerPubKey = jest.fn().mockImplementation(async () => `0x${mockPublicKey}` as Hex);
+
+class MockInstanceBase {
+  sharedSigner = mockSharedSigner;
+  getPlayerPubKey = mockGetPlayerPubKey;
+}
+
 // Mock viem
 jest.mock("viem", () => ({
   ...(jest.requireActual("viem") as object),
@@ -22,24 +36,12 @@ jest.mock("viem", () => ({
   encodePacked: jest.fn((types: readonly string[], values: readonly unknown[]) => values.join("") as Hex),
 }));
 
-// Mock InstanceBase
-// Test vectors from secp256k1 test suite
-const mockPrivateKey = "0000000000000000000000000000000000000000000000000000000000000001";
-
-const mockPublicKey = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
-const mockSharedSigner = jest.fn().mockImplementation(() => "0x0123456789abcdef" as Hex);
-const mockGetPlayerPubKey = jest.fn().mockImplementation(async () => `0x${mockPublicKey}` as Hex);
 jest.mock("../InstanceBase", () => {
   return {
     __esModule: true,
     default: MockInstanceBase,
   };
 });
-
-class MockInstanceBase {
-  sharedSigner = mockSharedSigner;
-  getPlayerPubKey = mockGetPlayerPubKey;
-}
 
 // Create mock functions with correct return types
 const mockReadContract = jest.fn(
@@ -85,6 +87,8 @@ const mockPublicClient = createMockPublicClient({
   getCode: mockGetCode,
 });
 
+const mockEnvioClient = createMockEnvioClient();
+
 const mockSignTypedData = jest.fn(() => Promise.resolve("0x123" as `0x${string}`));
 const mockSignMessage = jest.fn(() => Promise.resolve("0x123" as `0x${string}`));
 // Mock wallet client
@@ -97,72 +101,76 @@ const mockWalletClient = createMockWalletClient({
   signMessage: mockSignMessage,
 });
 
-import InstanceBase from "../InstanceBase";
-import { GameMaster } from "../GameMaster";
-import { publicKeyToAddress } from "viem/accounts";
-
 describe("GameMaster", () => {
   let gameMaster: GameMaster;
 
   beforeEach(() => {
+    // Reset all mocks
     jest.clearAllMocks();
+    
+    // Reset mock implementations to default values
+    mockReadContract.mockImplementation(() => Promise.resolve(0n));
+    mockSimulateContract.mockImplementation(() => Promise.resolve({ request: {} }));
+    mockGetContractEvents.mockImplementation(() => Promise.resolve([] as GetContractEventsReturnType));
+    mockGetCode.mockImplementation(() => Promise.resolve("0x1234" as Hex));
+    mockSignTypedData.mockImplementation(() => Promise.resolve("0x123" as `0x${string}`));
+    mockSignMessage.mockImplementation(() => Promise.resolve("0x123" as `0x${string}`));
+    
+    // Reset envio client mocks
+    jest.spyOn(mockEnvioClient, 'getProposalSubmittedEvents').mockReset();
+    jest.spyOn(mockEnvioClient, 'getPlayerJoinedEvents').mockReset();
+    jest.spyOn(mockEnvioClient, 'getVoteSubmittedEvents').mockReset();
+    jest.spyOn(mockEnvioClient, 'getGameOverEvents').mockReset();
+
     gameMaster = new GameMaster({
       walletClient: mockWalletClient as WalletClient,
       publicClient: mockPublicClient as PublicClient,
       chainId: 1,
+      envioClient: mockEnvioClient,
     });
+  });
+
+  afterEach(() => {
+    // Ensure all mocks are restored
+    jest.restoreAllMocks();
   });
 
   describe("decryptProposals", () => {
     it("should decrypt proposals for a game turn in default", async () => {
-      const mockEvents = [
-        {
-          address: MOCK_ADDRESSES.INSTANCE,
-          blockHash: MOCK_HASHES.BLOCK,
-          blockNumber: 1000n,
-          data: "0x" as const,
-          logIndex: 0,
-          transactionHash: MOCK_HASHES.TRANSACTION,
-          transactionIndex: 0,
-          removed: false,
-          topics: [] as [`0x${string}`, ...`0x${string}`[]] | [],
-          args: {
-            encryptedProposal: await gameMaster
-              .encryptProposal({
-                proposal: "test_proposal",
-                turn: 1n,
-                instanceAddress: MOCK_ADDRESSES.INSTANCE,
-                gameId: 1n,
-                proposerPubKey: ("0x" + mockPublicKey) as Hex,
-              })
-              .then((encryptedProposal) => encryptedProposal.encryptedProposal),
-            proposer: publicKeyToAddress(`0x${mockPublicKey}`) as Hex as Address,
-            gameId: 1n,
-            turn: 1n,
-          },
-        },
-      ];
+      jest.spyOn(mockEnvioClient, 'getProposalSubmittedEvents').mockResolvedValue([{
+        id: "1",
+        gameId: BigInt("1"),
+        turn: BigInt("1"),
+        proposer: publicKeyToAddress(`0x${mockPublicKey}`) as Hex as Address,
+        encryptedProposal: await gameMaster.encryptProposal({
+          proposal: "test_proposal",
+          turn: 1n,
+          instanceAddress: MOCK_ADDRESSES.INSTANCE,
+          gameId: 1n,
+          proposerPubKey: ("0x" + mockPublicKey) as Hex,
+        }).then((encryptedProposal) => encryptedProposal.encryptedProposal),
+        blockNumber: BigInt("1000"),
+        blockTimestamp: "1000",
+        srcAddress: MOCK_ADDRESSES.INSTANCE,
+        contractAddress: MOCK_ADDRESSES.INSTANCE,
+        commitment: BigInt("0"),
+        gmSignature: "0x123",
+        proposerSignature: "0x123"
+      }]);
 
-      //mock join game events for the players
-      const joinGameEvent = {
-        address: MOCK_ADDRESSES.INSTANCE,
-        blockHash: MOCK_HASHES.BLOCK,
-        blockNumber: 1n,
+      jest.spyOn(mockEnvioClient, 'getPlayerJoinedEvents').mockResolvedValue([{
+        id: "1",
+        gameId: BigInt("1"),
+        participant: MOCK_ADDRESSES.PLAYER,
+        gmCommitment: "0x123",
+        voterPubKey: ("0x" + mockPublicKey) as Hex,
+        blockNumber: BigInt("1"),
+        blockTimestamp: "1000",
+        srcAddress: MOCK_ADDRESSES.INSTANCE,
+        contractAddress: MOCK_ADDRESSES.INSTANCE,
         transactionIndex: 0,
         logIndex: 0,
-        transactionHash: MOCK_HASHES.TRANSACTION,
-        data: "0x" as const,
-        args: {
-          player: MOCK_ADDRESSES.PLAYER,
-          voterPubKey: ("0x" + mockPublicKey) as Hex,
-        },
-      };
-      // eslint-disable-next-line
-      mockGetContractEvents.mockResolvedValueOnce(mockEvents);
-
-      // eslint-disable-next-line
-      mockGetContractEvents.mockResolvedValueOnce([joinGameEvent] as any);
-      
+      }]);
 
       const result = await gameMaster.decryptProposals({
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
@@ -193,14 +201,29 @@ describe("GameMaster", () => {
     });
 
     it("should return array item element for each player even if he didn't propose", async () => {
-      mockGetContractEvents.mockResolvedValueOnce([]);
+      // Mock envio client to return empty array for no proposals
+      jest.spyOn(mockEnvioClient, 'getProposalSubmittedEvents').mockResolvedValueOnce([]);
+
       const result = await gameMaster.decryptProposals({
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
         gameId: 1n,
         turn: 1n,
         players: [MOCK_ADDRESSES.PROPOSER],
       });
-      expect(result.length).toEqual(1);
+
+      expect(mockEnvioClient.getProposalSubmittedEvents).toHaveBeenCalledWith({
+        gameId: 1n,
+        turn: 1n,
+        contractAddress: MOCK_ADDRESSES.INSTANCE,
+      });
+
+      // Should return an array with an empty proposal for each player
+      expect(result).toEqual([
+        {
+          proposal: "",
+          proposer: MOCK_ADDRESSES.PROPOSER,
+        },
+      ]);
     });
   });
 
@@ -254,6 +277,7 @@ describe("GameMaster", () => {
         walletClient: mockWalletClient,
         publicClient: mockPublicClient as PublicClient,
         chainId: 1,
+        envioClient: mockEnvioClient,
       });
 
       const result = await gameMasterWithMockedWallet.signJoiningGame({
@@ -552,6 +576,7 @@ describe("GameMaster", () => {
         walletClient: { ...mockWalletClient, account: undefined } as WalletClient,
         publicClient: mockPublicClient as PublicClient,
         chainId: 1,
+        envioClient: mockEnvioClient,
       });
 
       await expect(
@@ -577,24 +602,23 @@ describe("GameMaster", () => {
 
       //mock join game events for the players
       const joinGameEvents = testProposals.map((p) => ({
-        address: MOCK_ADDRESSES.INSTANCE,
-        blockHash: MOCK_HASHES.BLOCK,
+        gameId: 1n,
         blockNumber: 1n,
+        player: p.proposer,
+        voterPubKey: "0x0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798" as Hex,
+        participant: p.proposer,
+        srcAddress: MOCK_ADDRESSES.INSTANCE,
+        contractAddress: MOCK_ADDRESSES.INSTANCE,
         transactionIndex: 0,
         logIndex: 0,
-        transactionHash: MOCK_HASHES.TRANSACTION,
-        data: "0x" as const,
-        args: {
-          player: p.proposer,
-          voterPubKey: "0x0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798" as Hex,
-        },
+        id: "1",
+        gmCommitment: "0x123",
+        blockTimestamp: "1000",
       }));
-      // eslint-disable-next-line
-      mockGetContractEvents.mockImplementationOnce(() => Promise.resolve([joinGameEvents[0]] as any));
-      // eslint-disable-next-line
-      mockGetContractEvents.mockImplementationOnce(() => Promise.resolve([joinGameEvents[1]] as any));
-      // eslint-disable-next-line
-      mockGetContractEvents.mockImplementationOnce(() => Promise.resolve([joinGameEvents[2]] as any));
+      
+      jest.spyOn(mockEnvioClient, 'getPlayerJoinedEvents').mockImplementationOnce(() => Promise.resolve([joinGameEvents[0]]));
+      jest.spyOn(mockEnvioClient, 'getPlayerJoinedEvents').mockImplementationOnce(() => Promise.resolve([joinGameEvents[1]]));
+      jest.spyOn(mockEnvioClient, 'getPlayerJoinedEvents').mockImplementationOnce(() => Promise.resolve([joinGameEvents[2]]));
 
       const result = await gameMaster.getProposalsIntegrity({
         size: 3,
@@ -655,22 +679,26 @@ describe("GameMaster", () => {
         proposer: `0x${(i + 1).toString().padStart(40, "0")}` as Address,
       }));
 
+      //mock join game events for the players
       const joinGameEvents = maxProposals.map((p) => ({
-        address: MOCK_ADDRESSES.INSTANCE,
-        blockHash: MOCK_HASHES.BLOCK,
+        gameId: 1n,
         blockNumber: 1n,
+        player: p.proposer,
+        voterPubKey: "0x0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798" as Hex,
+        participant: p.proposer,
+        srcAddress: MOCK_ADDRESSES.INSTANCE,
+        contractAddress: MOCK_ADDRESSES.INSTANCE,
         transactionIndex: 0,
         logIndex: 0,
-        transactionHash: MOCK_HASHES.TRANSACTION,
-        data: "0x" as const,
-        args: {
-          player: p.proposer,
-          voterPubKey: "0x0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798" as Hex,
-        },
+        id: "1",
+        gmCommitment: "0x123",
+        blockTimestamp: "1000",
       }));
-
-      // eslint-disable-next-line
-      mockGetContractEvents.mockImplementation(() => Promise.resolve([joinGameEvents[0]] as any));
+      
+      // Mock getPlayerJoinedEvents for each player
+      for (let i = 0; i < maxProposals.length; i++) {
+        jest.spyOn(mockEnvioClient, 'getPlayerJoinedEvents').mockImplementationOnce(() => Promise.resolve([joinGameEvents[i]]));
+      }
 
       const result = await gameMaster.getProposalsIntegrity({
         size: 15,
@@ -680,8 +708,23 @@ describe("GameMaster", () => {
         proposals: maxProposals,
       });
 
-      // Verify permutation size
+      // Verify structure and types
+      expect(result).toMatchObject({
+        newProposals: {
+          a: expect.any(Array),
+          b: expect.any(Array),
+          c: expect.any(Array),
+          proposals: expect.any(Array),
+          permutationCommitment: expect.any(BigInt),
+        },
+        prevTurnPermutation: expect.any(Array),
+        proposalsNotPermuted: expect.any(Array),
+        prevTurnSalt: expect.any(BigInt),
+      });
+
+      // Verify permutation properties
       expect(result.prevTurnPermutation).toHaveLength(15);
+      expect(result.prevTurnPermutation.every((p) => typeof p === "bigint")).toBe(true);
       expect(new Set(result.prevTurnPermutation).size).toBe(15); // All elements should be unique
 
       // Test permuteArray matches the result
@@ -702,10 +745,11 @@ describe("GameMaster", () => {
       });
       expect(recoveredOrder).toEqual(maxProposals.map((p) => p.proposal));
 
-      // Verify that permuted proposals contain all original proposals
-      const sortedOriginal = Array.from(maxProposals.map((p) => p.proposal)).sort();
-      const sortedPermuted = Array.from(result.newProposals.proposals).sort();
-      expect(sortedPermuted).toEqual(sortedOriginal);
+      // Verify proof structure
+      expect(result.newProposals.a).toHaveLength(2); // Groth16 proof format
+      expect(result.newProposals.b[0]).toHaveLength(2);
+      expect(result.newProposals.b[1]).toHaveLength(2);
+      expect(result.newProposals.c).toHaveLength(2);
     });
 
     it("should maintain permutation consistency across multiple calls", async () => {
@@ -715,7 +759,27 @@ describe("GameMaster", () => {
         { proposal: "proposal3", proposer: "0x3456789012345678901234567890123456789012" as Address },
       ];
 
-      // Get permutation results from multiple methods
+      //mock join game events for the players
+      const joinGameEvents = testProposals.map((p) => ({
+        gameId: 1n,
+        blockNumber: 1n,
+        player: p.proposer,
+        voterPubKey: "0x0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798" as Hex,
+        participant: p.proposer,
+        srcAddress: MOCK_ADDRESSES.INSTANCE,
+        contractAddress: MOCK_ADDRESSES.INSTANCE,
+        transactionIndex: 0,
+        logIndex: 0,
+        id: "1",
+        gmCommitment: "0x123",
+        blockTimestamp: "1000",
+      }));
+      
+      // Mock getPlayerJoinedEvents for each player
+      for (let i = 0; i < testProposals.length; i++) {
+        jest.spyOn(mockEnvioClient, 'getPlayerJoinedEvents').mockImplementationOnce(() => Promise.resolve([joinGameEvents[i]]));
+      }
+
       const integrityResult = await gameMaster.getProposalsIntegrity({
         size: 3,
         gameId: 1n,
@@ -724,6 +788,26 @@ describe("GameMaster", () => {
         proposals: testProposals,
       });
 
+      // Verify structure and types
+      expect(integrityResult).toMatchObject({
+        newProposals: {
+          a: expect.any(Array),
+          b: expect.any(Array),
+          c: expect.any(Array),
+          proposals: expect.any(Array),
+          permutationCommitment: expect.any(BigInt),
+        },
+        prevTurnPermutation: expect.any(Array),
+        proposalsNotPermuted: expect.any(Array),
+        prevTurnSalt: expect.any(BigInt),
+      });
+
+      // Verify permutation properties
+      expect(integrityResult.prevTurnPermutation).toHaveLength(15);
+      expect(integrityResult.prevTurnPermutation.every((p) => typeof p === "bigint")).toBe(true);
+      expect(new Set(integrityResult.prevTurnPermutation).size).toBe(15); // All elements should be unique
+
+      // Get permutation results from multiple methods
       const permutedArray1 = await gameMaster.permuteArray<string>({
         array: testProposals.map((p) => p.proposal) as string[],
         gameId: 1n,
@@ -742,6 +826,12 @@ describe("GameMaster", () => {
       expect(permutedArray1).toEqual(integrityResult.newProposals.proposals);
       expect(permutedArray2).toEqual(integrityResult.newProposals.proposals);
       expect(permutedArray1).toEqual(permutedArray2);
+
+      // Verify proof structure
+      expect(integrityResult.newProposals.a).toHaveLength(2); // Groth16 proof format
+      expect(integrityResult.newProposals.b[0]).toHaveLength(2);
+      expect(integrityResult.newProposals.b[1]).toHaveLength(2);
+      expect(integrityResult.newProposals.c).toHaveLength(2);
     });
   });
 
@@ -757,6 +847,7 @@ describe("GameMaster", () => {
         publicClient: mockPublicClient as PublicClient,
         chainId: 1,
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
+        envioClient: mockEnvioClient,
       });
 
       const result = instance.sharedSigner({
@@ -812,6 +903,7 @@ describe("GameMaster", () => {
         publicClient: mockPublicClient as PublicClient,
         chainId: 1,
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
+        envioClient: mockEnvioClient,
       });
 
       const result = await instance.getGameStateDetails(1n);
@@ -849,23 +941,22 @@ describe("GameMaster", () => {
         maxTurns: 10n,
       };
 
-      const mockGameOverEvent = [
-        {
-          address: MOCK_ADDRESSES.INSTANCE,
-          blockHash: MOCK_HASHES.BLOCK,
-          blockNumber: 1000n,
-          data: "0x" as const,
-          logIndex: 0,
-          transactionHash: MOCK_HASHES.TRANSACTION,
-          transactionIndex: 0,
-          removed: false,
-          topics: [] as [`0x${string}`, ...`0x${string}`[]] | [],
-          args: {
-            players: [MOCK_ADDRESSES.PLAYER],
-            scores: [100n],
-          },
-        },
-      ];
+      // Mock game over event
+      const mockGameOverEvent = [{
+        id: "1",
+        gameId: 1n,
+        players: [MOCK_ADDRESSES.PLAYER],
+        scores: [100n],
+        blockNumber: 1000n,
+        blockTimestamp: "1000",
+        srcAddress: MOCK_ADDRESSES.INSTANCE,
+        contractAddress: MOCK_ADDRESSES.INSTANCE,
+        transactionIndex: 0,
+        logIndex: 0,
+      }];
+
+      // Mock getGameOverEvents
+      jest.spyOn(mockEnvioClient, 'getGameOverEvents').mockImplementationOnce(() => Promise.resolve(mockGameOverEvent));
 
       mockReadContract
         .mockResolvedValueOnce({
@@ -881,12 +972,11 @@ describe("GameMaster", () => {
         .mockResolvedValueOnce(true)
         .mockResolvedValueOnce(mockGameState);
 
-      mockGetContractEvents.mockResolvedValueOnce(mockGameOverEvent);
-
       const instance = new InstanceBase({
         publicClient: mockPublicClient as PublicClient,
         chainId: 1,
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
+        envioClient: mockEnvioClient,
       });
 
       const result = await instance.getGameStateDetails(1n);
@@ -904,6 +994,7 @@ describe("GameMaster", () => {
         publicClient: mockPublicClient as PublicClient,
         chainId: 1,
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
+        envioClient: mockEnvioClient,
       });
 
       await expect(instance.getGameStateDetails(1n)).rejects.toThrow("Contract call failed");
@@ -922,26 +1013,21 @@ describe("GameMaster", () => {
       // Create encrypted ballot using the same encryption method as the actual implementation
       const encryptedBallot = aes.encrypt(JSON.stringify(["1", "2", "3"]), mockSharedKey).toString();
 
-      // Mock VoteSubmitted events
-      mockGetContractEvents.mockResolvedValueOnce([
-        {
-          address: MOCK_ADDRESSES.INSTANCE,
-          blockHash: MOCK_HASHES.BLOCK,
-          blockNumber: 1000n,
-          data: "0x" as const,
-          logIndex: 0,
-          transactionHash: MOCK_HASHES.TRANSACTION,
-          transactionIndex: 0,
-          removed: false,
-          topics: [] as [`0x${string}`, ...`0x${string}`[]] | [],
-          args: {
-            player: MOCK_ADDRESSES.PLAYER,
-            sealedBallotId: encryptedBallot,
-            gameId: 1n,
-            turn: 1n,
-          },
-        } as Log<bigint, number, false>,
-      ]);
+      // Mock VoteSubmitted events using envioClient
+      jest.spyOn(mockEnvioClient, 'getVoteSubmittedEvents').mockResolvedValueOnce([{
+        id: "1",
+        gameId: 1n,
+        turn: 1n,
+        player: MOCK_ADDRESSES.PLAYER,
+        sealedBallotId: encryptedBallot,
+        blockNumber: 1000n,
+        blockTimestamp: "1000",
+        srcAddress: MOCK_ADDRESSES.INSTANCE,
+        contractAddress: MOCK_ADDRESSES.INSTANCE,
+        gmSignature: "0x123",
+        voterSignature: "0x123",
+        ballotHash: "0x123"
+      }]);
 
       const result = await gameMaster.decryptTurnVotes({
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
@@ -950,20 +1036,18 @@ describe("GameMaster", () => {
         players: [MOCK_ADDRESSES.PLAYER]
       });
 
-      expect(mockGetContractEvents).toHaveBeenCalledWith({
-        address: MOCK_ADDRESSES.INSTANCE,
-        abi: RankifyDiamondInstanceAbi,
-        eventName: "VoteSubmitted",
-        args: { gameId: 1n, turn: 1n },
-        fromBlock: 0n,
+      expect(mockEnvioClient.getVoteSubmittedEvents).toHaveBeenCalledWith({
+        gameId: 1n,
+        turn: 1n,
+        contractAddress: MOCK_ADDRESSES.INSTANCE,
       });
 
       expect(result).toEqual([[1n, 2n, 3n]]);
     });
 
     it("should return empty array when no votes exist", async () => {
-      mockGetContractEvents.mockResolvedValueOnce([]);
-      mockGetContractEvents.mockResolvedValueOnce([]);
+      // Mock envio client to return empty array for no votes
+      jest.spyOn(mockEnvioClient, 'getVoteSubmittedEvents').mockResolvedValueOnce([]);
 
       const result = await gameMaster.decryptTurnVotes({
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
@@ -972,7 +1056,14 @@ describe("GameMaster", () => {
         players: [MOCK_ADDRESSES.PLAYER]
       });
 
-      expect(result.length).toEqual(1);
+      expect(mockEnvioClient.getVoteSubmittedEvents).toHaveBeenCalledWith({
+        gameId: 1n,
+        turn: 1n,
+        contractAddress: MOCK_ADDRESSES.INSTANCE,
+      });
+
+      // Should return an array of arrays with 0n values for each player
+      expect(result).toEqual([[0n]]);
     });
 
     it("should handle decryption errors gracefully", async () => {
@@ -985,27 +1076,22 @@ describe("GameMaster", () => {
 
       // Create an invalid encrypted ballot that will fail decryption
       const invalidEncryptedBallot = "U2FsdGVkX19pbnZhbGlkIGpzb24gZGF0YQ==";
-      const mockVoteEvents = [
-        {
-          address: MOCK_ADDRESSES.INSTANCE,
-          blockHash: MOCK_HASHES.BLOCK,
-          blockNumber: 1000n,
-          data: "0x" as const,
-          logIndex: 0,
-          transactionHash: MOCK_HASHES.TRANSACTION,
-          transactionIndex: 0,
-          removed: false,
-          topics: [] as [`0x${string}`, ...`0x${string}`[]] | [],
-          args: {
-            player: MOCK_ADDRESSES.PLAYER,
-            sealedBallotId: invalidEncryptedBallot,
-            gameId: 1n,
-            turn: 1n,
-          },
-        } as Log<bigint, number, false>,
-      ];
-      mockGetContractEvents.mockReset();
-      mockGetContractEvents.mockResolvedValueOnce(mockVoteEvents);
+
+      // Mock VoteSubmitted events using envioClient
+      jest.spyOn(mockEnvioClient, 'getVoteSubmittedEvents').mockResolvedValueOnce([{
+        id: "1",
+        gameId: 1n,
+        turn: 1n,
+        player: MOCK_ADDRESSES.PLAYER,
+        sealedBallotId: invalidEncryptedBallot,
+        blockNumber: 1000n,
+        blockTimestamp: "1000",
+        srcAddress: MOCK_ADDRESSES.INSTANCE,
+        contractAddress: MOCK_ADDRESSES.INSTANCE,
+        gmSignature: "0x123",
+        voterSignature: "0x123",
+        ballotHash: "0x123"
+      }]);
 
       // The decryption should fail and throw an error
       await expect(
@@ -1013,6 +1099,7 @@ describe("GameMaster", () => {
           instanceAddress: MOCK_ADDRESSES.INSTANCE,
           gameId: 1n,
           turn: 1n,
+          players: [MOCK_ADDRESSES.PLAYER]
         })
       ).rejects.toThrow("Failed to decrypt vote");
     });

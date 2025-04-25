@@ -1,4 +1,6 @@
+import { describe, expect, jest, test } from "@jest/globals";
 import { type Address, type Hash, type PublicClient, type WalletClient, type TransactionReceipt } from "viem";
+import { EnvioGraphQLClient } from "../utils/EnvioGraphQLClient";
 
 // Common mock addresses
 export const MOCK_ADDRESSES = {
@@ -87,6 +89,22 @@ export const createMockTransactionReceipt = (overrides = {}): TransactionReceipt
   type: "eip1559",
   ...overrides,
 });
+
+export const createMockEnvioClient = () => {
+  const mockClient = {
+    getProposalSubmittedEvents: jest.fn(),
+    getVoteSubmittedEvents: jest.fn(() => Promise.resolve([])),
+    getTurnEndedEvents: jest.fn(),
+    getGameCreatedEvents: jest.fn(),
+    getPlayerJoinedEvents: jest.fn(),
+    getGameStartedEvents: jest.fn(),
+    getGameOverEvents: jest.fn(),
+    getMAOInstances: jest.fn(),
+    queryInstances: jest.fn()
+  };
+
+  return mockClient as unknown as EnvioGraphQLClient;
+};
 
 // Add tests
 describe("Test utilities", () => {
