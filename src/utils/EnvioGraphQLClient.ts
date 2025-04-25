@@ -1043,5 +1043,73 @@ export class EnvioGraphQLClient {
       throw error;
     }
   }
+
+  /**
+   * Get MAO instances for a specific distribution
+   */
+  async getMAOInstances({
+    distributionId,
+    contractAddress,
+  }: {
+    distributionId: string;
+    contractAddress: Address;
+  }) {
+    try {
+      // Build where conditions
+      const whereParts = [];
+      whereParts.push(`distributionId: { _eq: "${distributionId}" }`);
+
+      if (contractAddress) {
+        whereParts.push(`srcAddress: { _eq: "${contractAddress}" }`);
+      }
+
+      const whereClause = whereParts.join(", ");
+
+      // Simpler query with direct string literals instead of variables
+      const query = gql`
+        query {
+          DAODistributor_Instantiated(
+            where: {
+              ${whereClause}
+            }
+            order_by: { blockTimestamp: desc }
+          ) {
+            id
+            distributionId
+            newInstanceId
+            instances
+            args
+            blockNumber
+            blockTimestamp
+            version
+            srcAddress
+          }
+        }
+      `;
+
+      const result = await this.client.request<{
+        DAODistributor_Instantiated: Array<{
+          id: string;
+          distributionId: string;
+          newInstanceId: string;
+          instances: string[];
+          args: string;
+          blockNumber: string;
+          blockTimestamp: string;
+          version?: string;
+          srcAddress: string;
+        }>;
+      }>(query);
+
+      return result.DAODistributor_Instantiated.map((event) => ({
+        ...event,
+        blockNumber: BigInt(event.blockNumber),
+        contractAddress: event.srcAddress as Address,
+      }));
+    } catch (error) {
+      console.error("Error fetching MAO instances:", error);
+      throw error;
+    }
+  }
 }
 export default EnvioGraphQLClient;

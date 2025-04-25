@@ -320,6 +320,48 @@ export class MAODistributorClient extends DistributorClient {
     return this.addressesToContracts(parseInstantiated(instances as string[]));
   }
 
+  /**
+   * Get MAOInstances instances by distribution name
+   * @param params.namedDistribution Distribution name (defaults to "MAO Distribution")
+   * @param params.fromBlock Block to start searching from (defaults to contract creation block)
+   * @returns Array of MAOInstances contract instances
+   */
+  async getMAOInstances({
+    namedDistribution = MAODistributorClient.DEFAULT_NAME,
+    fromBlock,
+  }: {
+    namedDistribution?: string;
+    fromBlock?: bigint;
+  } = {}): Promise<
+    {
+      instances: MAOInstanceContracts;
+      maoInstanceId: bigint;
+    }[]
+  > {
+    const logs = await this.publicClient.getContractEvents({
+      address: this.address,
+      abi: distributorAbi,
+      eventName: "Instantiated",
+      args: {
+        distributionId: stringToHex(namedDistribution, { size: 32 }),
+      },
+      fromBlock: fromBlock ?? this.createdAtBlock ?? (await this.getCreationBlock()),
+      toBlock: "latest",
+    });
+
+    const instances = logs
+      .map((l) => ({
+        instances: parseInstantiated(l.args.instances as string[]),
+        maoInstanceId: l.args.newInstanceId as bigint,
+      }))
+      .map((ip) => ({
+        instances: this.addressesToContracts(ip.instances),
+        maoInstanceId: ip.maoInstanceId,
+      }));
+
+    return instances;
+  }
+
   async getInstantiatePrice(distributorsId: Hex): Promise<bigint> {
     try {
       return this.publicClient.readContract({
@@ -401,7 +443,7 @@ export class MAODistributorClient extends DistributorClient {
     name: string = MAODistributorClient.DEFAULT_NAME,
     chain: Chain
   ): Promise<MAOInstanceContracts> {
-    logger("Instantiating MAO-v1.3");
+    logger(`Instantiating ${name}`);
     if (!args) throw new Error("args is required");
     if (!this.walletClient) throw new Error("walletClient is required, use constructor with walletClient");
     const abiItem = getAbiItem({ abi: MaoDistributionAbi, name: "distributionSchema" });
