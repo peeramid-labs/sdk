@@ -95,9 +95,8 @@ export default class InstanceBase {
       },
     });
 
-    if (logsWithProposals.length !== 1 || logsWithVotesAndPermutation.length !== 1) {
-      console.error("getHistoricTurn", gameId, turnId, "failed! length: ", logsWithProposals.length, logsWithVotesAndPermutation.length);
-      throw new ApiError("Data not found", { status: 404 });
+    if (logsWithProposals.length === 0 || logsWithVotesAndPermutation.length === 0) {
+      return [];
     }
 
     const gameState = await this.getGameState(gameId);
