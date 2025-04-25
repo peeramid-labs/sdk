@@ -30,9 +30,9 @@ pnpm cli fellowship game start $fellowshipId $gameId -i 1 --auto-mine
 # Turn 1: proposes #1 and #3
 pnpm cli fellowship game propose $fellowshipId $gameId -i 0 -t "title for p=0 t=1" -b "body"
 pnpm cli fellowship game propose $fellowshipId $gameId -i 3 -t "title for p=3 t=1" -b "body"
-pnpm cli blockchain mine -t 3000
 
 if [ "$finishTurn" = "true" ] || [ "$runToTurn" -gt 1 ]; then
+    pnpm cli blockchain mine -t 3000
     pnpm cli fellowship game end-turn $fellowshipId $gameId
 fi
 
@@ -44,9 +44,9 @@ fi
 pnpm cli fellowship game vote $fellowshipId $gameId "0,1,0,0,0" -i 1
 pnpm cli fellowship game propose $fellowshipId $gameId -i 0 -t "title for p=0 t=2" -b "body"
 pnpm cli fellowship game propose $fellowshipId $gameId -i 3 -t "title for p=3 t=2" -b "body"
-pnpm cli blockchain mine -t 3000
 
 if [ "$finishTurn" = "true" ] || [ "$runToTurn" -gt 2 ]; then
+    pnpm cli blockchain mine -t 3000
     pnpm cli fellowship game end-turn 1 1
 fi
 
@@ -58,9 +58,9 @@ fi
 pnpm cli fellowship game vote $fellowshipId $gameId "0,1,0,0,0" -i 1
 pnpm cli fellowship game propose $fellowshipId $gameId -i 0 -t "title for p=0 t=3" -b "body"
 pnpm cli fellowship game propose $fellowshipId $gameId -i 3 -t "title for p=3 t=3" -b "body"
-pnpm cli blockchain mine -t 3000
 
 if [ "$finishTurn" = "true" ] || [ "$runToTurn" -gt 3 ]; then
+    pnpm cli blockchain mine -t 3000
     pnpm cli fellowship game end-turn $fellowshipId $gameId
 fi
 
@@ -72,9 +72,9 @@ fi
 pnpm cli fellowship game vote $fellowshipId $gameId "0,1,0,0,0" -i 1
 pnpm cli fellowship game propose $fellowshipId $gameId -i 0 -t "title for p=0 t=4" -b "body"
 pnpm cli fellowship game propose $fellowshipId $gameId -i 3 -t "title for p=3 t=4" -b "body"
-pnpm cli blockchain mine -t 3000
 
 if [ "$finishTurn" = "true" ] || [ "$runToTurn" -gt 4 ]; then
+    pnpm cli blockchain mine -t 3000
     pnpm cli fellowship game end-turn 1 1
 fi
 
@@ -86,8 +86,8 @@ fi
 pnpm cli fellowship game vote $fellowshipId $gameId "0,0,0,1,0" -i 1
 pnpm cli fellowship game propose $fellowshipId $gameId -i 0 -t "title for p=0 t=5" -b "body"
 pnpm cli fellowship game propose $fellowshipId $gameId -i 3 -t "title for p=3 t=5" -b "body"
-pnpm cli blockchain mine -t 3000
 
 if [ "$finishTurn" = "true" ]; then
+    pnpm cli blockchain mine -t 3000
     pnpm cli fellowship game end-turn $fellowshipId $gameId
 fi

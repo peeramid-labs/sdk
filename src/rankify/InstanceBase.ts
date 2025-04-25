@@ -391,9 +391,8 @@ export default class InstanceBase {
    * @returns A Promise that resolves to the list of proposal scores.
    */
   getProposalScoresList = async (gameId: bigint) => {
-
-      return this.envioClient.getProposalScoreEvents({
-        gameId,
+    return this.envioClient.getProposalScoreEvents({
+      gameId,
       contractAddress: this.instanceAddress,
     });
   };
