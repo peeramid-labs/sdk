@@ -1005,7 +1005,7 @@ export class GameMaster {
     // TODO: if fixed in contracts, remove this check
     const gameState = await this.getGameState({ instanceAddress, gameId });
     const lastBlock = await this.publicClient.getBlock({ blockNumber: BigInt(await this.publicClient.getBlockNumber()) });
-    if (gameState.currentPhaseTimeoutAt > lastBlock.timestamp) {
+    if (gameState.turnStartedAt + gameState.timePerTurn > lastBlock.timestamp) {
       const turnProgress = await this.getTurnProgress({ instanceAddress, gameState, gameId });
       if (turnProgress <= 100) return false;
     }
