@@ -7,7 +7,7 @@ import {
   type Log,
   type Address,
 } from "viem";
-import { MOCK_ADDRESSES, MOCK_HASHES, createMockEnvioClient, createMockPublicClient, createMockWalletClient } from "../../__tests__/utils";
+import { MOCK_ADDRESSES, MOCK_HASHES, createMockEnvioClient, createMockPublicClient, createMockWalletClient } from "../../__tests__/utils.test";
 import { gameStatusEnum } from "../../types";
 import aes from "crypto-js/aes";
 import InstanceBase from "../InstanceBase";

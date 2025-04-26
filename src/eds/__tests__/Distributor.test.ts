@@ -3,7 +3,7 @@ import * as viem from "viem";
 import { GetContractEventsReturnType, type Address } from "viem";
 import { DistributorAbi } from "../../abis/Distributor";
 import { DistributorClient } from "../Distributor";
-import { MOCK_ADDRESSES, createMockEnvioClient } from "../../__tests__/utils";
+import { MOCK_ADDRESSES, createMockEnvioClient } from "../../__tests__/utils.test";
 import { MAOInstanceData } from "../../utils/EnvioGraphQLClient";
 // Create spies
 const mockGetContract = jest.spyOn(viem, "getContract");
