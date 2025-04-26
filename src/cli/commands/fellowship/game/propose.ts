@@ -86,9 +86,7 @@ export const propose = new Command("propose")
         chainId,
         instanceAddress: resolvedInstanceAddress,
         account,
-        envioClient: new EnvioGraphQLClient({
-          endpoint: process.env.INDEXER_URL ?? options.envio,
-        }),
+        envioClient,
       });
 
       // Get game state to check if proposal can be submitted
