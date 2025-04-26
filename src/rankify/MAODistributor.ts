@@ -338,21 +338,15 @@ export class MAODistributorClient extends DistributorClient {
       maoInstanceId: bigint;
     }[]
   > {
-    const logs = await this.publicClient.getContractEvents({
-      address: this.address,
-      abi: distributorAbi,
-      eventName: "Instantiated",
-      args: {
-        distributionId: stringToHex(namedDistribution, { size: 32 }),
-      },
-      fromBlock: fromBlock ?? this.createdAtBlock ?? (await this.getCreationBlock()),
-      toBlock: "latest",
+   
+    const logs = await this.envioClient.queryInstances({
+      distributionId: stringToHex(namedDistribution, { size: 32 }),
     });
 
     const instances = logs
       .map((l) => ({
-        instances: parseInstantiated(l.args.instances as string[]),
-        maoInstanceId: l.args.newInstanceId as bigint,
+        instances: parseInstantiated(l.instances as string[]),
+        maoInstanceId: BigInt(l.newInstanceId),
       }))
       .map((ip) => ({
         instances: this.addressesToContracts(ip.instances),
