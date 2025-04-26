@@ -196,13 +196,28 @@ export default class InstanceBase {
       turn: turnId,
       contractAddress: this.instanceAddress,
     });
-    return voteEvents.map((event) => ({
-      player: event.player as Address,
-      sealedBallotId: event.sealedBallotId,
-      gmSignature: event.gmSignature,
-      voterSignature: event.voterSignature,
-      ballotHash: event.ballotHash,
-    }));
+    const proposalEvents = await this.envioClient.getProposalSubmittedEvents({
+      gameId,
+      turn: turnId,
+      contractAddress: this.instanceAddress,
+    });
+
+    return {
+      voteEvents: voteEvents.map((event) => ({
+        player: event.player as Address,
+        sealedBallotId: event.sealedBallotId,
+        gmSignature: event.gmSignature,
+        voterSignature: event.voterSignature,
+        ballotHash: event.ballotHash,
+      })),
+      proposalEvents: proposalEvents.map((event) => ({
+        proposer: event.proposer,
+        encryptedProposal: event.encryptedProposal,
+        commitment: event.commitment,
+        gmSignature: event.gmSignature,
+        proposerSignature: event.proposerSignature
+      })),
+    };
   };
 
   /**
