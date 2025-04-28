@@ -1,5 +1,21 @@
 # peeramid-labs/sdk
 
+## 3.11.0
+
+### Minor Changes
+
+- [#154](https://github.com/peeramid-labs/sdk/pull/154) [`00ed8c1a2e7488c18e03d65d83dcc7f801256717`](https://github.com/peeramid-labs/sdk/commit/00ed8c1a2e7488c18e03d65d83dcc7f801256717) Thanks [@peersky](https://github.com/peersky)! - Event log queries migrated to use envio indexer
+
+- [#154](https://github.com/peeramid-labs/sdk/pull/154) [`00ed8c1a2e7488c18e03d65d83dcc7f801256717`](https://github.com/peeramid-labs/sdk/commit/00ed8c1a2e7488c18e03d65d83dcc7f801256717) Thanks [@peersky](https://github.com/peersky)! - Migrated to envio indexer
+
+- [#154](https://github.com/peeramid-labs/sdk/pull/154) [`00ed8c1a2e7488c18e03d65d83dcc7f801256717`](https://github.com/peeramid-labs/sdk/commit/00ed8c1a2e7488c18e03d65d83dcc7f801256717) Thanks [@peersky](https://github.com/peersky)! - Refactored GameMaster.ts and historicTurn in InstanceBase.ts. Created more cli commands and created bash script playbook scenarios
+
+### Patch Changes
+
+- [#154](https://github.com/peeramid-labs/sdk/pull/154) [`00ed8c1a2e7488c18e03d65d83dcc7f801256717`](https://github.com/peeramid-labs/sdk/commit/00ed8c1a2e7488c18e03d65d83dcc7f801256717) Thanks [@peersky](https://github.com/peersky)! - fixed bug when non-proposing was not correctly parsed in getProposalsVotedUpon
+
+- [#154](https://github.com/peeramid-labs/sdk/pull/154) [`00ed8c1a2e7488c18e03d65d83dcc7f801256717`](https://github.com/peeramid-labs/sdk/commit/00ed8c1a2e7488c18e03d65d83dcc7f801256717) Thanks [@peersky](https://github.com/peersky)! - cancel game cli
+
 ## 3.10.4
 
 ### Patch Changes
