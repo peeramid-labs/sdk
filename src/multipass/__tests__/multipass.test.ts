@@ -1,3 +1,9 @@
+import { describe, expect, test, jest } from "@jest/globals";
+import Multipass from "../Registrar";
+import { RegisterMessage } from "../../types";
+import { MOCK_ADDRESSES, createMockPublicClient, createMockWalletClient } from "../../utils/mockUtils";
+import { Hex, WalletClient } from "viem";
+
 // Mock utils
 jest.mock("../../utils", () => ({
   getArtifact: jest.fn().mockReturnValue({
@@ -10,12 +16,6 @@ jest.mock("../../utils", () => ({
     },
   }),
 }));
-
-import { describe, expect, test, jest } from "@jest/globals";
-import Multipass from "../Registrar";
-import { RegisterMessage } from "../../types";
-import { MOCK_ADDRESSES, createMockPublicClient, createMockWalletClient } from "../../__tests__/utils.test";
-import { Hex, WalletClient } from "viem";
 
 // Mock viem
 const mockCreatePublicClient = jest.fn();

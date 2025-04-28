@@ -4,10 +4,9 @@ import {
   type WalletClient,
   type GetContractEventsReturnType,
   type Hex,
-  type Log,
   type Address,
 } from "viem";
-import { MOCK_ADDRESSES, MOCK_HASHES, createMockEnvioClient, createMockPublicClient, createMockWalletClient } from "../../__tests__/utils.test";
+import { MOCK_ADDRESSES, MOCK_HASHES, createMockEnvioClient, createMockPublicClient, createMockWalletClient } from "../../utils/mockUtils";
 import { gameStatusEnum } from "../../types";
 import aes from "crypto-js/aes";
 import InstanceBase from "../InstanceBase";

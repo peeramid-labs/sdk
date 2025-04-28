@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { type PublicClient, type GetContractEventsReturnType, type Hex } from "viem";
 import InstanceBase from "../InstanceBase";
-import { MOCK_ADDRESSES, MOCK_HASHES, createMockPublicClient } from "../../__tests__/utils.test";
+import { MOCK_ADDRESSES, MOCK_HASHES, createMockPublicClient } from "../../utils/mockUtils";
 
 // Mock viem
 jest.mock("viem", () => ({
