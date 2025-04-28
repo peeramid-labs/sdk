@@ -328,10 +328,8 @@ export class MAODistributorClient extends DistributorClient {
    */
   async getMAOInstances({
     namedDistribution = MAODistributorClient.DEFAULT_NAME,
-    fromBlock,
   }: {
     namedDistribution?: string;
-    fromBlock?: bigint;
   } = {}): Promise<
     {
       instances: MAOInstanceContracts;

@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, jest } from "@jest/globals";
+import { describe, expect, it, beforeEach, jest, afterEach } from "@jest/globals";
 import RankTokenClient from "../RankToken";
 import { SUBMISSION_TYPES, CONTENT_STORAGE, FellowshipMetadata } from "../../types";
 import { createPublicClient, http } from "viem";

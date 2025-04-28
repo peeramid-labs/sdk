@@ -1,4 +1,4 @@
-import { Address, Hex } from "viem";
+import { Address } from "viem";
 import { GraphQLClient, gql } from "graphql-request";
 import { logger } from "./logger";
 
@@ -955,13 +955,11 @@ export class EnvioGraphQLClient {
   async getGameStates({
     skip = 0,
     first = 10,
-    orderBy = "createdAt",
     orderDirection = "desc",
     contractAddress,
   }: {
     skip?: number;
     first?: number;
-    orderBy?: string;
     orderDirection?: "asc" | "desc";
     contractAddress: Address;
   }) {

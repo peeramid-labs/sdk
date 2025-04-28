@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
-import { type PublicClient, type WalletClient, type Address, type Hash, type TransactionReceipt, ParseEventLogsParameters, keccak256, toHex, parseEventLogs } from "viem";
+import { type PublicClient, type WalletClient, type Address, type Hash, type TransactionReceipt, keccak256, toHex } from "viem";
 import RankifyPlayer from "../Player";
 import rankifyAbi from "../../abis/Rankify";
 
