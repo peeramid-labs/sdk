@@ -32,7 +32,8 @@ import {
 import MaoDistributionAbi from "../abis/MAODistribution";
 import distributorAbi from "../abis/DAODistributor";
 import { ERC7744Abi, RankifyAbi } from "../abis";
-import { logger } from "../utils/log";
+import { logger } from "../utils/logger";
+import EnvioGraphQLClient from "../utils/EnvioGraphQLClient";
 
 /**
  * Structure defining token-related arguments
@@ -71,6 +72,15 @@ export type DistributorArgumentsStruct = {
 };
 
 /**
+ * Interface for MAO instance arguments
+ */
+export interface MAOInstanceArgs {
+  owner: Address;
+  distributor: Address;
+  name: string;
+}
+
+/**
  * Collection of contract instances for a MAO deployment
  */
 export interface MAOInstanceContracts {
@@ -91,7 +101,7 @@ export interface MAOInstanceContracts {
  * Handles creation, management and interaction with MAO instances
  */
 export class MAODistributorClient extends DistributorClient {
-  private static readonly DEFAULT_NAME = "MAO-V1.3";
+  private static readonly DEFAULT_NAME = "MAO-v1.3";
   walletClient?: WalletClient;
 
   /**
@@ -99,14 +109,26 @@ export class MAODistributorClient extends DistributorClient {
    * @param chainId - ID of the blockchain network
    * @param client - Object containing public and wallet clients
    */
-  constructor(chainId: number, client: { publicClient: PublicClient; walletClient?: WalletClient; address?: Address }) {
-    const { address, receipt } = getArtifact(chainId, "DAODistributor");
+  constructor(
+    chainId: number,
+    client: {
+      publicClient: PublicClient;
+      walletClient?: WalletClient;
+      address?: Address;
+      envioClient: EnvioGraphQLClient;
+    }
+  ) {
+    const { address } = getArtifact(chainId, "DAODistributor");
     super({
       address: client.address ?? getAddress(address),
       publicClient: client.publicClient,
-      creationBlock: BigInt(receipt.blockNumber),
+      envioClient: client.envioClient,
     });
     this.walletClient = client.walletClient;
+
+    if (!this.envioClient) {
+      throw new Error("EnvioGraphQLClient is required for MAODistributorClient");
+    }
   }
 
   /**
@@ -149,47 +171,6 @@ export class MAODistributorClient extends DistributorClient {
     return { rankToken, instance, govtToken, govTokenAccessManager, ACIDAccessManager };
   }
 
-  /**
-   * Get MAOInstances instances by distribution name
-   * @param params.namedDistribution Distribution name (defaults to "MAO Distribution")
-   * @param params.fromBlock Block to start searching from (defaults to contract creation block)
-   * @returns Array of MAOInstances contract instances
-   */
-  async getMAOInstances({
-    namedDistribution = MAODistributorClient.DEFAULT_NAME,
-    fromBlock,
-  }: {
-    namedDistribution?: string;
-    fromBlock?: bigint;
-  } = {}): Promise<
-    {
-      instances: MAOInstanceContracts;
-      maoInstanceId: bigint;
-    }[]
-  > {
-    const logs = await this.publicClient.getContractEvents({
-      address: this.address,
-      abi: distributorAbi,
-      eventName: "Instantiated",
-      args: {
-        distributionId: stringToHex(namedDistribution, { size: 32 }),
-      },
-      fromBlock: fromBlock ?? this.createdAtBlock ?? (await this.getCreationBlock()),
-      toBlock: "latest",
-    });
-
-    const instances = logs
-      .map((l) => ({
-        instances: parseInstantiated(l.args.instances as string[]),
-        maoInstanceId: l.args.newInstanceId as bigint,
-      }))
-      .map((ip) => ({
-        instances: this.addressesToContracts(ip.instances),
-        maoInstanceId: ip.maoInstanceId,
-      }));
-
-    return instances;
-  }
 
   parseToContracts(instances: readonly Address[]) {
     return this.addressesToContracts(parseInstantiated(instances as string[]));
@@ -312,22 +293,16 @@ export class MAODistributorClient extends DistributorClient {
   async getMAOInstance({
     name = MAODistributorClient.DEFAULT_NAME,
     instanceId,
-    fromBlock,
   }: {
     name?: string;
     instanceId: bigint;
-    fromBlock?: bigint;
   }): Promise<MAOInstanceContracts> {
-    const logs = await this.publicClient.getContractEvents({
-      address: this.address,
-      abi: distributorAbi,
-      eventName: "Instantiated",
-      args: {
-        distributionId: stringToHex(name, { size: 32 }),
-        newInstanceId: instanceId,
-      },
-      fromBlock: fromBlock ?? this.createdAtBlock ?? (await this.getCreationBlock()),
-      toBlock: "latest",
+    // Convert instanceId to string before passing to queryInstances
+    const instanceIdStr = instanceId.toString();
+
+    const logs = await this.envioClient.queryInstances({
+      distributionId: stringToHex(name, { size: 32 }),
+      instanceId: instanceIdStr,
     });
 
     if (logs.length === 0) {
@@ -340,9 +315,45 @@ export class MAODistributorClient extends DistributorClient {
       throw new Error(`Multiple instances found for distribution ${name} and id ${instanceId}`);
     }
 
-    const { instances } = logs[0].args;
+    const { instances } = logs[0];
     if (!instances) throw new Error(`No instances found for distribution ${name} and id ${instanceId}`);
     return this.addressesToContracts(parseInstantiated(instances as string[]));
+  }
+
+  /**
+   * Get MAOInstances instances by distribution name
+   * @param params.namedDistribution Distribution name (defaults to "MAO Distribution")
+   * @param params.fromBlock Block to start searching from (defaults to contract creation block)
+   * @returns Array of MAOInstances contract instances
+   */
+  async getMAOInstances({
+    namedDistribution = MAODistributorClient.DEFAULT_NAME,
+    fromBlock,
+  }: {
+    namedDistribution?: string;
+    fromBlock?: bigint;
+  } = {}): Promise<
+    {
+      instances: MAOInstanceContracts;
+      maoInstanceId: bigint;
+    }[]
+  > {
+   
+    const logs = await this.envioClient.queryInstances({
+      distributionId: stringToHex(namedDistribution, { size: 32 }),
+    });
+
+    const instances = logs
+      .map((l) => ({
+        instances: parseInstantiated(l.instances as string[]),
+        maoInstanceId: BigInt(l.newInstanceId),
+      }))
+      .map((ip) => ({
+        instances: this.addressesToContracts(ip.instances),
+        maoInstanceId: ip.maoInstanceId,
+      }));
+
+    return instances;
   }
 
   async getInstantiatePrice(distributorsId: Hex): Promise<bigint> {
@@ -418,7 +429,7 @@ export class MAODistributorClient extends DistributorClient {
   /**
    * Create a new MAODistribution instance
    * @param args Distribution arguments (encoded as bytes)
-   * @param name Distributor name (defaults to "MAO Distribution")
+   * @param name Distributor name (defaults to "MAO-v1.3")
    * @returns Array of created contract addresses
    */
   async instantiate(
@@ -426,7 +437,7 @@ export class MAODistributorClient extends DistributorClient {
     name: string = MAODistributorClient.DEFAULT_NAME,
     chain: Chain
   ): Promise<MAOInstanceContracts> {
-    logger("Instantiating MAO Distribution");
+    logger(`Instantiating ${name}`);
     if (!args) throw new Error("args is required");
     if (!this.walletClient) throw new Error("walletClient is required, use constructor with walletClient");
     const abiItem = getAbiItem({ abi: MaoDistributionAbi, name: "distributionSchema" });

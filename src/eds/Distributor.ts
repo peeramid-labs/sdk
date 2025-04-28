@@ -1,24 +1,25 @@
-import { type Address, stringToHex, getContract, Hex, PublicClient, getAddress } from "viem";
+import { type Address, stringToHex, Hex, PublicClient, getAddress } from "viem";
 import DistributorAbi from "../abis/Distributor";
 import { findContractDeploymentBlock } from "../utils";
+import { EnvioGraphQLClient } from "../utils/EnvioGraphQLClient";
 
 export class DistributorClient {
   publicClient: PublicClient;
   address: Address;
   createdAtBlock?: bigint;
-
+  envioClient: EnvioGraphQLClient;
   constructor({
     address,
     publicClient,
-    creationBlock,
+    envioClient,
   }: {
     address: Address;
     publicClient: PublicClient;
-    creationBlock?: bigint;
+    envioClient: EnvioGraphQLClient;
   }) {
     this.address = getAddress(address);
     this.publicClient = publicClient;
-    this.createdAtBlock = creationBlock;
+    this.envioClient = envioClient;
   }
 
   async getDistributions() {
@@ -38,50 +39,37 @@ export class DistributorClient {
 
   async getInstances(
     distributorsId: Hex,
-    fromBlock: bigint = 1n
   ): Promise<{ newInstanceId: bigint; version: bigint; addresses: Address[] }[]> {
-    const contract = getContract({
-      address: this.address,
-      abi: DistributorAbi,
-      client: this.publicClient,
-    });
     if (!this.publicClient.chain?.id) throw new Error("Chain ID is not set");
 
-    const events = await contract.getEvents.Instantiated(
+    const events = await this.envioClient.queryInstances(
       {
         distributionId: distributorsId,
       },
-      { toBlock: "latest", fromBlock }
     );
 
     return events.map((log) => {
-      if (!log.args.version)
-        throw new Error(`No version found for distributor ${distributorsId} and instance ${log.args.newInstanceId}`);
-      if (!log.args.instances)
-        throw new Error(`No instances found for distributor ${distributorsId} and instance ${log.args.newInstanceId}`);
-      if (!log.args.newInstanceId)
-        throw new Error(`No instanceId found for distributor ${distributorsId} and instance ${log.args.newInstanceId}`);
+      if (!log.version)
+        throw new Error(`No version found for distributor ${distributorsId} and instance ${log.newInstanceId}`);
+      if (!log.instances)
+        throw new Error(`No instances found for distributor ${distributorsId} and instance ${log.newInstanceId}`);
+      if (!log.newInstanceId)
+        throw new Error(`No instanceId found for distributor ${distributorsId} and instance ${log.newInstanceId}`);
       return {
-        newInstanceId: log.args.newInstanceId,
-        addresses: log.args.instances as Address[],
-        version: log.args.version,
+        newInstanceId: BigInt(log.newInstanceId),
+        addresses: (log.instances ?? []).map((a) => getAddress(a)) as Address[],
+        version: BigInt(log.version),
       };
     });
   }
 
   async getInstance(distributorsId: Hex, instanceId: bigint): Promise<Address[]> {
-    const contract = getContract({
-      address: this.address,
-      abi: DistributorAbi,
-      client: this.publicClient,
-    });
 
-    const events = await contract.getEvents.Instantiated(
+    const events = await this.envioClient.queryInstances(
       {
         distributionId: distributorsId,
-        newInstanceId: instanceId,
+        instanceId: instanceId.toString(),
       },
-      { toBlock: "latest", fromBlock: 1n } //ToDo: Parametrize this
     );
 
     if (events.length > 1) {
@@ -90,7 +78,7 @@ export class DistributorClient {
       throw new Error(`No instances found for distributor ${distributorsId} and instance ${instanceId}`);
     }
 
-    return events[0].args.instances as Address[];
+    return events[0].instances as Address[];
   }
 
   async getNamedDistributionInstances({ namedDistribution }: { namedDistribution: string }): Promise<Address[][]> {

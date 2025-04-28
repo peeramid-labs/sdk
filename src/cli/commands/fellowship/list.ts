@@ -3,13 +3,14 @@ import { createPublic } from "../../client.js";
 import InstanceBase from "../../../rankify/InstanceBase";
 import chalk from "chalk";
 import { getAddress } from "viem";
-
+import EnvioGraphQLClient from "../../../utils/EnvioGraphQLClient";
 export const list = new Command("list")
   .description("List games in a Rankify instance")
   .argument("<instance>", "Address of the Rankify instance")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
   .option("-p, --page <page>", "Page number", "0")
   .option("-s, --size <size>", "Page size", "10")
+  .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
   .action(async (instance, options) => {
     const client = await createPublic(options.rpc);
     const chainId = await client.getChainId();
@@ -17,6 +18,9 @@ export const list = new Command("list")
       publicClient: client,
       chainId,
       instanceAddress: getAddress(instance),
+      envioClient: new EnvioGraphQLClient({
+        endpoint: process.env.INDEXER_URL ?? options.envio,
+      }),
     });
 
     const { items } = await rankify.getGameStates({

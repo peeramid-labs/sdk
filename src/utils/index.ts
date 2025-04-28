@@ -8,7 +8,7 @@ export * from "./artifacts";
  * @param instances - Array of contract addresses in the order they were deployed
  * @returns MAOInstances object with named contract addresses
  */
-export const parseInstantiated = (instances: string[]): MAOInstances => {
+export const parseInstantiated = (instances: readonly string[]): MAOInstances => {
   return {
     govToken: instances[0],
     govTokenAccessManager: instances[1],

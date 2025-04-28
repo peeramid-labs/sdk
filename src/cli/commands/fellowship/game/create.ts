@@ -6,6 +6,7 @@ import { createPublic, createWallet } from "../../../client";
 import RankifyPlayer from "../../../../rankify/Player";
 import { resolvePk } from "../../../getPk";
 import { CLIUtils } from "../../../utils";
+import EnvioGraphQLClient from "../../../../utils/EnvioGraphQLClient";
 
 export const create = new Command("create")
   .description("Create a new game in a Rankify instance")
@@ -24,6 +25,8 @@ export const create = new Command("create")
   .option("--time-to-join <seconds>", "Time to join in seconds", "1800")
   .option("--metadata <string>", "Game metadata (ipfs url)", "ipfs://QmXLnWFvdbVzbHN3dqbhfnPPPtHSiKxx2B8gySLaRHhFmW")
   .option("--open-now", "Open registration immediately after creation", false)
+  .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
+  .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
   .action(async (instanceAddress, options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -31,14 +34,19 @@ export const create = new Command("create")
       const publicClient = await createPublic(options.rpc);
       const walletClient = await createWallet(options.rpc, resolvePk(options.mIndex ?? options.key, spinner));
       const chainId = Number(await publicClient.getChainId());
-      
+      const envioClient = new EnvioGraphQLClient({
+        endpoint: process.env.INDEXER_URL ?? options.envio,
+      });
+
       const resolvedInstanceAddress = await CLIUtils.resolveInstanceAddress(
         instanceAddress,
         chainId,
         publicClient,
-        spinner
+        envioClient,
+        options.distributionName,
+        spinner,
       );
-      
+
       spinner.text = "Creating Rankify player client...";
       const account = walletClient.account?.address;
 
@@ -53,6 +61,7 @@ export const create = new Command("create")
         chainId,
         instanceAddress: resolvedInstanceAddress,
         account,
+        envioClient,
       });
 
       spinner.text = "Creating game...";
@@ -76,15 +85,15 @@ export const create = new Command("create")
       });
 
       spinner.succeed("Game created successfully");
-      
+
       if (result.gameId) {
         console.log(chalk.green(`\nGame created with ID: ${result.gameId.toString()}`));
       } else {
         console.log(chalk.yellow("\nGame created, but could not retrieve game ID"));
       }
-      
+
       console.log(chalk.dim("Transaction hash:"), result.receipt.transactionHash);
-      
+
       if (options.openNow && result.openingReceipt) {
         console.log(chalk.green("\nGame registration opened"));
         console.log(chalk.dim("Opening transaction hash:"), result.openingReceipt.transactionHash);

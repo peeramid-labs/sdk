@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
-import { type PublicClient, type WalletClient, type Address, type Hash, type TransactionReceipt } from "viem";
+import { type PublicClient, type WalletClient, type Address, type Hash, type TransactionReceipt, ParseEventLogsParameters, keccak256, toHex, parseEventLogs } from "viem";
 import RankifyPlayer from "../Player";
 import rankifyAbi from "../../abis/Rankify";
 
@@ -10,6 +10,7 @@ jest.mock("viem", () => ({
   createPublicClient: jest.fn(),
   createWalletClient: jest.fn(),
   http: jest.fn(),
+  parseEventLogs: jest.fn(),
 }));
 
 // Mock utils/artifacts
@@ -57,7 +58,6 @@ const mockPublicClient = {
   readContract: mockReadContract,
   simulateContract: mockSimulateContract,
   waitForTransactionReceipt: mockWaitForTransactionReceipt,
-  getContractEvents: mockGetContractEvents,
   getBlockNumber: jest.fn(() => Promise.resolve(1000n)),
   getBytecode: jest.fn(({ blockNumber }) => Promise.resolve(blockNumber >= 100n ? "0x1234" : "0x")),
   chain: { id: 97113 },
@@ -92,7 +92,50 @@ describe("RankifyPlayer", () => {
     it("should create a game successfully", async () => {
       const mockPrice = 100n;
       const mockHash = "0xabc" as Hash;
-      const mockReceipt = { status: "success", blockNumber: 1n } as TransactionReceipt;
+      if (!mockWalletClient.account?.address) throw new Error("Account not found");
+      
+      // Calculate the event signature hash
+      const eventSignature = "gameCreated(uint256,address,address,uint256)";
+      const eventSignatureHash = keccak256(toHex(eventSignature));
+      
+      const mockReceipt = {
+        status: "success",
+        blockNumber: 1n,
+        blockHash: "0x" + "1".padStart(64, "0"),
+        contractAddress: mockInstanceAddress,
+        cumulativeGasUsed: 100000n,
+        effectiveGasPrice: 1000000000n,
+        from: mockWalletClient.account.address,
+        gasUsed: 100000n,
+        logs: [{
+          address: mockInstanceAddress,
+          topics: [
+            eventSignatureHash, // event signature hash
+            "0x" + mockWalletClient.account.address.slice(2).padStart(64, "0"), // gm (indexed)
+            "0x" + mockWalletClient.account.address.slice(2).padStart(64, "0"), // creator (indexed)
+            "0x" + "1".padStart(64, "0"), // rank (indexed)
+          ],
+          data: "0x" + "1".padStart(64, "0"), // gameId (non-indexed)
+          blockNumber: 1n,
+          transactionHash: mockHash,
+          logIndex: 0,
+          transactionIndex: 0,
+          removed: false,
+          blockHash: "0x" + "1".padStart(64, "0"),
+        }],
+        logsBloom: "0x" + "0".repeat(512),
+        to: mockInstanceAddress,
+        transactionHash: mockHash,
+        transactionIndex: 0,
+        type: "0x0",
+      } as unknown as TransactionReceipt;
+
+      // Mock the contract events
+      mockGetContractEvents.mockResolvedValue([{
+        args: {
+          gameId: 1n
+        }
+      }] as { args: { gameId: bigint } }[]);
 
       const mockGameParams = {
         gameRank: 1n,
@@ -120,15 +163,6 @@ describe("RankifyPlayer", () => {
       // Mock the transaction receipt
       mockWaitForTransactionReceipt.mockResolvedValue(mockReceipt);
 
-      // Mock the contract events
-      mockGetContractEvents.mockResolvedValue([
-        {
-          args: {
-            gameId: 1n,
-          },
-        },
-      ]);
-
       // Execute the createGame function
       const result = await player.createGame({
         creationArgs: mockGameParams,
@@ -153,14 +187,6 @@ describe("RankifyPlayer", () => {
 
       expect(mockWriteContract).toHaveBeenCalled();
       expect(mockWaitForTransactionReceipt).toHaveBeenCalledWith({ hash: mockHash });
-      expect(mockGetContractEvents).toHaveBeenCalledWith({
-        address: mockInstanceAddress,
-        abi: expect.any(Array),
-        eventName: "gameCreated",
-        args: {},
-        fromBlock: mockReceipt.blockNumber,
-        toBlock: mockReceipt.blockNumber,
-      });
 
       // Verify the result
       expect(result).toEqual({
