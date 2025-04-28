@@ -9,6 +9,7 @@ import { CLIUtils } from "../../../utils";
 import InstanceBase from "../../../../rankify/InstanceBase";
 import { gameStatusEnum } from "../../../../types";
 import { BlockchainUtils } from "../../../../utils/blockchain";
+import EnvioGraphQLClient from "../../../../utils/EnvioGraphQLClient";
 
 export const start = new Command("start")
   .description("Start a game in a Rankify instance")
@@ -29,7 +30,8 @@ export const start = new Command("start")
     "Automatically mine blocks to advance time on local chains (default: true)",
     false
   )
-
+  .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
+  .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
   .action(async (instanceAddress, gameId, options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -37,11 +39,15 @@ export const start = new Command("start")
       const publicClient = await createPublic(options.rpc);
       const walletClient = await createWallet(options.rpc, resolvePk(options.mIndex ?? options.mIndex, spinner));
       const chainId = Number(await publicClient.getChainId());
-
+      const envioClient = new EnvioGraphQLClient({
+        endpoint: process.env.INDEXER_URL ?? options.envio,
+      });
       const resolvedInstanceAddress = await CLIUtils.resolveInstanceAddress(
         instanceAddress,
         chainId,
         publicClient,
+        envioClient,
+        options.distributionName,
         spinner
       );
 
@@ -59,6 +65,7 @@ export const start = new Command("start")
         chainId,
         instanceAddress: resolvedInstanceAddress,
         account,
+        envioClient,
       });
 
       const gmWalletClient = await createWallet(options.rpc, options.gmKey);
@@ -67,6 +74,7 @@ export const start = new Command("start")
         walletClient: gmWalletClient,
         publicClient,
         chainId,
+        envioClient,
       });
 
       // Get the game state to check if it can be started and get the number of players
@@ -78,6 +86,7 @@ export const start = new Command("start")
         instanceAddress: resolvedInstanceAddress,
         publicClient,
         chainId,
+        envioClient,
       });
       const gameState = await baseInstance.getGameStateDetails(gameIdBigInt);
 
@@ -97,27 +106,27 @@ export const start = new Command("start")
       const isLocalChain = BlockchainUtils.isLocalChain(chainId);
       if (isLocalChain && options.autoMine) {
         spinner.text = "Checking if we need to advance time...";
-        
+
         // Get current block timestamp
         const currentBlock = await publicClient.getBlock({ blockTag: "latest" });
         const currentTimestamp = Number(currentBlock.timestamp);
         const timeToJoin = Number(gameState.timeToJoin);
-        
+
         // Calculate when the game was created and when it can be started
         const registrationOpenAt = Number(gameState.registrationOpenAt);
         const startTimeCalculated = registrationOpenAt + timeToJoin;
-        
+
         // If the current time is before the start time, we need to mine blocks
         if (currentTimestamp < startTimeCalculated) {
           const timeNeeded = startTimeCalculated - currentTimestamp + 1; // Add 1 second buffer
-          
+
           spinner.info(`Game can be started at ${new Date(startTimeCalculated * 1000).toLocaleString()}`);
           spinner.info(`Current blockchain time is ${new Date(currentTimestamp * 1000).toLocaleString()}`);
           spinner.info(`Need to advance time by ${timeNeeded} seconds to start the game`);
-          
+
           // Mine blocks to advance time
           const result = await BlockchainUtils.increaseTimeAndMine(publicClient, timeNeeded, spinner);
-          
+
           spinner.succeed(`Advanced blockchain time by ${result.actualIncrease} seconds`);
           spinner.start("Starting game...");
         }

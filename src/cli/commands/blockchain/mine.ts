@@ -40,6 +40,7 @@ export const mine = new Command("mine")
       spinner.succeed(`Successfully mined a new block`);
       console.log(chalk.green(`New block: ${result.newBlock.number}, timestamp: ${result.newBlock.timestamp}`));
       console.log(chalk.green(`Timestamp increased by: ${result.actualIncrease} seconds`));
+      console.log(chalk.green(`New timestamp: ${new Date(Number(result.newBlock.timestamp) * 1000).toLocaleString()}`));
       
     } catch (error) {
       spinner.fail("Failed to mine block");
