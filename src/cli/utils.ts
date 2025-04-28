@@ -2,7 +2,7 @@ import { Address, PublicClient, getAddress } from "viem";
 import { MAODistributorClient } from "../rankify/MAODistributor";
 import chalk from "chalk";
 import { Ora } from "ora";
-
+import EnvioGraphQLClient from "../utils/EnvioGraphQLClient";
 /**
  * Utility functions for CLI commands
  */
@@ -19,33 +19,35 @@ export class CLIUtils {
     instanceAddress: string,
     chainId: number,
     publicClient: PublicClient,
-    spinner?: Ora
+    envioClient: EnvioGraphQLClient, 
+    maoDistributionName: string,
+    spinner?: Ora,
   ): Promise<Address> {
     // Check if instanceAddress is a number (instance ID) or an address
     const isInstanceId = !instanceAddress.startsWith('0x') && !isNaN(Number(instanceAddress));
-    
+
     if (isInstanceId) {
       // It's a number, get the instance address using MAODistributorClient
       if (spinner) {
         spinner.text = "Resolving instance ID to address...";
       }
-      
-      const maoDistributor = new MAODistributorClient(chainId, { publicClient });
+
+      const maoDistributor = new MAODistributorClient(chainId, { publicClient, envioClient });
       try {
         const instanceId = BigInt(instanceAddress);
-        const instance = await maoDistributor.getMAOInstance({ instanceId });
+        const instance = await maoDistributor.getMAOInstance({ name: maoDistributionName, instanceId });
         const resolvedAddress = instance.instance.address;
-        
+
         if (spinner) {
           spinner.succeed(`Resolved instance ID ${instanceAddress} to address ${resolvedAddress}`);
         }
-        
+
         return resolvedAddress;
       } catch (error) {
         if (spinner) {
           spinner.fail(`Failed to resolve instance ID ${instanceAddress}`);
         }
-        
+
         console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
         process.exit(1);
       }
@@ -57,7 +59,7 @@ export class CLIUtils {
         if (spinner) {
           spinner.fail(`Invalid instance address: ${instanceAddress}`);
         }
-        
+
         console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
         process.exit(1);
       }

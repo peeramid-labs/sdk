@@ -8,6 +8,7 @@ import GameMaster from "../../../../rankify/GameMaster";
 import { CLIUtils } from "../../../utils";
 import InstanceBase from "../../../../rankify/InstanceBase";
 import RankifyPlayer from "../../../../rankify/Player";
+import EnvioGraphQLClient from "../../../../utils/EnvioGraphQLClient";
 
 export const vote = new Command("vote")
   .description("Submit a vote in a Rankify game")
@@ -16,10 +17,12 @@ export const vote = new Command("vote")
   .argument("<votes>", "Comma-separated list of vote values (e.g. 5,3,0,2,4)")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
   .option("-i, --m-index <mnemonicIndex>", "Index to derive from mnemonic")
+  .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
   .option(
     "-k, --key <privateKey>",
     "Private key or index to derive from mnemonic for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
   )
+  .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
   .action(async (instanceAddress, gameId, votesStr, options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -27,11 +30,15 @@ export const vote = new Command("vote")
       const publicClient = await createPublic(options.rpc);
       const walletClient = await createWallet(options.rpc, resolvePk(options.mIndex ?? options.key, spinner));
       const chainId = Number(await publicClient.getChainId());
-
+      const envioClient = new EnvioGraphQLClient({
+        endpoint: process.env.INDEXER_URL ?? options.envio,
+      });
       const resolvedInstanceAddress = await CLIUtils.resolveInstanceAddress(
         instanceAddress,
         chainId,
         publicClient,
+        envioClient,
+        options.distributionName,
         spinner
       );
 
@@ -46,11 +53,12 @@ export const vote = new Command("vote")
        // Create game master client
        spinner.text = "Creating game master client...";
        const gmWalletClient = await createWallet(options.rpc);
-       
+
        const gameMaster = new GameMaster({
          walletClient: gmWalletClient,
          publicClient,
          chainId,
+         envioClient,
        });
 
       const player = new RankifyPlayer({
@@ -59,6 +67,7 @@ export const vote = new Command("vote")
         chainId,
         instanceAddress: resolvedInstanceAddress,
         account,
+        envioClient,
       });
 
       // Create an instance of InstanceBase to get game state details
@@ -66,6 +75,7 @@ export const vote = new Command("vote")
         instanceAddress: resolvedInstanceAddress,
         publicClient,
         chainId,
+        envioClient,
       });
 
       // Parse votes from comma-separated string
@@ -75,7 +85,7 @@ export const vote = new Command("vote")
       // Get current game state to determine turn if not specified
       spinner.text = "Getting game state...";
       const currentTurn = await instanceBase.getCurrentTurn(gameIdBigInt);
-    
+
       spinner.text = "Attesting vote...";
       console.log("Attesting vote...", {
         voter: account,
@@ -126,7 +136,7 @@ export const vote = new Command("vote")
       console.log(chalk.green(`Turn: ${currentTurn.toString()}`));
       console.log(chalk.green(`Vote values: ${voteValues.join(", ")}`));
       console.log(chalk.dim("Transaction hash:"), receipt.transactionHash);
-      
+
     } catch (error) {
       spinner.fail("Failed to submit vote");
       console.error(chalk.red(`Error: ${error instanceof Error ? error.message + "\n" + error.stack : String(error)}`));

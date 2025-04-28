@@ -1,4 +1,24 @@
+import { jest } from "@jest/globals";
 import { type Address, type Hash, type PublicClient, type WalletClient, type TransactionReceipt } from "viem";
+import { EnvioGraphQLClient } from "../utils/EnvioGraphQLClient";
+
+
+// Common mock chain
+export const MOCK_CHAIN = {
+  id: 31337, // localhost
+  name: "Arbitrum One",
+  network: "arbitrum",
+  nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+  rpcUrls: {
+    default: { http: ["https://arb1.arbitrum.io/rpc"] },
+  },
+} as const;
+
+// Common mock hashes
+export const MOCK_HASHES = {
+  TRANSACTION: "0x0000000000000000000000000000000000000000000000000000000000000123" as Hash,
+  BLOCK: "0x0000000000000000000000000000000000000000000000000000000000000456" as Hash,
+};
 
 // Common mock addresses
 export const MOCK_ADDRESSES = {
@@ -14,23 +34,6 @@ export const MOCK_ADDRESSES = {
   GAME_MASTER: "0x1234567890123456789012345678901234567898" as Address,
   INSTANCE: "0x1234567890123456789012345678901234567899" as Address,
 };
-
-// Common mock hashes
-export const MOCK_HASHES = {
-  TRANSACTION: "0x0000000000000000000000000000000000000000000000000000000000000123" as Hash,
-  BLOCK: "0x0000000000000000000000000000000000000000000000000000000000000456" as Hash,
-};
-
-// Common mock chain
-export const MOCK_CHAIN = {
-  id: 31337, // localhost
-  name: "Arbitrum One",
-  network: "arbitrum",
-  nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-  rpcUrls: {
-    default: { http: ["https://arb1.arbitrum.io/rpc"] },
-  },
-} as const;
 
 // Common mock functions
 export const createMockPublicClient = (overrides = {}) =>
@@ -88,23 +91,18 @@ export const createMockTransactionReceipt = (overrides = {}): TransactionReceipt
   ...overrides,
 });
 
-// Add tests
-describe("Test utilities", () => {
-  test("createMockPublicClient should return a client with expected methods", () => {
-    const client = createMockPublicClient();
-    expect(client.readContract).toBeDefined();
-    expect(client.simulateContract).toBeDefined();
-    expect(client.waitForTransactionReceipt).toBeDefined();
-    expect(client.getContractEvents).toBeDefined();
-    expect(client.getBlockNumber).toBeDefined();
-    expect(client.getBytecode).toBeDefined();
-    expect(client.request).toBeDefined();
-    expect(client.chain).toBeDefined();
-    expect((client.chain as typeof MOCK_CHAIN).id).toBe(31337);
-  });
+export const createMockEnvioClient = () => {
+  const mockClient = {
+    getProposalSubmittedEvents: jest.fn(),
+    getVoteSubmittedEvents: jest.fn(() => Promise.resolve([])),
+    getTurnEndedEvents: jest.fn(),
+    getGameCreatedEvents: jest.fn(),
+    getPlayerJoinedEvents: jest.fn(),
+    getGameStartedEvents: jest.fn(),
+    getGameOverEvents: jest.fn(),
+    getMAOInstances: jest.fn(),
+    queryInstances: jest.fn()
+  };
 
-  test("createMockWalletClient should return a client with expected methods", () => {
-    const client = createMockWalletClient();
-    expect(client.writeContract).toBeDefined();
-  });
-});
+  return mockClient as unknown as EnvioGraphQLClient;
+};
