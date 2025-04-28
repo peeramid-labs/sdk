@@ -57,7 +57,7 @@ export class DistributorClient {
         throw new Error(`No instanceId found for distributor ${distributorsId} and instance ${log.newInstanceId}`);
       return {
         newInstanceId: BigInt(log.newInstanceId),
-        addresses: (log.instances ?? []).map((a) => getAddress(a)) as Address[],
+        addresses: (log.instances ?? []).map((a) => (a)) as Address[],
         version: BigInt(log.version),
       };
     });
