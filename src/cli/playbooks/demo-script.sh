@@ -17,7 +17,7 @@ if [ "$part" = 1 ] || [ "$part" = 0 ]; then
   pnpm cli distributions add -i 1 -y
   sleep 5
   #move to contracts folder and run the script, then move back to sdk folder
-  cd ../contracts && pnpm hardhat --network localhost makeDemoSubjects && cd ../sdk 
+  cd ../contracts && pnpm hardhat --network localhost makeDemoSubjects && cd ../sdk || exit 1
 
   sleep 5
 
