@@ -615,7 +615,7 @@ export class GameMaster {
     }
   };
 
-  private hasVoted ({ vote }: { vote: bigint[] | undefined }) {
+  private hasVoted({ vote }: { vote: bigint[] | undefined }) {
     return vote?.reduce((a, b) => a + b, 0n) !== 0n;
   };
 
@@ -633,7 +633,7 @@ export class GameMaster {
     let pointsUsed = 0n;
     for (let i = 0; i < vote.length; i++) {
       if (vote[i] > 0n) {
-        pointsUsed += 1n ** vote[i];
+        pointsUsed += vote[i] * vote[i];
       }
     }
     const gameState = await this.getGameState({ gameId, instanceAddress });
