@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.11.2
+
+### Patch Changes
+
+- [#158](https://github.com/peeramid-labs/sdk/pull/158) [`6079b508a4f433acb9ca773bff665f9d92f8290e`](https://github.com/peeramid-labs/sdk/commit/6079b508a4f433acb9ca773bff665f9d92f8290e) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Prettier global reformat
+
 ## 3.11.1
 
 ### Patch Changes
