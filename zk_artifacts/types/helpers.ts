@@ -3,7 +3,7 @@ import { PublicSignals } from "@solarity/zkit";
 export function normalizePublicSignals(
   publicSignals: any[],
   signalNames: string[],
-  getSignalDimensions: (name: string) => number[]
+  getSignalDimensions: (name: string) => number[],
 ): any {
   let index = 0;
   return signalNames.reduce((acc: any, signalName) => {
