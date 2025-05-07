@@ -8,7 +8,11 @@ import EnvioGraphQLClient from "../../../utils/EnvioGraphQLClient";
 export const listCommand = new Command("list")
   .description("List all distributions")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
-  .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
+  .option(
+    "-e, --envio <url>",
+    "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+    "http://localhost:8080/v1/graphql"
+  )
   .action(async (options) => {
     const spinner = ora("Initializing client...").start();
 

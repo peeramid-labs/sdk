@@ -17,7 +17,7 @@ export const mine = new Command("mine")
 
     try {
       const publicClient = await createPublic(options.rpc);
-      
+
       // We create the wallet client for authentication but don't use it directly
       await createWallet(options.rpc, options.key);
       const chainId = Number(await publicClient.getChainId());
@@ -33,15 +33,14 @@ export const mine = new Command("mine")
 
       // Parse time increase option
       const timeIncrease = parseInt(options.timeIncrease);
-      
+
       // Use the utility function to increase time and mine
       const result = await BlockchainUtils.increaseTimeAndMine(publicClient, timeIncrease, spinner);
-      
+
       spinner.succeed(`Successfully mined a new block`);
       console.log(chalk.green(`New block: ${result.newBlock.number}, timestamp: ${result.newBlock.timestamp}`));
       console.log(chalk.green(`Timestamp increased by: ${result.actualIncrease} seconds`));
       console.log(chalk.green(`New timestamp: ${new Date(Number(result.newBlock.timestamp) * 1000).toLocaleString()}`));
-      
     } catch (error) {
       spinner.fail("Failed to mine block");
       console.error(chalk.red(`Error: ${error instanceof Error ? error.message + "\n" + error.stack : String(error)}`));

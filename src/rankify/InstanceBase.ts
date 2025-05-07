@@ -215,7 +215,7 @@ export default class InstanceBase {
         encryptedProposal: event.encryptedProposal,
         commitment: event.commitment,
         gmSignature: event.gmSignature,
-        proposerSignature: event.proposerSignature
+        proposerSignature: event.proposerSignature,
       })),
     };
   };
@@ -349,14 +349,17 @@ export default class InstanceBase {
 
     if (currentTurn === 0n) return 0;
 
-    const logs =  currentTurn === 1n  ? await this.envioClient.getGameStartedEvents({
-      gameId,
-      contractAddress: this.instanceAddress,
-    }) : await this.envioClient.getTurnEndedEvents({
-      turn: currentTurn - 1n,
-      gameId,
-      contractAddress: this.instanceAddress,
-    });
+    const logs =
+      currentTurn === 1n
+        ? await this.envioClient.getGameStartedEvents({
+            gameId,
+            contractAddress: this.instanceAddress,
+          })
+        : await this.envioClient.getTurnEndedEvents({
+            turn: currentTurn - 1n,
+            gameId,
+            contractAddress: this.instanceAddress,
+          });
 
     if (logs.length !== 1) {
       console.error("getTurnDeadline", gameId, "failed:", logs.length);
@@ -525,7 +528,7 @@ export default class InstanceBase {
       if (state.hasEnded) {
         const GameOverEvents = await this.envioClient.getGameOverEvents({
           gameId,
-          contractAddress: this.instanceAddress
+          contractAddress: this.instanceAddress,
         });
         const evt = GameOverEvents[0];
         if (evt?.scores && evt?.players) {
@@ -798,7 +801,7 @@ export default class InstanceBase {
         envioClient: this.envioClient,
       });
       const instanceId = await distributor.getInstanceFromAddress(this.instanceAddress);
-      this.instanceContracts = await distributor.getMAOInstance({ instanceId: instanceId  });
+      this.instanceContracts = await distributor.getMAOInstance({ instanceId: instanceId });
     }
     return this.instanceContracts;
   };

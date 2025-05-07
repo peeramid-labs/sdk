@@ -22,7 +22,11 @@ export const vote = new Command("vote")
     "-k, --key <privateKey>",
     "Private key or index to derive from mnemonic for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
   )
-  .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
+  .option(
+    "-e, --envio <url>",
+    "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+    "http://localhost:8080/v1/graphql"
+  )
   .action(async (instanceAddress, gameId, votesStr, options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -50,16 +54,16 @@ export const vote = new Command("vote")
         throw new Error("No account available");
       }
 
-       // Create game master client
-       spinner.text = "Creating game master client...";
-       const gmWalletClient = await createWallet(options.rpc);
+      // Create game master client
+      spinner.text = "Creating game master client...";
+      const gmWalletClient = await createWallet(options.rpc);
 
-       const gameMaster = new GameMaster({
-         walletClient: gmWalletClient,
-         publicClient,
-         chainId,
-         envioClient,
-       });
+      const gameMaster = new GameMaster({
+        walletClient: gmWalletClient,
+        publicClient,
+        chainId,
+        envioClient,
+      });
 
       const player = new RankifyPlayer({
         publicClient,
@@ -136,7 +140,6 @@ export const vote = new Command("vote")
       console.log(chalk.green(`Turn: ${currentTurn.toString()}`));
       console.log(chalk.green(`Vote values: ${voteValues.join(", ")}`));
       console.log(chalk.dim("Transaction hash:"), receipt.transactionHash);
-
     } catch (error) {
       spinner.fail("Failed to submit vote");
       console.error(chalk.red(`Error: ${error instanceof Error ? error.message + "\n" + error.stack : String(error)}`));

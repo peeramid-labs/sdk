@@ -37,16 +37,12 @@ export class DistributorClient {
     return this.createdAtBlock;
   }
 
-  async getInstances(
-    distributorsId: Hex,
-  ): Promise<{ newInstanceId: bigint; version: bigint; addresses: Address[] }[]> {
+  async getInstances(distributorsId: Hex): Promise<{ newInstanceId: bigint; version: bigint; addresses: Address[] }[]> {
     if (!this.publicClient.chain?.id) throw new Error("Chain ID is not set");
 
-    const events = await this.envioClient.queryInstances(
-      {
-        distributionId: distributorsId,
-      },
-    );
+    const events = await this.envioClient.queryInstances({
+      distributionId: distributorsId,
+    });
 
     return events.map((log) => {
       if (!log.version)
@@ -57,20 +53,17 @@ export class DistributorClient {
         throw new Error(`No instanceId found for distributor ${distributorsId} and instance ${log.newInstanceId}`);
       return {
         newInstanceId: BigInt(log.newInstanceId),
-        addresses: (log.instances ?? []).map((a) => (a)) as Address[],
+        addresses: (log.instances ?? []).map((a) => a) as Address[],
         version: BigInt(log.version),
       };
     });
   }
 
   async getInstance(distributorsId: Hex, instanceId: bigint): Promise<Address[]> {
-
-    const events = await this.envioClient.queryInstances(
-      {
-        distributionId: distributorsId,
-        instanceId: instanceId.toString(),
-      },
-    );
+    const events = await this.envioClient.queryInstances({
+      distributionId: distributorsId,
+      instanceId: instanceId.toString(),
+    });
 
     if (events.length > 1) {
       throw new Error(`Multiple instances found for distributor ${distributorsId} and instance ${instanceId}`);

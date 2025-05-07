@@ -114,7 +114,13 @@ export class GameMaster {
     instance?: InstanceBase;
   }) => {
     const _instance =
-      instance ?? new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId, envioClient: this.envioClient });
+      instance ??
+      new InstanceBase({
+        instanceAddress,
+        publicClient: this.publicClient,
+        chainId: this.chainId,
+        envioClient: this.envioClient,
+      });
     const proposerPubKey = await _instance.getPlayerPubKey({
       instanceAddress,
       gameId,
@@ -165,19 +171,23 @@ export class GameMaster {
     logger(`Found ${ProposalSubmittedEvents.length} proposals from Envio`);
     logger(`Decrypting ${ProposalSubmittedEvents.length} proposals`);
     logger(`Found ${ProposalSubmittedEvents.length} proposals`);
-    const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId, envioClient: this.envioClient });
+    const instance = new InstanceBase({
+      instanceAddress,
+      publicClient: this.publicClient,
+      chainId: this.chainId,
+      envioClient: this.envioClient,
+    });
 
     logger(`Decrypting ${ProposalSubmittedEvents.length} proposals`);
     const proposalsForPlayers = await Promise.all(
-      (players)?.map(async (player) => {
+      players?.map(async (player) => {
         const log = ProposalSubmittedEvents.find((log) => log.proposer === player);
         if (!log) {
           return {
             proposer: player,
             proposal: "",
           };
-        }
-        else {
+        } else {
           logger(`Decrypting proposal ${log.proposer}`);
           if (!log.proposer) throw new Error("No proposer");
           if (!log.encryptedProposal) throw new Error("No proposalEncryptedByGM");
@@ -197,7 +207,12 @@ export class GameMaster {
     );
 
     if (permute) {
-      const proposalsPermuted = await this.permuteArray({ array: proposalsForPlayers, gameId, turn, verifierAddress: instanceAddress });
+      const proposalsPermuted = await this.permuteArray({
+        array: proposalsForPlayers,
+        gameId,
+        turn,
+        verifierAddress: instanceAddress,
+      });
       return padToMaxSize ? this.padProposalsArrayWithZeroAddress(proposalsPermuted) : proposalsPermuted;
     }
 
@@ -436,7 +451,13 @@ export class GameMaster {
       turn = await this.currentTurn({ instanceAddress, gameId });
     }
     const players = await this.getPlayers({ instanceAddress, gameId });
-    const decryptedProposalsPermuted = await this.decryptProposals({ instanceAddress, gameId, turn: turn - 1n, players: [...players], permute: true });
+    const decryptedProposalsPermuted = await this.decryptProposals({
+      instanceAddress,
+      gameId,
+      turn: turn - 1n,
+      players: [...players],
+      permute: true,
+    });
 
     return decryptedProposalsPermuted.findIndex((p) => p?.proposer === player);
   };
@@ -481,7 +502,12 @@ export class GameMaster {
     if (!isValid) {
       throw new Error(errorMessage);
     }
-    const baseInstance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId, envioClient: this.envioClient });
+    const baseInstance = new InstanceBase({
+      instanceAddress,
+      publicClient: this.publicClient,
+      chainId: this.chainId,
+      envioClient: this.envioClient,
+    });
     const eip712 = await baseInstance.getEIP712Domain();
     logger(
       {
@@ -574,9 +600,16 @@ export class GameMaster {
   }) => {
     const players = await this.getPlayers({ instanceAddress, gameId });
     const turn = await this.currentTurn({ instanceAddress, gameId });
-    const validationResult = await this.validateVote({ gameId, turn, voter, vote, instanceAddress, players: [...players] });
+    const validationResult = await this.validateVote({
+      gameId,
+      turn,
+      voter,
+      vote,
+      instanceAddress,
+      players: [...players],
+    });
     if (!validationResult.result) {
-      throw new Error('Vote validation failed: ' + validationResult.reason);
+      throw new Error("Vote validation failed: " + validationResult.reason);
     }
 
     try {
@@ -600,29 +633,70 @@ export class GameMaster {
    * @param gameId - ID of the game
    * @returns Current turn progress
    */
-  private getTurnProgress = async ({ instanceAddress, gameState, gameId }: { instanceAddress: Address; gameState: GameState; gameId: bigint }) => {
-    const prevTurnProposals = await this.decryptProposals({ instanceAddress, gameId, turn: gameState.currentTurn - 1n, players: [...gameState.players] });
-    const proposalCountInPrevTurn = prevTurnProposals.filter(p => p.proposal !== "").length;
-    const proposalsMadeInCurrentTurn = await this.decryptProposals({ instanceAddress, gameId, turn: gameState.currentTurn, players: [...gameState.players] });
-    const proposalCountInCurrentTurn = proposalsMadeInCurrentTurn.filter(p => p.proposal !== "").length;
+  private getTurnProgress = async ({
+    instanceAddress,
+    gameState,
+    gameId,
+  }: {
+    instanceAddress: Address;
+    gameState: GameState;
+    gameId: bigint;
+  }) => {
+    const prevTurnProposals = await this.decryptProposals({
+      instanceAddress,
+      gameId,
+      turn: gameState.currentTurn - 1n,
+      players: [...gameState.players],
+    });
+    const proposalCountInPrevTurn = prevTurnProposals.filter((p) => p.proposal !== "").length;
+    const proposalsMadeInCurrentTurn = await this.decryptProposals({
+      instanceAddress,
+      gameId,
+      turn: gameState.currentTurn,
+      players: [...gameState.players],
+    });
+    const proposalCountInCurrentTurn = proposalsMadeInCurrentTurn.filter((p) => p.proposal !== "").length;
 
     if (proposalCountInPrevTurn === 0) {
       return (proposalCountInCurrentTurn / gameState.players.length) * 100;
     } else {
-      const votesMadeInCurrentTurn = await this.decryptTurnVotes({ instanceAddress, gameId, turn: gameState.currentTurn, players: [...gameState.players] });
-      const votesCount = votesMadeInCurrentTurn.filter(v => this.hasVoted({ vote: v })).length;
+      const votesMadeInCurrentTurn = await this.decryptTurnVotes({
+        instanceAddress,
+        gameId,
+        turn: gameState.currentTurn,
+        players: [...gameState.players],
+      });
+      const votesCount = votesMadeInCurrentTurn.filter((v) => this.hasVoted({ vote: v })).length;
       return ((votesCount + proposalCountInCurrentTurn) / (gameState.players.length * 2)) * 100;
     }
   };
 
   private hasVoted({ vote }: { vote: bigint[] | undefined }) {
     return vote?.reduce((a, b) => a + b, 0n) !== 0n;
-  };
+  }
 
-  private validateVote = async ({ gameId, turn, voter, vote, instanceAddress, players }:
-    { gameId: bigint; turn: bigint; voter: Address; vote: bigint[]; instanceAddress: Address; players: Address[] }) => {
-
-    const decryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn: turn - 1n, players, permute: true });
+  private validateVote = async ({
+    gameId,
+    turn,
+    voter,
+    vote,
+    instanceAddress,
+    players,
+  }: {
+    gameId: bigint;
+    turn: bigint;
+    voter: Address;
+    vote: bigint[];
+    instanceAddress: Address;
+    players: Address[];
+  }) => {
+    const decryptedProposals = await this.decryptProposals({
+      instanceAddress,
+      gameId,
+      turn: turn - 1n,
+      players,
+      permute: true,
+    });
 
     //Invalid vote length
     if (vote.length !== decryptedProposals.length) {
@@ -683,7 +757,6 @@ export class GameMaster {
 
     return creationBlock;
   }
-
 
   private padProposalsArrayWithZeroAddress = (proposals: { proposer: Address; proposal: string }[]) => {
     if (proposals.length < this.maxSlotSizeForProofs) {
@@ -761,7 +834,12 @@ export class GameMaster {
     proposer: Address;
     turn: bigint;
   }) => {
-    const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId, envioClient: this.envioClient });
+    const instance = new InstanceBase({
+      instanceAddress,
+      publicClient: this.publicClient,
+      chainId: this.chainId,
+      envioClient: this.envioClient,
+    });
     const proposerPubKey = await instance.getPlayerPubKey({
       instanceAddress,
       gameId,
@@ -808,7 +886,12 @@ export class GameMaster {
     gameId: bigint;
     proposerPubKey: Hex;
   }) => {
-    const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId, envioClient: this.envioClient });
+    const instance = new InstanceBase({
+      instanceAddress,
+      publicClient: this.publicClient,
+      chainId: this.chainId,
+      envioClient: this.envioClient,
+    });
     const sharedKey = instance.sharedSigner({
       publicKey: proposerPubKey,
       privateKey: await this.gameKey({ gameId, contractAddress: instanceAddress }),
@@ -848,7 +931,12 @@ export class GameMaster {
     const proposerAddress = publicKeyToAddress(proposerPubKey);
     logger(`Creating proposal secrets for player ${proposerAddress} in game ${gameId}`);
     const poseidon = await buildPoseidon();
-    const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId, envioClient: this.envioClient });
+    const instance = new InstanceBase({
+      instanceAddress,
+      publicClient: this.publicClient,
+      chainId: this.chainId,
+      envioClient: this.envioClient,
+    });
     const { encryptedProposal, sharedKey } = await this.encryptProposal({
       proposal,
       turn,
@@ -1004,7 +1092,9 @@ export class GameMaster {
     //Extra check to not allow to end turn if current phase timeout is not passed and progress is less than 100% (probably must be fixed in contracts!)
     // TODO: if fixed in contracts, remove this check
     const gameState = await this.getGameState({ instanceAddress, gameId });
-    const lastBlock = await this.publicClient.getBlock({ blockNumber: BigInt(await this.publicClient.getBlockNumber()) });
+    const lastBlock = await this.publicClient.getBlock({
+      blockNumber: BigInt(await this.publicClient.getBlockNumber()),
+    });
     if (gameState.turnStartedAt + gameState.timePerTurn > lastBlock.timestamp) {
       const turnProgress = await this.getTurnProgress({ instanceAddress, gameState, gameId });
       if (turnProgress <= 100) return false;
@@ -1066,7 +1156,13 @@ export class GameMaster {
 
       logger(`Current turn: ${turn}, Players count: ${players.length}`, 2);
 
-      const newPaddedDecryptedProposals = await this.decryptProposals({ instanceAddress, gameId, turn, players: [...players], padToMaxSize: true });
+      const newPaddedDecryptedProposals = await this.decryptProposals({
+        instanceAddress,
+        gameId,
+        turn,
+        players: [...players],
+        padToMaxSize: true,
+      });
       logger(`newPaddedDecryptedProposals:`);
       logger(newPaddedDecryptedProposals);
 
@@ -1129,7 +1225,12 @@ export class GameMaster {
     player: Address;
   }) => {
     logger(`Calculating shared turn key for player ${player} in game ${gameId} at address ${instanceAddress}`);
-    const instance = new InstanceBase({ instanceAddress, publicClient: this.publicClient, chainId: this.chainId, envioClient: this.envioClient });
+    const instance = new InstanceBase({
+      instanceAddress,
+      publicClient: this.publicClient,
+      chainId: this.chainId,
+      envioClient: this.envioClient,
+    });
     const playerPubKey = await instance.getPlayerPubKey({ instanceAddress, gameId, player });
     logger(`Player public key: ${playerPubKey}`, 2);
     console.log("Player public key:", playerPubKey);
@@ -1182,9 +1283,16 @@ export class GameMaster {
     logger(`Attesting vote for player ${voter} in game ${gameId}, turn ${turn}`);
 
     const players = await this.getPlayers({ instanceAddress: verifierAddress, gameId });
-    const validationResult = await this.validateVote({ gameId, turn, voter, vote, instanceAddress: verifierAddress, players: [...players] });
+    const validationResult = await this.validateVote({
+      gameId,
+      turn,
+      voter,
+      vote,
+      instanceAddress: verifierAddress,
+      players: [...players],
+    });
     if (!validationResult.result) {
-      throw new Error('Vote validation failed: ' + validationResult.reason);
+      throw new Error("Vote validation failed: " + validationResult.reason);
     }
 
     const gameSize = players.length;
@@ -1322,17 +1430,17 @@ export class GameMaster {
       _proposals.map((p) =>
         p.proposal === ""
           ? {
-            proposalValue: 0n,
-            randomnessValue: 0n,
-            proposer: p.proposer,
-          }
+              proposalValue: 0n,
+              randomnessValue: 0n,
+              proposer: p.proposer,
+            }
           : this.proposalValues({
-            instanceAddress: verifierAddress,
-            gameId,
-            proposal: p.proposal,
-            turn,
-            proposer: p.proposer,
-          })
+              instanceAddress: verifierAddress,
+              gameId,
+              proposal: p.proposal,
+              turn,
+              proposer: p.proposer,
+            })
       )
     );
 
@@ -1413,13 +1521,14 @@ export class GameMaster {
   }): Promise<ProposalsIntegrity> {
     logger(`Generating proposals integrity for game ${gameId}, turn ${turn} with ${size} players.`);
 
-    const { commitment, prevTurnSalt, prevTurnPermutation, permutedProposals, a, b, c } = await this.generateEndTurnIntegrity({
-      gameId,
-      turn,
-      verifierAddress,
-      size,
-      proposals,
-    });
+    const { commitment, prevTurnSalt, prevTurnPermutation, permutedProposals, a, b, c } =
+      await this.generateEndTurnIntegrity({
+        gameId,
+        turn,
+        verifierAddress,
+        size,
+        proposals,
+      });
 
     logger(`Generated proposals integrity with commitment ${commitment}`);
     return {
@@ -1463,7 +1572,11 @@ export class GameMaster {
     const permutedProposals: bigint[] = Array(this.maxSlotSizeForProofs).fill(0n);
 
     // Generate deterministic permutation
-    const { permutation, turnSalt: secret, commitment } = await this.generateDeterministicPermutation({
+    const {
+      permutation,
+      turnSalt: secret,
+      commitment,
+    } = await this.generateDeterministicPermutation({
       gameId,
       turn,
       verifierAddress,

@@ -1,18 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from "@jest/globals";
+import { type PublicClient, type WalletClient, type GetContractEventsReturnType, type Hex, type Address } from "viem";
 import {
-  type PublicClient,
-  type WalletClient,
-  type GetContractEventsReturnType,
-  type Hex,
-  type Address,
-} from "viem";
-import { MOCK_ADDRESSES, MOCK_HASHES, createMockEnvioClient, createMockPublicClient, createMockWalletClient } from "../../utils/mockUtils";
+  MOCK_ADDRESSES,
+  MOCK_HASHES,
+  createMockEnvioClient,
+  createMockPublicClient,
+  createMockWalletClient,
+} from "../../utils/mockUtils";
 import { gameStatusEnum } from "../../types";
 import aes from "crypto-js/aes";
 import InstanceBase from "../InstanceBase";
 import { GameMaster } from "../GameMaster";
 import { publicKeyToAddress } from "viem/accounts";
-
 
 const mockPrivateKey = "0000000000000000000000000000000000000000000000000000000000000001";
 const mockPublicKey = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
@@ -106,7 +105,7 @@ describe("GameMaster", () => {
   beforeEach(() => {
     // Reset all mocks
     jest.clearAllMocks();
-    
+
     // Reset mock implementations to default values
     mockReadContract.mockImplementation(() => Promise.resolve(0n));
     mockSimulateContract.mockImplementation(() => Promise.resolve({ request: {} }));
@@ -114,12 +113,12 @@ describe("GameMaster", () => {
     mockGetCode.mockImplementation(() => Promise.resolve("0x1234" as Hex));
     mockSignTypedData.mockImplementation(() => Promise.resolve("0x123" as `0x${string}`));
     mockSignMessage.mockImplementation(() => Promise.resolve("0x123" as `0x${string}`));
-    
+
     // Reset envio client mocks
-    jest.spyOn(mockEnvioClient, 'getProposalSubmittedEvents').mockReset();
-    jest.spyOn(mockEnvioClient, 'getPlayerJoinedEvents').mockReset();
-    jest.spyOn(mockEnvioClient, 'getVoteSubmittedEvents').mockReset();
-    jest.spyOn(mockEnvioClient, 'getGameOverEvents').mockReset();
+    jest.spyOn(mockEnvioClient, "getProposalSubmittedEvents").mockReset();
+    jest.spyOn(mockEnvioClient, "getPlayerJoinedEvents").mockReset();
+    jest.spyOn(mockEnvioClient, "getVoteSubmittedEvents").mockReset();
+    jest.spyOn(mockEnvioClient, "getGameOverEvents").mockReset();
 
     gameMaster = new GameMaster({
       walletClient: mockWalletClient as WalletClient,
@@ -136,40 +135,46 @@ describe("GameMaster", () => {
 
   describe("decryptProposals", () => {
     it("should decrypt proposals for a game turn in default", async () => {
-      jest.spyOn(mockEnvioClient, 'getProposalSubmittedEvents').mockResolvedValue([{
-        id: "1",
-        gameId: BigInt("1"),
-        turn: BigInt("1"),
-        proposer: publicKeyToAddress(`0x${mockPublicKey}`) as Hex as Address,
-        encryptedProposal: await gameMaster.encryptProposal({
-          proposal: "test_proposal",
-          turn: 1n,
-          instanceAddress: MOCK_ADDRESSES.INSTANCE,
-          gameId: 1n,
-          proposerPubKey: ("0x" + mockPublicKey) as Hex,
-        }).then((encryptedProposal) => encryptedProposal.encryptedProposal),
-        blockNumber: BigInt("1000"),
-        blockTimestamp: "1000",
-        srcAddress: MOCK_ADDRESSES.INSTANCE,
-        contractAddress: MOCK_ADDRESSES.INSTANCE,
-        commitment: BigInt("0"),
-        gmSignature: "0x123",
-        proposerSignature: "0x123"
-      }]);
+      jest.spyOn(mockEnvioClient, "getProposalSubmittedEvents").mockResolvedValue([
+        {
+          id: "1",
+          gameId: BigInt("1"),
+          turn: BigInt("1"),
+          proposer: publicKeyToAddress(`0x${mockPublicKey}`) as Hex as Address,
+          encryptedProposal: await gameMaster
+            .encryptProposal({
+              proposal: "test_proposal",
+              turn: 1n,
+              instanceAddress: MOCK_ADDRESSES.INSTANCE,
+              gameId: 1n,
+              proposerPubKey: ("0x" + mockPublicKey) as Hex,
+            })
+            .then((encryptedProposal) => encryptedProposal.encryptedProposal),
+          blockNumber: BigInt("1000"),
+          blockTimestamp: "1000",
+          srcAddress: MOCK_ADDRESSES.INSTANCE,
+          contractAddress: MOCK_ADDRESSES.INSTANCE,
+          commitment: BigInt("0"),
+          gmSignature: "0x123",
+          proposerSignature: "0x123",
+        },
+      ]);
 
-      jest.spyOn(mockEnvioClient, 'getPlayerJoinedEvents').mockResolvedValue([{
-        id: "1",
-        gameId: BigInt("1"),
-        participant: MOCK_ADDRESSES.PLAYER,
-        gmCommitment: "0x123",
-        voterPubKey: ("0x" + mockPublicKey) as Hex,
-        blockNumber: BigInt("1"),
-        blockTimestamp: "1000",
-        srcAddress: MOCK_ADDRESSES.INSTANCE,
-        contractAddress: MOCK_ADDRESSES.INSTANCE,
-        transactionIndex: 0,
-        logIndex: 0,
-      }]);
+      jest.spyOn(mockEnvioClient, "getPlayerJoinedEvents").mockResolvedValue([
+        {
+          id: "1",
+          gameId: BigInt("1"),
+          participant: MOCK_ADDRESSES.PLAYER,
+          gmCommitment: "0x123",
+          voterPubKey: ("0x" + mockPublicKey) as Hex,
+          blockNumber: BigInt("1"),
+          blockTimestamp: "1000",
+          srcAddress: MOCK_ADDRESSES.INSTANCE,
+          contractAddress: MOCK_ADDRESSES.INSTANCE,
+          transactionIndex: 0,
+          logIndex: 0,
+        },
+      ]);
 
       const result = await gameMaster.decryptProposals({
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
@@ -185,13 +190,12 @@ describe("GameMaster", () => {
         },
       ]);
 
-
       const resultPadded = await gameMaster.decryptProposals({
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
         gameId: 1n,
         turn: 1n,
         players: [MOCK_ADDRESSES.PROPOSER],
-        padToMaxSize: true
+        padToMaxSize: true,
       });
 
       expect(resultPadded.length).toEqual(15);
@@ -201,7 +205,7 @@ describe("GameMaster", () => {
 
     it("should return array item element for each player even if he didn't propose", async () => {
       // Mock envio client to return empty array for no proposals
-      jest.spyOn(mockEnvioClient, 'getProposalSubmittedEvents').mockResolvedValueOnce([]);
+      jest.spyOn(mockEnvioClient, "getProposalSubmittedEvents").mockResolvedValueOnce([]);
 
       const result = await gameMaster.decryptProposals({
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
@@ -229,11 +233,11 @@ describe("GameMaster", () => {
   describe("signJoiningGame", () => {
     it("should sign joining game event", async () => {
       const mockGameState = {
-          contractAddresses: [] as readonly `0x${string}`[],
-          functionSelectors: [] as readonly `0x${string}`[],
-          args: [] as readonly unknown[],
-          contractIds: [] as readonly bigint[],
-          contractTypes: [] as readonly bigint[],
+        contractAddresses: [] as readonly `0x${string}`[],
+        functionSelectors: [] as readonly `0x${string}`[],
+        args: [] as readonly unknown[],
+        contractIds: [] as readonly bigint[],
+        contractTypes: [] as readonly bigint[],
       };
 
       const mockDomainData: readonly [
@@ -257,16 +261,22 @@ describe("GameMaster", () => {
       ];
 
       mockReadContract
-      .mockResolvedValueOnce(mockGameState)
-      .mockResolvedValueOnce([] as readonly `0x${string}`[])
-      .mockResolvedValueOnce(0n)
-      .mockResolvedValueOnce([] as readonly `0x${string}`[])
-      .mockResolvedValueOnce(0n)
-      .mockResolvedValueOnce({ gamePhase: gameStatusEnum.open, maxPlayerCnt: 5n, players: [], registrationOpenAt: 1000n, timeToJoin: 180n, timePerTurn: 3600n })
-      .mockResolvedValueOnce(mockDomainData);
+        .mockResolvedValueOnce(mockGameState)
+        .mockResolvedValueOnce([] as readonly `0x${string}`[])
+        .mockResolvedValueOnce(0n)
+        .mockResolvedValueOnce([] as readonly `0x${string}`[])
+        .mockResolvedValueOnce(0n)
+        .mockResolvedValueOnce({
+          gamePhase: gameStatusEnum.open,
+          maxPlayerCnt: 5n,
+          players: [],
+          registrationOpenAt: 1000n,
+          timeToJoin: 180n,
+          timePerTurn: 3600n,
+        })
+        .mockResolvedValueOnce(mockDomainData);
 
       mockSignTypedData.mockResolvedValueOnce("0xsignedMessage" as `0x${string}`);
-
 
       // Mock signTypedData on walletClient
       const mockSignature = "0xsignedMessage" as `0x${string}`;
@@ -614,10 +624,16 @@ describe("GameMaster", () => {
         gmCommitment: "0x123",
         blockTimestamp: "1000",
       }));
-      
-      jest.spyOn(mockEnvioClient, 'getPlayerJoinedEvents').mockImplementationOnce(() => Promise.resolve([joinGameEvents[0]]));
-      jest.spyOn(mockEnvioClient, 'getPlayerJoinedEvents').mockImplementationOnce(() => Promise.resolve([joinGameEvents[1]]));
-      jest.spyOn(mockEnvioClient, 'getPlayerJoinedEvents').mockImplementationOnce(() => Promise.resolve([joinGameEvents[2]]));
+
+      jest
+        .spyOn(mockEnvioClient, "getPlayerJoinedEvents")
+        .mockImplementationOnce(() => Promise.resolve([joinGameEvents[0]]));
+      jest
+        .spyOn(mockEnvioClient, "getPlayerJoinedEvents")
+        .mockImplementationOnce(() => Promise.resolve([joinGameEvents[1]]));
+      jest
+        .spyOn(mockEnvioClient, "getPlayerJoinedEvents")
+        .mockImplementationOnce(() => Promise.resolve([joinGameEvents[2]]));
 
       const result = await gameMaster.getProposalsIntegrity({
         size: 3,
@@ -693,10 +709,12 @@ describe("GameMaster", () => {
         gmCommitment: "0x123",
         blockTimestamp: "1000",
       }));
-      
+
       // Mock getPlayerJoinedEvents for each player
       for (let i = 0; i < maxProposals.length; i++) {
-        jest.spyOn(mockEnvioClient, 'getPlayerJoinedEvents').mockImplementationOnce(() => Promise.resolve([joinGameEvents[i]]));
+        jest
+          .spyOn(mockEnvioClient, "getPlayerJoinedEvents")
+          .mockImplementationOnce(() => Promise.resolve([joinGameEvents[i]]));
       }
 
       const result = await gameMaster.getProposalsIntegrity({
@@ -773,10 +791,12 @@ describe("GameMaster", () => {
         gmCommitment: "0x123",
         blockTimestamp: "1000",
       }));
-      
+
       // Mock getPlayerJoinedEvents for each player
       for (let i = 0; i < testProposals.length; i++) {
-        jest.spyOn(mockEnvioClient, 'getPlayerJoinedEvents').mockImplementationOnce(() => Promise.resolve([joinGameEvents[i]]));
+        jest
+          .spyOn(mockEnvioClient, "getPlayerJoinedEvents")
+          .mockImplementationOnce(() => Promise.resolve([joinGameEvents[i]]));
       }
 
       const integrityResult = await gameMaster.getProposalsIntegrity({
@@ -941,21 +961,23 @@ describe("GameMaster", () => {
       };
 
       // Mock game over event
-      const mockGameOverEvent = [{
-        id: "1",
-        gameId: 1n,
-        players: [MOCK_ADDRESSES.PLAYER],
-        scores: [100n],
-        blockNumber: 1000n,
-        blockTimestamp: "1000",
-        srcAddress: MOCK_ADDRESSES.INSTANCE,
-        contractAddress: MOCK_ADDRESSES.INSTANCE,
-        transactionIndex: 0,
-        logIndex: 0,
-      }];
+      const mockGameOverEvent = [
+        {
+          id: "1",
+          gameId: 1n,
+          players: [MOCK_ADDRESSES.PLAYER],
+          scores: [100n],
+          blockNumber: 1000n,
+          blockTimestamp: "1000",
+          srcAddress: MOCK_ADDRESSES.INSTANCE,
+          contractAddress: MOCK_ADDRESSES.INSTANCE,
+          transactionIndex: 0,
+          logIndex: 0,
+        },
+      ];
 
       // Mock getGameOverEvents
-      jest.spyOn(mockEnvioClient, 'getGameOverEvents').mockImplementationOnce(() => Promise.resolve(mockGameOverEvent));
+      jest.spyOn(mockEnvioClient, "getGameOverEvents").mockImplementationOnce(() => Promise.resolve(mockGameOverEvent));
 
       mockReadContract
         .mockResolvedValueOnce({
@@ -1013,26 +1035,28 @@ describe("GameMaster", () => {
       const encryptedBallot = aes.encrypt(JSON.stringify(["1", "2", "3"]), mockSharedKey).toString();
 
       // Mock VoteSubmitted events using envioClient
-      jest.spyOn(mockEnvioClient, 'getVoteSubmittedEvents').mockResolvedValueOnce([{
-        id: "1",
-        gameId: 1n,
-        turn: 1n,
-        player: MOCK_ADDRESSES.PLAYER,
-        sealedBallotId: encryptedBallot,
-        blockNumber: 1000n,
-        blockTimestamp: "1000",
-        srcAddress: MOCK_ADDRESSES.INSTANCE,
-        contractAddress: MOCK_ADDRESSES.INSTANCE,
-        gmSignature: "0x123",
-        voterSignature: "0x123",
-        ballotHash: "0x123"
-      }]);
+      jest.spyOn(mockEnvioClient, "getVoteSubmittedEvents").mockResolvedValueOnce([
+        {
+          id: "1",
+          gameId: 1n,
+          turn: 1n,
+          player: MOCK_ADDRESSES.PLAYER,
+          sealedBallotId: encryptedBallot,
+          blockNumber: 1000n,
+          blockTimestamp: "1000",
+          srcAddress: MOCK_ADDRESSES.INSTANCE,
+          contractAddress: MOCK_ADDRESSES.INSTANCE,
+          gmSignature: "0x123",
+          voterSignature: "0x123",
+          ballotHash: "0x123",
+        },
+      ]);
 
       const result = await gameMaster.decryptTurnVotes({
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
         gameId: 1n,
         turn: 1n,
-        players: [MOCK_ADDRESSES.PLAYER]
+        players: [MOCK_ADDRESSES.PLAYER],
       });
 
       expect(mockEnvioClient.getVoteSubmittedEvents).toHaveBeenCalledWith({
@@ -1046,13 +1070,13 @@ describe("GameMaster", () => {
 
     it("should return empty array when no votes exist", async () => {
       // Mock envio client to return empty array for no votes
-      jest.spyOn(mockEnvioClient, 'getVoteSubmittedEvents').mockResolvedValueOnce([]);
+      jest.spyOn(mockEnvioClient, "getVoteSubmittedEvents").mockResolvedValueOnce([]);
 
       const result = await gameMaster.decryptTurnVotes({
         instanceAddress: MOCK_ADDRESSES.INSTANCE,
         gameId: 1n,
         turn: 1n,
-        players: [MOCK_ADDRESSES.PLAYER]
+        players: [MOCK_ADDRESSES.PLAYER],
       });
 
       expect(mockEnvioClient.getVoteSubmittedEvents).toHaveBeenCalledWith({
@@ -1077,20 +1101,22 @@ describe("GameMaster", () => {
       const invalidEncryptedBallot = "U2FsdGVkX19pbnZhbGlkIGpzb24gZGF0YQ==";
 
       // Mock VoteSubmitted events using envioClient
-      jest.spyOn(mockEnvioClient, 'getVoteSubmittedEvents').mockResolvedValueOnce([{
-        id: "1",
-        gameId: 1n,
-        turn: 1n,
-        player: MOCK_ADDRESSES.PLAYER,
-        sealedBallotId: invalidEncryptedBallot,
-        blockNumber: 1000n,
-        blockTimestamp: "1000",
-        srcAddress: MOCK_ADDRESSES.INSTANCE,
-        contractAddress: MOCK_ADDRESSES.INSTANCE,
-        gmSignature: "0x123",
-        voterSignature: "0x123",
-        ballotHash: "0x123"
-      }]);
+      jest.spyOn(mockEnvioClient, "getVoteSubmittedEvents").mockResolvedValueOnce([
+        {
+          id: "1",
+          gameId: 1n,
+          turn: 1n,
+          player: MOCK_ADDRESSES.PLAYER,
+          sealedBallotId: invalidEncryptedBallot,
+          blockNumber: 1000n,
+          blockTimestamp: "1000",
+          srcAddress: MOCK_ADDRESSES.INSTANCE,
+          contractAddress: MOCK_ADDRESSES.INSTANCE,
+          gmSignature: "0x123",
+          voterSignature: "0x123",
+          ballotHash: "0x123",
+        },
+      ]);
 
       // The decryption should fail and throw an error
       await expect(
@@ -1098,7 +1124,7 @@ describe("GameMaster", () => {
           instanceAddress: MOCK_ADDRESSES.INSTANCE,
           gameId: 1n,
           turn: 1n,
-          players: [MOCK_ADDRESSES.PLAYER]
+          players: [MOCK_ADDRESSES.PLAYER],
         })
       ).rejects.toThrow("Failed to decrypt vote");
     });

@@ -21,10 +21,17 @@ export const addCommand = new Command("add")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
   .option("-d, --distributor <address>", "Address of the distributor")
   .option("-i, --m-index <mnemonicIndex>", "Index to derive from mnemonic")
-  .option("-k, --key <privateKey>", "Will be used if no mnemonic index is provided. Private key with admin permissions. If not provided, PRIVATE_KEY environment variable will be used")
+  .option(
+    "-k, --key <privateKey>",
+    "Will be used if no mnemonic index is provided. Private key with admin permissions. If not provided, PRIVATE_KEY environment variable will be used"
+  )
   .option("-y, --yes", "Auto-accept default values for all prompts", false)
   .option("-n, --distribution-name <name>", "Distribution name", "MAO Distribution")
-  .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
+  .option(
+    "-e, --envio <url>",
+    "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+    "http://localhost:8080/v1/graphql"
+  )
   .action(async (options) => {
     const spinner = ora("Initializing clients...").start();
 

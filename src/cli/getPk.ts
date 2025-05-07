@@ -8,22 +8,16 @@ import { mnemonicToAccount } from "viem/accounts";
  * @param index - The index of the private key to derive (default: 0)
  * @returns The private key as a hex string
  */
-export const getPrivateKeyFromMnemonic = (
-  mnemonic: string,
-  index: number = 0
-): Hex => {
+export const getPrivateKeyFromMnemonic = (mnemonic: string, index: number = 0): Hex => {
   try {
     // Convert mnemonic to seed
-    const account = mnemonicToAccount(
-      mnemonic,
-      {
-        accountIndex: 0,
-        addressIndex: index
-      }
-    )
+    const account = mnemonicToAccount(mnemonic, {
+      accountIndex: 0,
+      addressIndex: index,
+    });
 
     console.log(`Address: ${account.address}`);
-    const privateKey = `0x${Buffer.from(account.getHdKey().privateKey ?? '').toString('hex')}` as Hex;
+    const privateKey = `0x${Buffer.from(account.getHdKey().privateKey ?? "").toString("hex")}` as Hex;
 
     return privateKey;
   } catch (error) {

@@ -16,17 +16,24 @@ enum FellowshipDefaults {
   PRINCIPAL_COST = "1000000000",
   TIME_CONSTANT = "604800", // 1 week
   METADATA = "ipfs://QmVzSvWjysUfVHzGMQ4y2EduXrVYLApZ3KHQb2gUTR4x6P",
-  RANK_TOKEN_URI = "ipfs://your-rank-token-uri"
+  RANK_TOKEN_URI = "ipfs://your-rank-token-uri",
 }
 
 export const createFellowshipCommand = new Command("create")
   .description("Create a new Fellowship")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
   .option("-i, --mnemonic-index <index>", "Index to derive from mnemonic")
-  .option("-k, --key <privateKey>", "Will be used if no mnemonic index is provided. Private key with admin permissions. If not provided, PRIVATE_KEY environment variable will be used")
+  .option(
+    "-k, --key <privateKey>",
+    "Will be used if no mnemonic index is provided. Private key with admin permissions. If not provided, PRIVATE_KEY environment variable will be used"
+  )
   .option("-n, --dist-name <n>", "Distributors package name")
   .option("-y, --yes", "Auto-accept default values for all prompts", false)
-  .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
+  .option(
+    "-e, --envio <url>",
+    "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+    "http://localhost:8080/v1/graphql"
+  )
   .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
   .action(async (options) => {
     const spinner = ora("Initializing clients...").start();

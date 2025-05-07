@@ -13,7 +13,10 @@ export const create = new Command("create")
   .argument("<instance>", "Address or instanceId of the Rankify instance")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
   .option("-i, --m-index <mnemonicIndex>", "Index to derive from mnemonic")
-  .option("-k, --key <privateKey>", "Will be used if no mnemonic index is provided. Private key with admin permissions. If not provided, PRIVATE_KEY environment variable will be used")
+  .option(
+    "-k, --key <privateKey>",
+    "Will be used if no mnemonic index is provided. Private key with admin permissions. If not provided, PRIVATE_KEY environment variable will be used"
+  )
   .option("--gm <address>", "Game master address", "0xaA63aA2D921F23f204B6Bcb43c2844Fb83c82eb9")
   .option("--rank <number>", "Game rank", "1")
   .option("--max-players <number>", "Maximum number of players", "9")
@@ -25,7 +28,11 @@ export const create = new Command("create")
   .option("--time-to-join <seconds>", "Time to join in seconds", "1800")
   .option("--metadata <string>", "Game metadata (ipfs url)", "ipfs://QmXLnWFvdbVzbHN3dqbhfnPPPtHSiKxx2B8gySLaRHhFmW")
   .option("--open-now", "Open registration immediately after creation", false)
-  .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
+  .option(
+    "-e, --envio <url>",
+    "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+    "http://localhost:8080/v1/graphql"
+  )
   .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
   .action(async (instanceAddress, options) => {
     const spinner = ora("Initializing clients...").start();
@@ -44,7 +51,7 @@ export const create = new Command("create")
         publicClient,
         envioClient,
         options.distributionName,
-        spinner,
+        spinner
       );
 
       spinner.text = "Creating Rankify player client...";
