@@ -16,7 +16,11 @@ export const endTurn = new Command("end-turn")
     "Private key for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
   )
   .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
-  .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
+  .option(
+    "-e, --envio <url>",
+    "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+    "http://localhost:8080/v1/graphql"
+  )
   .action(async (instanceAddress, gameId, options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -47,7 +51,7 @@ export const endTurn = new Command("end-turn")
       spinner.text = "Ending turn...";
       const hash = await gameMaster.endTurn({ instanceAddress: resolvedInstanceAddress, gameId: BigInt(gameId) });
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
-      
+
       spinner.succeed("Turn ended successfully");
       console.log(chalk.green(`\nTransaction hash: ${receipt.transactionHash}`));
     } catch (error) {

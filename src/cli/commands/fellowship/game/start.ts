@@ -25,12 +25,12 @@ export const start = new Command("start")
     "-g, --gm-key <privateKey>",
     "Game master private key for signing attestations. If not provided, GM_KEY environment variable will be used"
   )
+  .option("--auto-mine", "Automatically mine blocks to advance time on local chains (default: true)", false)
   .option(
-    "--auto-mine",
-    "Automatically mine blocks to advance time on local chains (default: true)",
-    false
+    "-e, --envio <url>",
+    "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+    "http://localhost:8080/v1/graphql"
   )
-  .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
   .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
   .action(async (instanceAddress, gameId, options) => {
     const spinner = ora("Initializing clients...").start();
@@ -98,7 +98,9 @@ export const start = new Command("start")
 
       if (gameState.players.length < Number(gameState.minPlayerCnt)) {
         spinner.fail("Not enough players to start the game");
-        console.error(chalk.red(`Current players: ${gameState.players.length}, Minimum required: ${gameState.minPlayerCnt}`));
+        console.error(
+          chalk.red(`Current players: ${gameState.players.length}, Minimum required: ${gameState.minPlayerCnt}`)
+        );
         process.exit(1);
       }
 
@@ -148,7 +150,6 @@ export const start = new Command("start")
       spinner.succeed("Game started successfully");
       console.log(chalk.green(`\nStarted game with ID: ${gameIdBigInt.toString()}`));
       console.log(chalk.dim("Transaction hash:"), receipt.transactionHash);
-
     } catch (error) {
       spinner.fail("Failed to start game");
       console.error(chalk.red(`Error: ${error instanceof Error ? error.message + "\n" + error.stack : String(error)}`));

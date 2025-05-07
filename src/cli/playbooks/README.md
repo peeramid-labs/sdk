@@ -3,6 +3,7 @@
 This directory contains various scripts to automate common testing and development scenarios. For now these playbooks will work correctly on fresh anvil instance, to match the state of the permutations while upgrade to dynamic voting according to permutation is in progress.
 
 ## Fresh anvils instance setup
+
 If anvil's session is running, kill it:
 `tmux kill-session -t anvil;`
 
@@ -16,6 +17,7 @@ export RPC_URL="xxx"`
 export INDEXER_URL="http://localhost:8080/v1/graphql"
 
 ## Important
+
 In package.json type must be set to commonjs!
 
 ## Available Playbooks
@@ -25,15 +27,18 @@ In package.json type must be set to commonjs!
 A script that simulates a fellowship game with partial voting patterns across multiple turns.
 
 **Usage:**
+
 ```bash
 ./partial-voting.sh <runToTurn> [finishTurn]
 ```
 
 **Parameters:**
+
 - `runToTurn`: (number) - Run up to this turn number (1-5)
 - `finishTurn`: (boolean, optional) - Whether to finish the last turn (default: true)
 
 **Example:**
+
 ```bash
 # Run through turn 3 and complete the turn
 ./partial-voting.sh 3 true
@@ -43,13 +48,16 @@ A script that simulates a fellowship game with partial voting patterns across mu
 ```
 
 **What it does:**
+
 1. Initializes a domain
 2. Creates a distribution and fellowship
 3. Creates a game with 5 players
 4. Runs through up to 5 turns with specific proposal and voting patterns:
+
    - Turn 1: Players 0 and 3 propose, no votes
    - Turn 2-4: Players 0 and 3 propose, Player 1 votes for Player 0
    - Turn 5: Players 0 and 3 propose, Player 1 votes for Player 3
 
    # Make the script executable
+
    `chmod +x src/cli/playbooks/partial-voting.sh`

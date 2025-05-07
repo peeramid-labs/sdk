@@ -171,7 +171,6 @@ export class MAODistributorClient extends DistributorClient {
     return { rankToken, instance, govtToken, govTokenAccessManager, ACIDAccessManager };
   }
 
-
   parseToContracts(instances: readonly Address[]) {
     return this.addressesToContracts(parseInstantiated(instances as string[]));
   }
@@ -336,7 +335,6 @@ export class MAODistributorClient extends DistributorClient {
       maoInstanceId: bigint;
     }[]
   > {
-   
     const logs = await this.envioClient.queryInstances({
       distributionId: stringToHex(namedDistribution, { size: 32 }),
     });

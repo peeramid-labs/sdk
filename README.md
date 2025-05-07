@@ -41,6 +41,7 @@ peeramid multipass domains create
 Before setting up the local development environment, ensure you have the following installed:
 
 1. **Node.js and pnpm**
+
    ```bash
    # Using homebrew
    brew install node
@@ -48,6 +49,7 @@ Before setting up the local development environment, ensure you have the followi
    ```
 
 2. **Foundry (for Anvil)**
+
    ```bash
    curl -L https://foundry.paradigm.xyz | bash
    foundryup
@@ -64,19 +66,23 @@ Before setting up the local development environment, ensure you have the followi
 To set up your local development environment:
 
 1. Create your environment file:
+
    ```bash
    mkdir -p .secrets
    cp samples/<network>.env.example .secrets/<network>.env
    ```
+
    Then edit `.env` to set your local repository paths.
 
 2. Set the required environment variables:
+
    ```bash
    export RANKIFY_CONTRACTS_PATH="/path/to/rankify/contracts"
    export MULTIPASS_PATH="/path/to/multipass"
    ```
 
 3. Make the setup script executable:
+
    ```bash
    chmod +x scripts/deploy-contracts.sh
    ```
@@ -87,6 +93,7 @@ To set up your local development environment:
    ```
 
 This will:
+
 - Start a local Anvil development network in a tmux session (for localhost network)
 - Install dependencies for all repositories
 - Run local deployment scripts (`playbook/utils/deploy-to-local-anvil.sh`) in each repository

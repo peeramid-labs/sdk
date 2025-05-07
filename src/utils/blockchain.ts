@@ -33,44 +33,44 @@ export class BlockchainUtils {
   }> {
     // Get current block
     const currentBlock = await publicClient.getBlock({ blockTag: "latest" });
-    
+
     if (spinner) {
       spinner.info(`Current block: ${currentBlock.number}, timestamp: ${currentBlock.timestamp}`);
     }
 
     // Calculate new timestamp
     const newTimestamp = Number(currentBlock.timestamp) + timeIncrease;
-    
+
     if (spinner) {
       spinner.start(`Increasing block timestamp by ${timeIncrease} seconds and mining a new block...`);
     }
-    
+
     // Use JSON-RPC methods directly to manipulate local blockchain
     // First, set the next block's timestamp
     await publicClient.transport.request({
       method: "evm_setNextBlockTimestamp",
       params: [newTimestamp],
     });
-    
+
     // Then mine a block
     await publicClient.transport.request({
       method: "evm_mine",
       params: [],
     });
-    
+
     // Get the new block to confirm changes
     const newBlock = await publicClient.getBlock({ blockTag: "latest" });
-    
+
     return {
       oldBlock: {
         number: currentBlock.number,
-        timestamp: currentBlock.timestamp
+        timestamp: currentBlock.timestamp,
       },
       newBlock: {
         number: newBlock.number,
-        timestamp: newBlock.timestamp
+        timestamp: newBlock.timestamp,
       },
-      actualIncrease: Number(newBlock.timestamp) - Number(currentBlock.timestamp)
+      actualIncrease: Number(newBlock.timestamp) - Number(currentBlock.timestamp),
     };
   }
 }

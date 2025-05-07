@@ -21,7 +21,11 @@ export const join = new Command("join")
     "Private key or index to derive from mnemonic for signing transactions. Will be used if no mnemonic index is provided. If both not provided, PRIVATE_KEY environment variable will be used"
   )
   .option("-n, --distribution-name <name>", "Distribution name", "MAO Distribution")
-  .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
+  .option(
+    "-e, --envio <url>",
+    "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+    "http://localhost:8080/v1/graphql"
+  )
   .action(async (instanceAddress, gameId, options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -97,7 +101,11 @@ export const join = new Command("join")
         participantPubKeyHash: keccak256(encodePacked(["string"], [publicKey])),
       });
 
-      const { signature: gmSignature, gmCommitment, deadline } = await gameMaster.signJoiningGame(
+      const {
+        signature: gmSignature,
+        gmCommitment,
+        deadline,
+      } = await gameMaster.signJoiningGame(
         {
           instanceAddress: resolvedInstanceAddress,
           gameId: gameIdBigInt,
@@ -119,7 +127,6 @@ export const join = new Command("join")
       spinner.succeed("Successfully joined the game");
       console.log(chalk.green(`\nJoined game with ID: ${gameIdBigInt.toString()}`));
       console.log(chalk.dim("Transaction hash:"), receipt.transactionHash);
-
     } catch (error) {
       spinner.fail("Failed to join game");
       console.error(chalk.red(`Error: ${error instanceof Error ? error.message + "\n" + error.stack : String(error)}`));

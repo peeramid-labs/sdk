@@ -26,19 +26,14 @@ export const propose = new Command("propose")
     "-g, --gm-key <privateKey>",
     "Game master private key for signing attestations. If not provided, PRIVATE_KEY environment variable will be used"
   )
+  .option("-t, --title <title>", "Title of the proposal", "Default title")
+  .option("-b, --body <body>", "Body content of the proposal", "Default body")
+  .option("-f, --file <filePath>", "Path to a markdown file containing the proposal content")
   .option(
-    "-t, --title <title>",
-    "Title of the proposal", "Default title"
+    "-e, --envio <url>",
+    "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+    "http://localhost:8080/v1/graphql"
   )
-  .option(
-    "-b, --body <body>",
-    "Body content of the proposal", "Default body"
-  )
-  .option(
-    "-f, --file <filePath>",
-    "Path to a markdown file containing the proposal content"
-  )
-  .option("-e, --envio <url>", "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used", "http://localhost:8080/v1/graphql")
   .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
   .action(async (instanceAddress, gameId, options) => {
     const spinner = ora("Initializing clients...").start();
@@ -104,9 +99,11 @@ export const propose = new Command("propose")
       const gameState = await baseInstance.getGameStateDetails(gameIdBigInt);
 
       // Check if game is in a valid state for proposals
-      if (gameState.gamePhase !== gameStatusEnum.started &&
-          gameState.gamePhase !== gameStatusEnum.lastTurn &&
-          gameState.gamePhase !== gameStatusEnum.overtime) {
+      if (
+        gameState.gamePhase !== gameStatusEnum.started &&
+        gameState.gamePhase !== gameStatusEnum.lastTurn &&
+        gameState.gamePhase !== gameStatusEnum.overtime
+      ) {
         spinner.fail("Game is not in an active phase that accepts proposals");
         console.error(chalk.red(`Game phase: ${gameState.gamePhase}`));
         process.exit(1);
@@ -132,7 +129,7 @@ export const propose = new Command("propose")
       // Format the proposal as JSON
       const proposalContent = JSON.stringify({
         title,
-        body
+        body,
       });
 
       // Derive public key from private key
@@ -159,7 +156,6 @@ export const propose = new Command("propose")
         turn: gameState.currentTurn,
       });
 
-
       // Sign the proposal commitment
       spinner.text = "Signing proposal commitment...";
       const proposerSignature = await player.signProposalCommitment(submissionParams);
@@ -177,11 +173,14 @@ export const propose = new Command("propose")
       const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
 
       spinner.succeed("Proposal submitted successfully");
-      console.log(chalk.green(`\nProposal submitted for game ${gameIdBigInt.toString()}, turn ${gameState.currentTurn.toString()}`));
+      console.log(
+        chalk.green(
+          `\nProposal submitted for game ${gameIdBigInt.toString()}, turn ${gameState.currentTurn.toString()}`
+        )
+      );
       console.log(chalk.dim("Transaction hash:"), receipt.transactionHash);
       console.log(chalk.dim("Title:"), title);
       console.log(chalk.dim("Body preview:"), body.length > 100 ? body.substring(0, 100) + "..." : body);
-
     } catch (error) {
       spinner.fail("Failed to submit proposal");
       console.error(chalk.red(`Error: ${error instanceof Error ? error.message + "\n" + error.stack : String(error)}`));

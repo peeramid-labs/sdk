@@ -93,7 +93,9 @@ export class EnvioGraphQLClient {
     console.debug(`Initializing EnvioGraphQLClient with endpoint: ${this.config.endpoint}`);
 
     if (this.config.endpoint === DEFAULT_CONFIG.endpoint) {
-      console.debug(`Using default endpoint ${DEFAULT_CONFIG.endpoint}. Set INDEXER_URL environment variable to override.`);
+      console.debug(
+        `Using default endpoint ${DEFAULT_CONFIG.endpoint}. Set INDEXER_URL environment variable to override.`
+      );
     }
 
     const headers: HeadersInit = {
@@ -904,7 +906,6 @@ export class EnvioGraphQLClient {
       // Filter results client-side based on additional criteria
       let results = result.DAODistributor_Instantiated;
 
-
       // Return the filtered results
       return results.map((event) => ({
         distributionId: event.distributionId,
@@ -925,22 +926,25 @@ export class EnvioGraphQLClient {
       }
 
       if (
-        typeof error === 'object' &&
+        typeof error === "object" &&
         error !== null &&
-        'response' in error &&
-        typeof error.response === 'object' &&
+        "response" in error &&
+        typeof error.response === "object" &&
         error.response !== null &&
-        'status' in error.response &&
+        "status" in error.response &&
         error.response.status === 404
       ) {
-        console.error("Server returned 404 - Check if the Envio indexer is running and accessible at", this.config.endpoint);
+        console.error(
+          "Server returned 404 - Check if the Envio indexer is running and accessible at",
+          this.config.endpoint
+        );
       } else if (
-        typeof error === 'object' &&
+        typeof error === "object" &&
         error !== null &&
-        'response' in error &&
-        typeof error.response === 'object' &&
+        "response" in error &&
+        typeof error.response === "object" &&
         error.response !== null &&
-        'errors' in error.response
+        "errors" in error.response
       ) {
         console.error("GraphQL errors:", error.response.errors);
       }
@@ -1043,13 +1047,7 @@ export class EnvioGraphQLClient {
   /**
    * Get MAO instances for a specific distribution
    */
-  async getMAOInstances({
-    distributionId,
-    contractAddress,
-  }: {
-    distributionId: string;
-    contractAddress: Address;
-  }) {
+  async getMAOInstances({ distributionId, contractAddress }: { distributionId: string; contractAddress: Address }) {
     try {
       // Build where conditions
       const whereParts = [];

@@ -19,12 +19,12 @@ export class CLIUtils {
     instanceAddress: string,
     chainId: number,
     publicClient: PublicClient,
-    envioClient: EnvioGraphQLClient, 
+    envioClient: EnvioGraphQLClient,
     maoDistributionName: string,
-    spinner?: Ora,
+    spinner?: Ora
   ): Promise<Address> {
     // Check if instanceAddress is a number (instance ID) or an address
-    const isInstanceId = !instanceAddress.startsWith('0x') && !isNaN(Number(instanceAddress));
+    const isInstanceId = !instanceAddress.startsWith("0x") && !isNaN(Number(instanceAddress));
 
     if (isInstanceId) {
       // It's a number, get the instance address using MAODistributorClient

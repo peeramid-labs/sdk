@@ -19,51 +19,52 @@ export const playbookCommand = new Command("playbook")
     if (!fs.existsSync(playbookFile)) {
       console.error(`Error: Playbook '${playbookName}' not found in ${playbooksDir}`);
       console.log("Available playbooks:");
-      
+
       // List available playbooks
-      const playbooks = fs.readdirSync(playbooksDir)
-        .filter(file => file.endsWith(".sh"))
-        .map(file => file.replace(".sh", ""));
-      
-      playbooks.forEach(pb => console.log(`  - ${pb}`));
+      const playbooks = fs
+        .readdirSync(playbooksDir)
+        .filter((file) => file.endsWith(".sh"))
+        .map((file) => file.replace(".sh", ""));
+
+      playbooks.forEach((pb) => console.log(`  - ${pb}`));
       return;
     }
 
     // Build command arguments
     const fellowshipId = options.fellowshipId;
     const gameId = options.gameId;
-    
+
     let args = [fellowshipId, gameId];
-    
+
     // Add optional arguments if provided
     if (options.runToTurn) {
       args.push(options.runToTurn);
-      
+
       if (options.finishTurn) {
         args.push(options.finishTurn);
       }
     }
-    
+
     // Get any passthrough arguments
     const passthroughArgs = command.args.slice(1); // Skip the playbook name
-    
+
     // Execute the playbook
     console.log(`Executing playbook: ${playbookName}`);
     console.log(`Using fellowshipId=${fellowshipId}, gameId=${gameId}`);
-    
+
     const cmd = `bash ${playbookFile} ${args.join(" ")} ${passthroughArgs.join(" ")}`;
     console.log(`Running: ${cmd}`);
-    
+
     const childProcess = exec(cmd);
-    
+
     childProcess.stdout?.on("data", (data) => {
       process.stdout.write(data);
     });
-    
+
     childProcess.stderr?.on("data", (data) => {
       process.stderr.write(data);
     });
-    
+
     childProcess.on("close", (code) => {
       console.log(`Playbook execution completed with code ${code}`);
     });

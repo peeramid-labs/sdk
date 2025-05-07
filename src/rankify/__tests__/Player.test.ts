@@ -1,5 +1,13 @@
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
-import { type PublicClient, type WalletClient, type Address, type Hash, type TransactionReceipt, keccak256, toHex } from "viem";
+import {
+  type PublicClient,
+  type WalletClient,
+  type Address,
+  type Hash,
+  type TransactionReceipt,
+  keccak256,
+  toHex,
+} from "viem";
 import RankifyPlayer from "../Player";
 import rankifyAbi from "../../abis/Rankify";
 
@@ -93,11 +101,11 @@ describe("RankifyPlayer", () => {
       const mockPrice = 100n;
       const mockHash = "0xabc" as Hash;
       if (!mockWalletClient.account?.address) throw new Error("Account not found");
-      
+
       // Calculate the event signature hash
       const eventSignature = "gameCreated(uint256,address,address,uint256)";
       const eventSignatureHash = keccak256(toHex(eventSignature));
-      
+
       const mockReceipt = {
         status: "success",
         blockNumber: 1n,
@@ -107,22 +115,24 @@ describe("RankifyPlayer", () => {
         effectiveGasPrice: 1000000000n,
         from: mockWalletClient.account.address,
         gasUsed: 100000n,
-        logs: [{
-          address: mockInstanceAddress,
-          topics: [
-            eventSignatureHash, // event signature hash
-            "0x" + mockWalletClient.account.address.slice(2).padStart(64, "0"), // gm (indexed)
-            "0x" + mockWalletClient.account.address.slice(2).padStart(64, "0"), // creator (indexed)
-            "0x" + "1".padStart(64, "0"), // rank (indexed)
-          ],
-          data: "0x" + "1".padStart(64, "0"), // gameId (non-indexed)
-          blockNumber: 1n,
-          transactionHash: mockHash,
-          logIndex: 0,
-          transactionIndex: 0,
-          removed: false,
-          blockHash: "0x" + "1".padStart(64, "0"),
-        }],
+        logs: [
+          {
+            address: mockInstanceAddress,
+            topics: [
+              eventSignatureHash, // event signature hash
+              "0x" + mockWalletClient.account.address.slice(2).padStart(64, "0"), // gm (indexed)
+              "0x" + mockWalletClient.account.address.slice(2).padStart(64, "0"), // creator (indexed)
+              "0x" + "1".padStart(64, "0"), // rank (indexed)
+            ],
+            data: "0x" + "1".padStart(64, "0"), // gameId (non-indexed)
+            blockNumber: 1n,
+            transactionHash: mockHash,
+            logIndex: 0,
+            transactionIndex: 0,
+            removed: false,
+            blockHash: "0x" + "1".padStart(64, "0"),
+          },
+        ],
         logsBloom: "0x" + "0".repeat(512),
         to: mockInstanceAddress,
         transactionHash: mockHash,
@@ -131,11 +141,13 @@ describe("RankifyPlayer", () => {
       } as unknown as TransactionReceipt;
 
       // Mock the contract events
-      mockGetContractEvents.mockResolvedValue([{
-        args: {
-          gameId: 1n
-        }
-      }] as { args: { gameId: bigint } }[]);
+      mockGetContractEvents.mockResolvedValue([
+        {
+          args: {
+            gameId: 1n,
+          },
+        },
+      ] as { args: { gameId: bigint } }[]);
 
       const mockGameParams = {
         gameRank: 1n,

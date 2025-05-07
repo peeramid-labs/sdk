@@ -2,7 +2,6 @@ import { jest } from "@jest/globals";
 import { type Address, type Hash, type PublicClient, type WalletClient, type TransactionReceipt } from "viem";
 import { EnvioGraphQLClient } from "../utils/EnvioGraphQLClient";
 
-
 // Common mock chain
 export const MOCK_CHAIN = {
   id: 31337, // localhost
@@ -101,7 +100,7 @@ export const createMockEnvioClient = () => {
     getGameStartedEvents: jest.fn(),
     getGameOverEvents: jest.fn(),
     getMAOInstances: jest.fn(),
-    queryInstances: jest.fn()
+    queryInstances: jest.fn(),
   };
 
   return mockClient as unknown as EnvioGraphQLClient;
