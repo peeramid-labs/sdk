@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.11.1
+
+### Patch Changes
+
+- [#156](https://github.com/peeramid-labs/sdk/pull/156) [`0b521df3090f7ab2dc491badfa454bebd25fb64a`](https://github.com/peeramid-labs/sdk/commit/0b521df3090f7ab2dc491badfa454bebd25fb64a) Thanks [@theKosmoss](https://github.com/theKosmoss)! - GM bugfix. Demo script
+
 ## 3.11.0
 
 ### Minor Changes
