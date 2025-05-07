@@ -18,7 +18,10 @@ finishTurn=${4:-true}
 
 # Initialize domain and setup
 pnpm cli distributions add -i 1 -y
+sleep 2
 pnpm cli fellowship create -i 1 -y
+sleep 2
+
 pnpm cli fellowship game create $fellowshipId -i 1 --time-to-join 3000 --time-per-turn 3000 --vote-credits 1 --open-now
 pnpm cli fellowship game join $fellowshipId $gameId -i 0
 pnpm cli fellowship game join $fellowshipId $gameId -i 1
