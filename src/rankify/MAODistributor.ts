@@ -43,6 +43,10 @@ export type TokenArgumentsStructOutput = {
   tokenName: string;
   /** Symbol for the token */
   tokenSymbol: string;
+  /** Amounts to pre-mint for each receiver */
+  preMintAmounts: bigint[];
+  /** Addresses to receive pre-minted tokens */
+  preMintReceivers: Address[];
 };
 
 /**
@@ -59,6 +63,10 @@ export type UserRankifySettingsStructOutput = {
   rankTokenURI: string;
   /** Contract URI for the rank token */
   rankTokenContractURI: string;
+  /** Owner address */
+  owner: Address;
+  /** Payment token address */
+  paymentToken: Address;
 };
 
 /**
@@ -457,7 +465,6 @@ export class MAODistributorClient extends DistributorClient {
         abi: distributorAbi,
         logs: receipt.logs,
         eventName: "Instantiated",
-        // strict: false,
       });
 
       if (instantiatedEvent.length == 0) {
@@ -472,6 +479,98 @@ export class MAODistributorClient extends DistributorClient {
       return this.addressesToContracts(addresses);
       // eslint-disable-next-line
     } catch (e: any) {
+      throw await handleRPCError(e);
+    }
+  }
+  
+
+  /**
+   * Check if a player is in a specific game
+   * @param gameId The ID of the game to check
+   * @param player The address of the player
+   * @returns Whether the player is in the game
+   */
+  async isPlayerInGame(gameId: bigint, player: Address): Promise<boolean> {
+    try {
+      return this.publicClient.readContract({
+        abi: instanceAbi,
+        functionName: "isPlayerInGame",
+        address: this.address,
+        args: [gameId, player],
+      });
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  }
+
+  /**
+   * Create and open a game in one transaction
+   * @param params Game parameters
+   * @param requirements Game requirements
+   * @returns The created game ID
+   */
+  async createAndOpenGame(
+    params: {
+      gameMaster: Address;
+      gameRank: bigint;
+      maxPlayerCnt: bigint;
+      minPlayerCnt: bigint;
+      voteCredits: bigint;
+      nTurns: bigint;
+      minGameTime: bigint;
+      timePerTurn: bigint;
+      metadata: string;
+      timeToJoin: bigint;
+    },
+    requirements: {
+      ethValues: {
+        have: bigint;
+        lock: bigint;
+        burn: bigint;
+        pay: bigint;
+        bet: bigint;
+      };
+      contracts: readonly {
+        contractAddress: Address;
+        contractId: bigint;
+        contractType: number;
+        contractRequirement: {
+          have: { data: Hex; amount: bigint };
+          lock: { data: Hex; amount: bigint };
+          burn: { data: Hex; amount: bigint };
+          pay: { data: Hex; amount: bigint };
+          bet: { data: Hex; amount: bigint };
+        };
+      }[];
+    }
+  ): Promise<bigint> {
+    if (!this.walletClient) throw new Error("Wallet client is required for this operation");
+    try {
+      const { request } = await this.publicClient.simulateContract({
+        abi: instanceAbi,
+        address: this.address,
+        functionName: "createAndOpenGame",
+        args: [params, requirements],
+        account: this.walletClient.account,
+        chain: this.walletClient.chain,
+      });
+
+      const receipt = await this.walletClient
+        .writeContract(request)
+        .then((h) => this.publicClient.waitForTransactionReceipt({ hash: h }));
+
+      const gameCreatedEvent = parseEventLogs({
+        abi: instanceAbi,
+        logs: receipt.logs,
+        eventName: "gameCreated",
+      });
+
+      if (gameCreatedEvent.length === 0) {
+        throw new Error("Game created event not found in transaction receipt");
+      }
+
+      return gameCreatedEvent[0].args.gameId;
+    } catch (e) {
       throw await handleRPCError(e);
     }
   }

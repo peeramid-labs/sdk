@@ -8,6 +8,7 @@ import {
   keccak256,
   encodePacked,
   Hex,
+  parseEventLogs,
 } from "viem";
 import { ApiError, findContractDeploymentBlock, handleRPCError } from "../utils/index";
 import { getSharedSecret } from "@noble/secp256k1";
@@ -390,12 +391,12 @@ export default class InstanceBase {
    * Retrieves a player's game.
    * @param account - The player's account address.
    */
-  getPlayersGame = async (account: Address) => {
+  getPlayersGames = async (account: Address) => {
     try {
       return this.publicClient.readContract({
         address: this.instanceAddress,
         abi: instanceAbi,
-        functionName: "getPlayersGame",
+        functionName: "getPlayersGames",
         args: [account],
       });
     } catch (e) {
@@ -815,6 +816,25 @@ export default class InstanceBase {
 
     return await rankTokenClient.getMetadata(ipfsGateway);
   };
+
+  /**
+   * Check if a player is in a specific game
+   * @param gameId The ID of the game to check
+   * @param player The address of the player
+   * @returns Whether the player is in the game
+   */
+  async isPlayerInGame(gameId: bigint, player: Address): Promise<boolean> {
+    try {
+      return this.publicClient.readContract({
+        abi: instanceAbi,
+        functionName: "isPlayerInGame",
+        address: this.instanceAddress,
+        args: [gameId, player],
+      });
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  }
 
   getGameMetadata = async (
     ipfsGateway: string,
