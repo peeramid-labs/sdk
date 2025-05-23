@@ -8,7 +8,6 @@ import {
   keccak256,
   encodePacked,
   Hex,
-  parseEventLogs,
 } from "viem";
 import { ApiError, findContractDeploymentBlock, handleRPCError } from "../utils/index";
 import { getSharedSecret } from "@noble/secp256k1";
