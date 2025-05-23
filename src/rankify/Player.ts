@@ -110,7 +110,6 @@ export default class RankifyPlayer extends InstanceBase {
     creationArgs: ContractFunctionArgs<typeof instanceAbi, stateMutability, "createGame">[0];
     openNow: boolean;
   }) => {
-    // if (!creationArgs) throw new Error("args is required");
     try {
       const estimationArgs: ContractFunctionArgs<typeof instanceAbi, "pure" | "view", "estimateGamePrice"> = [
         creationArgs.minGameTime,
@@ -166,6 +165,84 @@ export default class RankifyPlayer extends InstanceBase {
       throw await handleRPCError(e);
     }
   };
+
+  /**
+   * Create and open a game in one transaction
+   * @param params Game parameters
+   * @param requirements Game requirements
+   * @returns The created game ID
+   */
+  async createAndOpenGame(
+    params: {
+      gameMaster: Address;
+      gameRank: bigint;
+      maxPlayerCnt: bigint;
+      minPlayerCnt: bigint;
+      voteCredits: bigint;
+      nTurns: bigint;
+      minGameTime: bigint;
+      timePerTurn: bigint;
+      metadata: string;
+      timeToJoin: bigint;
+    },
+    requirements: {
+      ethValues: {
+        have: bigint;
+        lock: bigint;
+        burn: bigint;
+        pay: bigint;
+        bet: bigint;
+      };
+      contracts: readonly {
+        contractAddress: Address;
+        contractId: bigint;
+        contractType: number;
+        contractRequirement: {
+          have: { data: Hex; amount: bigint };
+          lock: { data: Hex; amount: bigint };
+          burn: { data: Hex; amount: bigint };
+          pay: { data: Hex; amount: bigint };
+          bet: { data: Hex; amount: bigint };
+        };
+      }[];
+    }
+  ): Promise<bigint> {
+    if (!this.walletClient) throw new Error("Wallet client is required for this operation");
+    if (!this.walletClient.account?.address) throw new Error("No account address found");
+
+    try {
+      // Estimate game price and approve tokens
+      const gamePrice = await this.estimateGamePrice(params.minGameTime);
+      await this.approveTokensIfNeeded(gamePrice);
+
+      const { request } = await this.publicClient.simulateContract({
+        abi: instanceAbi,
+        address: this.instanceAddress,
+        functionName: "createAndOpenGame",
+        args: [params, requirements],
+        account: this.walletClient.account,
+        chain: this.walletClient.chain,
+      });
+
+      const receipt = await this.walletClient
+        .writeContract(request)
+        .then((h: Hex) => this.publicClient.waitForTransactionReceipt({ hash: h }));
+
+      const gameCreatedEvent = parseEventLogs({
+        abi: instanceAbi,
+        logs: receipt.logs,
+        eventName: "gameCreated",
+      });
+
+      if (gameCreatedEvent.length === 0) {
+        throw new Error("Game created event not found in transaction receipt");
+      }
+
+      return gameCreatedEvent[0].args.gameId;
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  }
 
   /**
    * Joins a game

@@ -8,6 +8,7 @@ import { createPublic, createWallet } from "../../client";
 import { chainToPath } from "../../../utils/chainMapping";
 import { resolvePk } from "../../getPk";
 import EnvioGraphQLClient from "../../../utils/EnvioGraphQLClient";
+import { getArtifact } from "../../../utils";
 
 // Define enum for fellowship defaults
 enum FellowshipDefaults {
@@ -35,6 +36,11 @@ export const createFellowshipCommand = new Command("create")
     "http://localhost:8080/v1/graphql"
   )
   .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
+  .option(
+    "-p, --payment-token <address>",
+    "Payment token address. If not provided, will use the Rankify token address",
+    undefined
+  )
   .action(async (options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -139,18 +145,24 @@ export const createFellowshipCommand = new Command("create")
 
       spinner.start("Creating fellowship...");
 
+      // Get payment token address from options or fallback to Rankify address
+      const paymentToken = options.paymentToken || getArtifact(chainId, "Rankify").address;
+
       const args = [
         {
           tokenSettings: {
             tokenName,
             tokenSymbol,
+            preMintAmounts: [],
+            preMintReceivers: [],
           },
           rankifySettings: {
             principalCost: BigInt(principalCost),
             principalTimeConstant: BigInt(timeConstant),
             rankTokenURI: rankTokenUri,
-            rankTokenContractURI: metadata, // Using same URI for contract metadata
-            owner: owner,
+            rankTokenContractURI: metadata,
+            owner,
+            paymentToken,
           },
         },
       ] as const;

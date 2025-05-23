@@ -27,7 +27,6 @@ export const create = new Command("create")
   .option("--vote-credits <number>", "Vote credits per player", "14")
   .option("--time-to-join <seconds>", "Time to join in seconds", "1800")
   .option("--metadata <string>", "Game metadata (ipfs url)", "ipfs://QmXLnWFvdbVzbHN3dqbhfnPPPtHSiKxx2B8gySLaRHhFmW")
-  .option("--open-now", "Open registration immediately after creation", false)
   .option(
     "-e, --envio <url>",
     "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
@@ -71,9 +70,9 @@ export const create = new Command("create")
         envioClient,
       });
 
-      spinner.text = "Creating game...";
+      spinner.text = "Creating and opening game...";
 
-      const creationArgs = {
+      const params = {
         gameRank: BigInt(options.rank),
         minPlayerCnt: BigInt(options.minPlayers),
         maxPlayerCnt: BigInt(options.maxPlayers),
@@ -86,27 +85,22 @@ export const create = new Command("create")
         metadata: options.metadata || "{}",
       };
 
-      const result = await player.createGame({
-        creationArgs,
-        openNow: options.openNow,
-      });
+      const requirements = {
+        ethValues: {
+          have: 0n,
+          lock: 0n,
+          burn: 0n,
+          pay: 0n,
+          bet: 0n,
+        },
+        contracts: [],
+      };
 
-      spinner.succeed("Game created successfully");
+      const gameId = await player.createAndOpenGame(params, requirements);
 
-      if (result.gameId) {
-        console.log(chalk.green(`\nGame created with ID: ${result.gameId.toString()}`));
-      } else {
-        console.log(chalk.yellow("\nGame created, but could not retrieve game ID"));
-      }
+      spinner.succeed("Game created and opened successfully");
 
-      console.log(chalk.dim("Transaction hash:"), result.receipt.transactionHash);
-
-      if (options.openNow && result.openingReceipt) {
-        console.log(chalk.green("\nGame registration opened"));
-        console.log(chalk.dim("Opening transaction hash:"), result.openingReceipt.transactionHash);
-      } else if (options.openNow) {
-        console.log(chalk.yellow("\nNote: Game registration was not opened automatically"));
-      }
+      console.log(chalk.green(`\nGame created with ID: ${gameId.toString()}`));
     } catch (error) {
       spinner.fail("Failed to create game");
       console.error(chalk.red(`Error: ${error instanceof Error ? error.message + "\n" + error.stack : String(error)}`));

@@ -53,7 +53,7 @@ export async function handleRPCError(e: unknown) {
     }
     if (revertError instanceof ContractFunctionExecutionError || e?.name === "ContractFunctionExecutionError") {
       const _revertError = revertError as ContractFunctionExecutionError;
-      const errorName = _revertError.name;
+      const errorName = _revertError?.name;
       if (!errorName) {
         const cause = _revertError.cause as { signature?: string };
         if (cause?.signature) {
