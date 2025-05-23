@@ -36,6 +36,11 @@ export const createFellowshipCommand = new Command("create")
     "http://localhost:8080/v1/graphql"
   )
   .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
+  .option(
+    "-p, --payment-token <address>",
+    "Payment token address. If not provided, will use the Rankify token address",
+    undefined
+  )
   .action(async (options) => {
     const spinner = ora("Initializing clients...").start();
 
