@@ -109,7 +109,7 @@ export interface MAOInstanceContracts {
  * Handles creation, management and interaction with MAO instances
  */
 export class MAODistributorClient extends DistributorClient {
-  private static readonly DEFAULT_NAME = "MAO-v1.3";
+  private static readonly DEFAULT_NAME = "MAO-v1.4";
   walletClient?: WalletClient;
 
   /**
@@ -433,7 +433,7 @@ export class MAODistributorClient extends DistributorClient {
   /**
    * Create a new MAODistribution instance
    * @param args Distribution arguments (encoded as bytes)
-   * @param name Distributor name (defaults to "MAO-v1.3")
+   * @param name Distributor name (defaults to "MAO-v1.4")
    * @returns Array of created contract addresses
    */
   async instantiate(
