@@ -44,7 +44,7 @@ if [ "$runToTurn" -eq 1 ]; then
     exit 0
 fi
 
-Turn 2: proposes #1 and #3, vote #1 for #3
+#Turn 2: proposes #1 and #3, vote #1 for #3
 pnpm cli fellowship game vote $fellowshipId $gameId "0,1,0,0,0" -i 1
 pnpm cli fellowship game propose $fellowshipId $gameId -i 0 -t "title for p=0 t=2" -b "body"
 pnpm cli fellowship game propose $fellowshipId $gameId -i 3 -t "title for p=3 t=2" -b "body"
