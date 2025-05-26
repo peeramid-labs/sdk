@@ -8,17 +8,13 @@
     "signals": [
       {
         "name": "commitments",
-        "dimension": [
-          15
-        ],
+        "dimension": [15],
         "type": "Input",
         "visibility": "Public"
       },
       {
         "name": "permutedProposals",
-        "dimension": [
-          15
-        ],
+        "dimension": [15],
         "type": "Input",
         "visibility": "Public"
       },
@@ -36,17 +32,13 @@
       },
       {
         "name": "permutation",
-        "dimension": [
-          15
-        ],
+        "dimension": [15],
         "type": "Input",
         "visibility": "Private"
       },
       {
         "name": "randomnesses",
-        "dimension": [
-          15
-        ],
+        "dimension": [15],
         "type": "Input",
         "visibility": "Private"
       },

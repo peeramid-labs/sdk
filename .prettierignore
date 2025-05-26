@@ -3,3 +3,4 @@ dist
 coverage
 .changeset
 pnpm-lock.yaml
+zk_artifacts

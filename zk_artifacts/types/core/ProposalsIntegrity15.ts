@@ -84,9 +84,7 @@ export class ProposalsIntegrity15 extends CircuitZKit<"groth16"> {
     super(config, new Groth16Implementer());
   }
 
-  public async generateProof(
-    inputs: PrivateProposalsIntegrity15Groth16,
-  ): Promise<ProofProposalsIntegrity15Groth16> {
+  public async generateProof(inputs: PrivateProposalsIntegrity15Groth16): Promise<ProofProposalsIntegrity15Groth16> {
     const proof = await super.generateProof(inputs as any);
 
     return {
@@ -95,24 +93,18 @@ export class ProposalsIntegrity15 extends CircuitZKit<"groth16"> {
     };
   }
 
-  public async calculateWitness(
-    inputs: PrivateProposalsIntegrity15Groth16,
-  ): Promise<bigint[]> {
+  public async calculateWitness(inputs: PrivateProposalsIntegrity15Groth16): Promise<bigint[]> {
     return super.calculateWitness(inputs as any);
   }
 
-  public async verifyProof(
-    proof: ProofProposalsIntegrity15Groth16,
-  ): Promise<boolean> {
+  public async verifyProof(proof: ProofProposalsIntegrity15Groth16): Promise<boolean> {
     return super.verifyProof({
       proof: proof.proof,
       publicSignals: this._denormalizePublicSignals(proof.publicSignals),
     });
   }
 
-  public async generateCalldata(
-    proof: ProofProposalsIntegrity15Groth16,
-  ): Promise<CalldataProposalsIntegrity15Groth16> {
+  public async generateCalldata(proof: ProofProposalsIntegrity15Groth16): Promise<CalldataProposalsIntegrity15Groth16> {
     return super.generateCalldata({
       proof: proof.proof,
       publicSignals: this._denormalizePublicSignals(proof.publicSignals),
@@ -120,12 +112,7 @@ export class ProposalsIntegrity15 extends CircuitZKit<"groth16"> {
   }
 
   public getSignalNames(): string[] {
-    return [
-      "commitments",
-      "permutedProposals",
-      "permutationCommitment",
-      "numActive",
-    ];
+    return ["commitments", "permutedProposals", "permutationCommitment", "numActive"];
   }
 
   public getSignalDimensions(name: string): number[] {
@@ -143,19 +130,11 @@ export class ProposalsIntegrity15 extends CircuitZKit<"groth16"> {
     }
   }
 
-  private _normalizePublicSignals(
-    publicSignals: PublicSignals,
-  ): PublicProposalsIntegrity15Groth16 {
-    return normalizePublicSignals(
-      publicSignals,
-      this.getSignalNames(),
-      this.getSignalDimensions,
-    );
+  private _normalizePublicSignals(publicSignals: PublicSignals): PublicProposalsIntegrity15Groth16 {
+    return normalizePublicSignals(publicSignals, this.getSignalNames(), this.getSignalDimensions);
   }
 
-  private _denormalizePublicSignals(
-    publicSignals: PublicProposalsIntegrity15Groth16,
-  ): PublicSignals {
+  private _denormalizePublicSignals(publicSignals: PublicProposalsIntegrity15Groth16): PublicSignals {
     return denormalizePublicSignals(publicSignals, this.getSignalNames());
   }
 }
