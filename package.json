@@ -60,7 +60,7 @@
     "inquirer": "^12.3.0",
     "lodash": "^4.17.21",
     "ora": "^5.4.1",
-    "rankify-contracts": "^0.12.4"
+    "rankify-contracts": "^0.13.0"
   },
   "peerDependencies": {
     "viem": "^2.22.8"
