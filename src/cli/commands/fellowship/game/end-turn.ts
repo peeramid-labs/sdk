@@ -49,7 +49,7 @@ export const endTurn = new Command("end-turn")
       });
 
       spinner.text = "Ending turn...";
-      const hash = await gameMaster.endTurn({ instanceAddress: resolvedInstanceAddress, gameId: BigInt(gameId) });
+      const { hash } = await gameMaster.endTurn({ instanceAddress: resolvedInstanceAddress, gameId: BigInt(gameId) });
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
       spinner.succeed("Turn ended successfully");

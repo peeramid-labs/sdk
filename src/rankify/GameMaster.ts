@@ -675,6 +675,37 @@ export class GameMaster {
     return vote?.reduce((a, b) => a + b, 0n) !== 0n;
   }
 
+  private canSpendAllPoints = async ({
+    instanceAddress,
+    gameId,
+    turn,
+    players,
+    voteCredits,
+  }: {
+    instanceAddress: Address;
+    gameId: bigint;
+    turn: bigint;
+    players: Address[];
+    voteCredits: bigint;
+  }): Promise<boolean> => {
+    const prevTurnProposals = await this.decryptProposals({
+      instanceAddress,
+      gameId,
+      turn: turn - 1n,
+      players,
+      permute: true,
+    });
+    const prevTurnProposalsCount = prevTurnProposals.filter((p) => p.proposal !== "").length;
+    let pointsLeft = Number(voteCredits);
+    for (let i = 0; i < prevTurnProposalsCount || pointsLeft > 0; i++) {
+      const maxPoints = Math.floor(Math.sqrt(pointsLeft));
+      if (maxPoints > 0) {
+        pointsLeft -= maxPoints;
+      }
+    }
+    return pointsLeft <= 0;
+  };
+
   private validateVote = async ({
     gameId,
     turn,
@@ -698,6 +729,16 @@ export class GameMaster {
       permute: true,
     });
 
+    const gameState = await this.getGameState({ gameId, instanceAddress });
+
+    const canSpendAllPoints = await this.canSpendAllPoints({
+      instanceAddress,
+      gameId,
+      turn,
+      players,
+      voteCredits: gameState.voteCredits,
+    });
+
     //Invalid vote length
     if (vote.length !== decryptedProposals.length) {
       return { result: false, reason: "Invalid vote length" };
@@ -710,11 +751,10 @@ export class GameMaster {
         pointsUsed += vote[i] * vote[i];
       }
     }
-    const gameState = await this.getGameState({ gameId, instanceAddress });
     if (pointsUsed > gameState.voteCredits) {
       return { result: false, reason: "Too many points used" };
     }
-    if (pointsUsed < gameState.voteCredits) {
+    if (canSpendAllPoints && pointsUsed < gameState.voteCredits) {
       return { result: false, reason: "Not all points used" };
     }
 
@@ -1166,6 +1206,15 @@ export class GameMaster {
       logger(`newPaddedDecryptedProposals:`);
       logger(newPaddedDecryptedProposals);
 
+      const newPermutedProposals = await this.decryptProposals({
+        instanceAddress,
+        gameId,
+        turn,
+        players: [...players],
+        padToMaxSize: false,
+        permute: true,
+      });
+
       const votesDecrypted = await this.decryptTurnVotes({ instanceAddress, gameId, turn, players: [...players] });
       logger(`votesDecrypted:`);
       logger(votesDecrypted);
@@ -1192,7 +1241,18 @@ export class GameMaster {
         functionName: "endTurn",
         args: [gameId, votesDecrypted, attested.newProposals, attested.prevTurnPermutation, attested.prevTurnSalt],
       });
-      return this.walletClient.writeContract(request);
+      const hash = await this.walletClient.writeContract(request);
+      const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
+      const blockNumber = receipt.blockNumber;
+      const gameState = await this.getGameState({ gameId, instanceAddress });
+
+      return {
+        turn,
+        hash,
+        blockNumber,
+        hasEnded: gameState.hasEnded,
+        newPermutedProposals: newPermutedProposals.map((p) => p.proposal),
+      };
     } catch (e) {
       throw await handleRPCError(e);
     }
