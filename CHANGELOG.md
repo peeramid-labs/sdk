@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.11.3
+
+### Patch Changes
+
+- [#162](https://github.com/peeramid-labs/sdk/pull/162) [`4f430f7a774b3da09bcdf51b4e5507b09221813f`](https://github.com/peeramid-labs/sdk/commit/4f430f7a774b3da09bcdf51b4e5507b09221813f) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Refactored end turn returned data
+
 ## 3.11.2
 
 ### Patch Changes
