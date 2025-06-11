@@ -530,6 +530,8 @@ export class MAODistributorClient extends DistributorClient {
       timePerTurn: bigint;
       metadata: string;
       timeToJoin: bigint;
+      votePhaseDuration: bigint;
+      proposingPhaseDuration: bigint;
     },
     requirements: {
       ethValues: {
