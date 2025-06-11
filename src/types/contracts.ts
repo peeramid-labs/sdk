@@ -9,6 +9,8 @@ export interface MAOInstances {
   govToken: string;
   /** Address of the governance token access manager contract */
   govTokenAccessManager: string;
+  /** Address of the governor contract */
+  governor: string;
   /** Address of the ACID instance contract */
   ACIDInstance: string;
   /** Address of the ACID access manager contract */

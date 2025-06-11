@@ -10,6 +10,7 @@ import instanceAbi from "../abis/RankifyDiamondInstance";
 import rankTokenAbi from "../abis/RankToken";
 import govtTokenAbi from "../abis/DistributableGovernanceERC20";
 import govtAccessManagerAbi from "../abis/SimpleAccessManager";
+import governorAbi from "../abis/Governor";
 import {
   getAddress,
   getContract,
@@ -102,6 +103,8 @@ export interface MAOInstanceContracts {
   govTokenAccessManager: GetContractReturnType<typeof govtAccessManagerAbi>;
   /** Access manager for ACID */
   ACIDAccessManager: GetContractReturnType<typeof govtAccessManagerAbi>;
+  /** Governor contract */
+  governor: GetContractReturnType<typeof governorAbi>;
 }
 
 /**
@@ -176,7 +179,13 @@ export class MAODistributorClient extends DistributorClient {
       client: this.walletClient ?? this.publicClient,
     });
 
-    return { rankToken, instance, govtToken, govTokenAccessManager, ACIDAccessManager };
+    const governor = getContract({
+      address: getAddress(addresses.governor),
+      abi: governorAbi,
+      client: this.walletClient ?? this.publicClient,
+    });
+
+    return { rankToken, instance, govtToken, govTokenAccessManager, ACIDAccessManager, governor };
   }
 
   parseToContracts(instances: readonly Address[]) {
