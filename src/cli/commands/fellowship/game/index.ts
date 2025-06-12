@@ -3,7 +3,6 @@ import { create } from "./create";
 import { join } from "./join";
 import { start } from "./start";
 import { propose } from "./propose";
-import { endTurn } from "./end-turn";
 import { endProposing } from "./end-proposing";
 import { endVoting } from "./end-voting";
 import { forceEndStale } from "./force-end-stale";
@@ -17,7 +16,6 @@ export const game = new Command("game")
   .addCommand(join)
   .addCommand(start)
   .addCommand(propose)
-  .addCommand(endTurn)
   .addCommand(endProposing)
   .addCommand(endVoting)
   .addCommand(forceEndStale)
@@ -25,4 +23,4 @@ export const game = new Command("game")
   .addCommand(cancel)
   .addCommand(list);
 
-export { create, join, start, propose, endTurn, endProposing, endVoting, forceEndStale, vote, cancel, list };
+export { create, join, start, propose, endProposing, endVoting, forceEndStale, vote, cancel, list };
