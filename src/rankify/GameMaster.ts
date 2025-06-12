@@ -28,7 +28,7 @@ import { GameState } from "./InstanceBase";
 import EnvioGraphQLClient from "../utils/EnvioGraphQLClient";
 
 export interface ProposalsIntegrity {
-  newProposals: ContractFunctionArgs<typeof RankifyDiamondInstanceAbi, "nonpayable", "endTurn">[2];
+  newProposals: ContractFunctionArgs<typeof RankifyDiamondInstanceAbi, "nonpayable", "endProposing">[1];
   prevTurnPermutation: bigint[];
   proposalsNotPermuted: string[];
   prevTurnSalt: bigint;
@@ -420,7 +420,7 @@ export class GameMaster {
     logger(`Generating vote salt for player ${player} in game ${gameId}, turn ${turn}`);
     const result = await this.generateDeterministicPermutation({
       gameId,
-      turn: turn - 1n,
+      turn: turn,
       verifierAddress,
       size,
     }).then((perm) => {
@@ -454,7 +454,7 @@ export class GameMaster {
     const decryptedProposalsPermuted = await this.decryptProposals({
       instanceAddress,
       gameId,
-      turn: turn - 1n,
+      turn: turn,
       players: [...players],
       permute: true,
     });
@@ -645,7 +645,7 @@ export class GameMaster {
     const prevTurnProposals = await this.decryptProposals({
       instanceAddress,
       gameId,
-      turn: gameState.currentTurn - 1n,
+      turn: gameState.currentTurn,
       players: [...gameState.players],
     });
     const proposalCountInPrevTurn = prevTurnProposals.filter((p) => p.proposal !== "").length;
@@ -691,10 +691,11 @@ export class GameMaster {
     const prevTurnProposals = await this.decryptProposals({
       instanceAddress,
       gameId,
-      turn: turn - 1n,
+      turn: turn,
       players,
       permute: true,
     });
+
     const prevTurnProposalsCount = prevTurnProposals.filter((p) => p.proposal !== "").length;
     let pointsLeft = Number(voteCredits);
     for (let i = 0; i < prevTurnProposalsCount || pointsLeft > 0; i++) {
@@ -724,7 +725,7 @@ export class GameMaster {
     const decryptedProposals = await this.decryptProposals({
       instanceAddress,
       gameId,
-      turn: turn - 1n,
+      turn: turn,
       players,
       permute: true,
     });
@@ -1120,27 +1121,24 @@ export class GameMaster {
    * @param gameId - ID of the game
    * @returns Boolean indicating if turn can be ended
    */
-  canEndTurn = async ({ instanceAddress, gameId }: { instanceAddress: Address; gameId: bigint }) => {
-    const canEndTurn = await this.publicClient.readContract({
+  canEndProposingStage = async ({ instanceAddress, gameId }: { instanceAddress: Address; gameId: bigint }) => {
+    const canEnd = await this.publicClient.readContract({
       address: instanceAddress,
       abi: RankifyDiamondInstanceAbi,
-      functionName: "canEndTurn",
+      functionName: "canEndProposingStage",
       args: [gameId],
     });
-    if (!canEndTurn) return false;
+    return canEnd;
+  };
 
-    //Extra check to not allow to end turn if current phase timeout is not passed and progress is less than 100% (probably must be fixed in contracts!)
-    // TODO: if fixed in contracts, remove this check
-    const gameState = await this.getGameState({ instanceAddress, gameId });
-    const lastBlock = await this.publicClient.getBlock({
-      blockNumber: BigInt(await this.publicClient.getBlockNumber()),
+  canEndVotingStage = async ({ instanceAddress, gameId }: { instanceAddress: Address; gameId: bigint }) => {
+    const canEnd = await this.publicClient.readContract({
+      address: instanceAddress,
+      abi: RankifyDiamondInstanceAbi,
+      functionName: "canEndVotingStage",
+      args: [gameId],
     });
-    if (gameState.turnStartedAt + gameState.timePerTurn > lastBlock.timestamp) {
-      const turnProgress = await this.getTurnProgress({ instanceAddress, gameState, gameId });
-      if (turnProgress <= 100) return false;
-    }
-
-    return true;
+    return canEnd;
   };
 
   /**
@@ -1180,83 +1178,9 @@ export class GameMaster {
   };
 
   /**
-   * Ends the current turn and processes votes
-   * @param gameId - ID of the game
-   * @returns Transaction hash
+   * NOTE: endTurn has been replaced with endProposing and endVoting methods
+   * for the new two-phase turn system.
    */
-  endTurn = async ({ instanceAddress, gameId }: { instanceAddress: Address; gameId: bigint }) => {
-    logger(`Ending turn for game ${gameId}`, 2);
-    try {
-      if (!(await this.canEndTurn({ instanceAddress, gameId }))) {
-        throw new Error("Cannot end turn");
-      }
-
-      const turn = await this.currentTurn({ instanceAddress, gameId });
-      const players = await this.getPlayers({ instanceAddress, gameId });
-
-      logger(`Current turn: ${turn}, Players count: ${players.length}`, 2);
-
-      const newPaddedDecryptedProposals = await this.decryptProposals({
-        instanceAddress,
-        gameId,
-        turn,
-        players: [...players],
-        padToMaxSize: true,
-      });
-      logger(`newPaddedDecryptedProposals:`);
-      logger(newPaddedDecryptedProposals);
-
-      const newPermutedProposals = await this.decryptProposals({
-        instanceAddress,
-        gameId,
-        turn,
-        players: [...players],
-        padToMaxSize: false,
-        permute: true,
-      });
-
-      const votesDecrypted = await this.decryptTurnVotes({ instanceAddress, gameId, turn, players: [...players] });
-      logger(`votesDecrypted:`);
-      logger(votesDecrypted);
-
-      const tableData = players.map((player, idx) => ({
-        player,
-        voted: this.hasVoted({ vote: votesDecrypted[idx] }),
-        proposal: newPaddedDecryptedProposals[idx]?.proposal.substring(0, 50) || "not-proposed",
-      }));
-      console.table(tableData);
-
-      const attested = await this.getProposalsIntegrity({
-        gameId,
-        turn,
-        verifierAddress: instanceAddress,
-        size: players.length,
-        proposals: newPaddedDecryptedProposals,
-      });
-
-      const { request } = await this.publicClient.simulateContract({
-        abi: RankifyDiamondInstanceAbi,
-        account: this.walletClient.account,
-        address: instanceAddress,
-        functionName: "endTurn",
-        args: [gameId, votesDecrypted, attested.newProposals, attested.prevTurnPermutation, attested.prevTurnSalt],
-      });
-      const hash = await this.walletClient.writeContract(request);
-      const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
-      const blockNumber = receipt.blockNumber;
-      const gameState = await this.getGameState({ gameId, instanceAddress });
-
-      return {
-        turn,
-        hash,
-        blockNumber,
-        hasEnded: gameState.hasEnded,
-        newPermutedProposals: newPermutedProposals.map((p) => p.proposal),
-      };
-    } catch (e) {
-      throw await handleRPCError(e);
-    }
-  };
 
   gameKey = async ({ gameId, contractAddress }: { gameId: bigint; contractAddress: Address }): Promise<Hex> => {
     logger(`Signing game key for game ${gameId} at address ${contractAddress}`);
@@ -1481,7 +1405,7 @@ export class GameMaster {
 
     const { permutation: prevTurnPermutation, turnSalt: prevTurnSalt } = await this.generateDeterministicPermutation({
       gameId,
-      turn: turn - 1n,
+      turn: turn,
       verifierAddress,
       size,
     });
@@ -1672,6 +1596,111 @@ export class GameMaster {
       randomnesses,
       permutationRandomness: secret,
     };
+  };
+
+  endProposing = async ({ instanceAddress, gameId }: { instanceAddress: Address; gameId: bigint }) => {
+    try {
+      logger(`Ending proposing stage for game ${gameId} in instance ${instanceAddress}`);
+
+      if (!(await this.canEndProposingStage({ instanceAddress, gameId }))) {
+        throw new Error("Cannot end proposing stage");
+      }
+
+      const turn = await this.currentTurn({ instanceAddress, gameId });
+      const players = await this.getPlayers({ instanceAddress, gameId });
+
+      const newPaddedDecryptedProposals = await this.decryptProposals({
+        instanceAddress,
+        gameId,
+        turn,
+        players: [...players],
+        padToMaxSize: true,
+      });
+
+      const newPermutedProposals = await this.decryptProposals({
+        instanceAddress,
+        gameId,
+        turn,
+        players: [...players],
+        padToMaxSize: false,
+        permute: true,
+      });
+
+      const attested = await this.getProposalsIntegrity({
+        gameId,
+        turn,
+        verifierAddress: instanceAddress,
+        size: players.length,
+        proposals: newPaddedDecryptedProposals,
+      });
+
+      const { request } = await this.publicClient.simulateContract({
+        address: instanceAddress,
+        abi: RankifyDiamondInstanceAbi,
+        functionName: "endProposing",
+        args: [gameId, attested.newProposals],
+        account: this.walletClient.account,
+      });
+      const hash = await this.walletClient.writeContract(request);
+      const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
+      const blockNumber = receipt.blockNumber;
+
+      logger(`Proposing stage ended. Transaction hash: ${hash}`);
+
+      return {
+        turn,
+        hash,
+        blockNumber,
+        newPermutedProposals: newPermutedProposals.map((p) => p.proposal),
+      };
+    } catch (error) {
+      throw await handleRPCError(error);
+    }
+  };
+
+  endVoting = async ({ instanceAddress, gameId }: { instanceAddress: Address; gameId: bigint }) => {
+    try {
+      logger(`Ending voting stage for game ${gameId} in instance ${instanceAddress}`);
+
+      if (!(await this.canEndVotingStage({ instanceAddress, gameId }))) {
+        throw new Error("Cannot end voting stage");
+      }
+
+      const turn = await this.currentTurn({ instanceAddress, gameId });
+      const players = await this.getPlayers({ instanceAddress, gameId });
+
+      const votesDecrypted = await this.decryptTurnVotes({ instanceAddress, gameId, turn, players: [...players] });
+
+      const { permutation, turnSalt } = await this.generateDeterministicPermutation({
+        gameId,
+        turn: turn,
+        verifierAddress: instanceAddress,
+        size: players.length,
+      });
+
+      const { request } = await this.publicClient.simulateContract({
+        address: instanceAddress,
+        abi: RankifyDiamondInstanceAbi,
+        functionName: "endVoting",
+        args: [gameId, votesDecrypted, permutation.map((p) => BigInt(p)), turnSalt],
+        account: this.walletClient.account,
+      });
+      const hash = await this.walletClient.writeContract(request);
+      const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
+      const blockNumber = receipt.blockNumber;
+      const gameState = await this.getGameState({ gameId, instanceAddress });
+
+      logger(`Voting stage ended. Transaction hash: ${hash}`);
+
+      return {
+        turn,
+        hash,
+        blockNumber,
+        hasEnded: gameState.hasEnded,
+      };
+    } catch (error) {
+      throw await handleRPCError(error);
+    }
   };
 }
 

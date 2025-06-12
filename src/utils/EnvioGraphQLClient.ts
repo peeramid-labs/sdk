@@ -312,7 +312,7 @@ export class EnvioGraphQLClient {
       whereParts.push(`gameId: { _eq: ${gameIdStr} }`);
 
       if (turnStr !== undefined) {
-        whereParts.push(`turn: { _eq: ${turnStr} }`);
+        whereParts.push(`roundNumber: { _eq: ${turnStr} }`);
       }
 
       if (proposer) {
@@ -336,7 +336,7 @@ export class EnvioGraphQLClient {
           ) {
             id
             gameId
-            turn
+            roundNumber
             proposer
             commitment
             encryptedProposal
@@ -353,7 +353,7 @@ export class EnvioGraphQLClient {
         RankifyInstance_ProposalSubmitted: Array<{
           id: string;
           gameId: string;
-          turn: string;
+          roundNumber: string;
           proposer: string;
           commitment: string;
           encryptedProposal: string;
@@ -368,7 +368,7 @@ export class EnvioGraphQLClient {
       return result.RankifyInstance_ProposalSubmitted.map((event) => ({
         ...event,
         gameId: BigInt(event.gameId),
-        turn: BigInt(event.turn),
+        roundNumber: BigInt(event.roundNumber),
         commitment: BigInt(event.commitment),
         blockNumber: BigInt(event.blockNumber),
         contractAddress: event.srcAddress as Address,
@@ -404,7 +404,7 @@ export class EnvioGraphQLClient {
       whereParts.push(`gameId: { _eq: ${gameIdStr} }`);
 
       if (turnStr !== undefined) {
-        whereParts.push(`turn: { _eq: ${turnStr} }`);
+        whereParts.push(`roundNumber: { _eq: ${turnStr} }`);
       }
 
       if (player) {
@@ -428,7 +428,7 @@ export class EnvioGraphQLClient {
           ) {
             id
             gameId
-            turn
+            roundNumber
             player
             sealedBallotId
             gmSignature
@@ -445,7 +445,7 @@ export class EnvioGraphQLClient {
         RankifyInstance_VoteSubmitted: Array<{
           id: string;
           gameId: string;
-          turn: string;
+          roundNumber: string;
           player: string;
           sealedBallotId: string;
           gmSignature: string;
@@ -460,7 +460,7 @@ export class EnvioGraphQLClient {
       return result.RankifyInstance_VoteSubmitted.map((event) => ({
         ...event,
         gameId: BigInt(event.gameId),
-        turn: BigInt(event.turn),
+        roundNumber: BigInt(event.roundNumber),
         blockNumber: BigInt(event.blockNumber),
         contractAddress: event.srcAddress as Address,
         player: event.player as Address,
@@ -551,7 +551,7 @@ export class EnvioGraphQLClient {
       whereParts.push(`gameId: { _eq: ${gameIdStr} }`);
 
       if (turnStr !== undefined) {
-        whereParts.push(`turn: { _eq: ${turnStr} }`);
+        whereParts.push(`roundNumber: { _eq: ${turnStr} }`);
       }
 
       if (contractAddress) {
@@ -567,12 +567,12 @@ export class EnvioGraphQLClient {
             where: {
               ${whereClause}
             }
-            order_by: { turn: desc }
+            order_by: { roundNumber: desc }
             limit: 1
           ) {
             id
             gameId
-            turn
+            roundNumber
             players
             scores
             newProposals
@@ -589,7 +589,7 @@ export class EnvioGraphQLClient {
         RankifyInstance_TurnEnded: Array<{
           id: string;
           gameId: string;
-          turn: string;
+          roundNumber: string;
           players: string[];
           scores: string[];
           newProposals: string[];
@@ -604,7 +604,8 @@ export class EnvioGraphQLClient {
       return result.RankifyInstance_TurnEnded.map((event) => ({
         ...event,
         gameId: BigInt(event.gameId),
-        turn: BigInt(event.turn),
+        turn: BigInt(event.roundNumber),
+        roundNumber: BigInt(event.roundNumber),
         scores: event.scores.map((score) => BigInt(score)),
         proposerIndices: event.proposerIndices.map((index) => BigInt(index)),
         votes: event.votes.map((row) => row.map((vote) => BigInt(vote))),
@@ -640,7 +641,7 @@ export class EnvioGraphQLClient {
       whereParts.push(`gameId: { _eq: ${gameIdStr} }`);
 
       if (turnStr !== undefined) {
-        whereParts.push(`turn: { _eq: ${turnStr} }`);
+        whereParts.push(`roundNumber: { _eq: ${turnStr} }`);
       }
 
       if (contractAddress) {
@@ -660,7 +661,7 @@ export class EnvioGraphQLClient {
           ) {
             id
             gameId
-            turn
+            roundNumber
             proposalHash
             proposal
             score
@@ -675,7 +676,7 @@ export class EnvioGraphQLClient {
         RankifyInstance_ProposalScore: Array<{
           id: string;
           gameId: string;
-          turn: string;
+          roundNumber: string;
           proposalHash: string;
           proposal: string;
           score: string;
@@ -688,7 +689,8 @@ export class EnvioGraphQLClient {
       return result.RankifyInstance_ProposalScore.map((event) => ({
         ...event,
         gameId: BigInt(event.gameId),
-        turn: BigInt(event.turn),
+        turn: BigInt(event.roundNumber),
+        roundNumber: BigInt(event.roundNumber),
         score: BigInt(event.score),
         blockNumber: BigInt(event.blockNumber),
         contractAddress: event.srcAddress as Address,

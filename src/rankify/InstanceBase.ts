@@ -172,7 +172,7 @@ export default class InstanceBase {
     }
 
     if (currentTurn > 1n) {
-      return this.getHistoricTurn(gameId, currentTurn - 1n);
+      return this.getHistoricTurn(gameId, currentTurn);
     } else {
       return {
         players: "N/A",
@@ -253,7 +253,7 @@ export default class InstanceBase {
       });
       const lastTurnEndedEvent = await this.envioClient.getTurnEndedEvents({
         gameId,
-        turn: currentTurn - 1n,
+        turn: currentTurn,
         contractAddress: this.instanceAddress,
       });
       lastTurnEndedEvent[0].newProposals = lastTurnEndedEvent[0]?.newProposals?.slice(
@@ -356,7 +356,7 @@ export default class InstanceBase {
             contractAddress: this.instanceAddress,
           })
         : await this.envioClient.getTurnEndedEvents({
-            turn: currentTurn - 1n,
+            turn: currentTurn,
             gameId,
             contractAddress: this.instanceAddress,
           });
