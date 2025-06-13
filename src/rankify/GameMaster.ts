@@ -742,7 +742,7 @@ export class GameMaster {
 
     //Invalid vote length
     if (vote.length !== decryptedProposals.length) {
-      return { result: false, reason: "Invalid vote length" };
+      return { result: false, reason: "Invalid vote length: " + vote.length + " " + decryptedProposals.length };
     }
 
     // Check if points used are correct (Quadratic voting system)

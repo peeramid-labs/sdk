@@ -50,13 +50,13 @@ export type GraphQLFilter = Record<string, Record<FilterOperator, FilterValue>>;
  * Type for GraphQL query variables
  */
 type GraphQLQueryVariables = {
-  gameId?: string;
+  gameId?: string | number;
   creator?: string;
   gm?: string;
   participant?: string;
   proposer?: string;
   player?: string;
-  turn?: string;
+  roundNumber?: string | number;
   limit?: number;
   offset?: number;
   contractAddress?: string;
@@ -1107,5 +1107,116 @@ export class EnvioGraphQLClient {
       throw error;
     }
   }
+
+  async getProposingStageEndedEvents({
+    gameId,
+    turn,
+    contractAddress,
+  }: {
+    gameId: bigint;
+    turn: bigint;
+    contractAddress: Address;
+  }) {
+    if (!gameId || !turn) {
+      throw new Error("gameId and turn are required");
+    }
+
+    const variables = {
+      gameId: Number(gameId),
+      roundNumber: Number(turn),
+      contractAddress: contractAddress,
+    };
+
+    const query = gql`
+      query GetProposingStageEnded($gameId: numeric!, $roundNumber: numeric!, $contractAddress: String!) {
+        RankifyInstance_ProposingStageEnded(
+          where: { gameId: { _eq: $gameId }, roundNumber: { _eq: $roundNumber }, srcAddress: { _eq: $contractAddress } }
+        ) {
+          id
+          gameId
+          roundNumber
+          numProposals
+          proposals
+          blockNumber
+          blockTimestamp
+          srcAddress
+        }
+      }
+    `;
+
+    const result = await this.client.request<{
+      RankifyInstance_ProposingStageEnded: Array<{
+        id: string;
+        gameId: string;
+        roundNumber: string;
+        numProposals: string;
+        proposals: string[];
+        blockNumber: string;
+        blockTimestamp: string;
+        srcAddress: string;
+      }>;
+    }>(query, variables);
+
+    return result.RankifyInstance_ProposingStageEnded;
+  }
+
+  getVotingStageResults = async ({
+    gameId,
+    turn,
+    contractAddress,
+  }: {
+    gameId: bigint;
+    turn: bigint;
+    contractAddress: string;
+  }) => {
+    if (!gameId || !turn) {
+      throw new Error("gameId and turn are required");
+    }
+
+    const query = `
+      query GetVotingStageResults($gameId: numeric!, $turn: numeric!, $contractAddress: String!) {
+        RankifyInstance_VotingStageResults(
+          where: { gameId: { _eq: $gameId }, roundNumber: { _eq: $turn }, srcAddress: { _eq: $contractAddress } }
+        ) {
+          id
+          gameId
+          roundNumber
+          winner
+          players
+          scores
+          votesSorted
+          isActive
+          finalizedVotingMatrix
+          blockNumber
+          blockTimestamp
+          srcAddress
+        }
+      }
+    `;
+
+    const variables = {
+      gameId: gameId.toString(),
+      turn: turn.toString(),
+      contractAddress,
+    };
+
+    const result = (await this.client.request(query, variables)) as {
+      RankifyInstance_VotingStageResults: Array<{
+        id: string;
+        gameId: string;
+        roundNumber: string;
+        winner: string;
+        players: string[];
+        scores: string[];
+        votesSorted: string[][];
+        isActive: boolean[];
+        finalizedVotingMatrix: string[][];
+        blockNumber: string;
+        blockTimestamp: string;
+        srcAddress: string;
+      }>;
+    };
+    return result.RankifyInstance_VotingStageResults;
+  };
 }
 export default EnvioGraphQLClient;
