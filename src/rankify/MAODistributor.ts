@@ -10,6 +10,7 @@ import instanceAbi from "../abis/RankifyDiamondInstance";
 import rankTokenAbi from "../abis/RankToken";
 import govtTokenAbi from "../abis/DistributableGovernanceERC20";
 import govtAccessManagerAbi from "../abis/SimpleAccessManager";
+import governorAbi from "../abis/Governor";
 import {
   getAddress,
   getContract,
@@ -102,6 +103,8 @@ export interface MAOInstanceContracts {
   govTokenAccessManager: GetContractReturnType<typeof govtAccessManagerAbi>;
   /** Access manager for ACID */
   ACIDAccessManager: GetContractReturnType<typeof govtAccessManagerAbi>;
+  /** Governor contract */
+  governor: GetContractReturnType<typeof governorAbi>;
 }
 
 /**
@@ -109,7 +112,7 @@ export interface MAOInstanceContracts {
  * Handles creation, management and interaction with MAO instances
  */
 export class MAODistributorClient extends DistributorClient {
-  private static readonly DEFAULT_NAME = "MAO-v1.4";
+  private static readonly DEFAULT_NAME = "MAO-v1.5";
   walletClient?: WalletClient;
 
   /**
@@ -176,7 +179,13 @@ export class MAODistributorClient extends DistributorClient {
       client: this.walletClient ?? this.publicClient,
     });
 
-    return { rankToken, instance, govtToken, govTokenAccessManager, ACIDAccessManager };
+    const governor = getContract({
+      address: getAddress(addresses.governor),
+      abi: governorAbi,
+      client: this.walletClient ?? this.publicClient,
+    });
+
+    return { rankToken, instance, govtToken, govTokenAccessManager, ACIDAccessManager, governor };
   }
 
   parseToContracts(instances: readonly Address[]) {
@@ -433,7 +442,7 @@ export class MAODistributorClient extends DistributorClient {
   /**
    * Create a new MAODistribution instance
    * @param args Distribution arguments (encoded as bytes)
-   * @param name Distributor name (defaults to "MAO-v1.4")
+   * @param name Distributor name (defaults to "MAO-v1.5")
    * @returns Array of created contract addresses
    */
   async instantiate(
@@ -482,7 +491,6 @@ export class MAODistributorClient extends DistributorClient {
       throw await handleRPCError(e);
     }
   }
-  
 
   /**
    * Check if a player is in a specific game
@@ -521,6 +529,8 @@ export class MAODistributorClient extends DistributorClient {
       timePerTurn: bigint;
       metadata: string;
       timeToJoin: bigint;
+      votePhaseDuration: bigint;
+      proposingPhaseDuration: bigint;
     },
     requirements: {
       ethValues: {

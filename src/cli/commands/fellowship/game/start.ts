@@ -145,7 +145,7 @@ export const start = new Command("start")
 
       // Start the game
       spinner.text = "Starting game...";
-      const receipt = await player.startGame(gameIdBigInt, commitment);
+      const receipt = await player.startGame(gameIdBigInt);
 
       spinner.succeed("Game started successfully");
       console.log(chalk.green(`\nStarted game with ID: ${gameIdBigInt.toString()}`));

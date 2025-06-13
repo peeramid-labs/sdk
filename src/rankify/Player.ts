@@ -184,6 +184,8 @@ export default class RankifyPlayer extends InstanceBase {
       timePerTurn: bigint;
       metadata: string;
       timeToJoin: bigint;
+      votePhaseDuration: bigint;
+      proposingPhaseDuration: bigint;
     },
     requirements: {
       ethValues: {
@@ -311,18 +313,17 @@ export default class RankifyPlayer extends InstanceBase {
   /**
    * Starts a game
    * @param gameId - The ID of the game to start
-   * @param permutationCommitment - The permutation commitment for the game
    * @returns A promise that resolves to the transaction receipt
    * @throws If the account is not found or the game cannot be started
    */
-  startGame = async (gameId: bigint, permutationCommitment: bigint) => {
+  startGame = async (gameId: bigint) => {
     try {
       if (!this.walletClient.account?.address) throw new Error("Account not found");
       const { request } = await this.publicClient.simulateContract({
         address: this.instanceAddress,
         abi: instanceAbi,
         functionName: "startGame",
-        args: [gameId, permutationCommitment],
+        args: [gameId],
         account: this.walletClient.account,
       });
 

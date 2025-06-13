@@ -10,6 +10,7 @@ import {
 } from "viem";
 import RankifyPlayer from "../Player";
 import rankifyAbi from "../../abis/Rankify";
+import { createMockEnvioClient } from "../../utils/mockUtils";
 
 // Mock viem
 jest.mock("viem", () => ({
@@ -78,6 +79,8 @@ const mockWalletClient = {
   },
 } as unknown as WalletClient;
 
+const mockEnvioClient = createMockEnvioClient();
+
 const mockInstanceAddress = "0x456" as Address;
 const mockAccount = "0x789" as Address;
 const mockChainId = 97113; // Arbitrum One chain ID
@@ -93,6 +96,7 @@ describe("RankifyPlayer", () => {
       chainId: mockChainId,
       instanceAddress: mockInstanceAddress,
       account: mockAccount,
+      envioClient: mockEnvioClient,
     });
   });
 
@@ -159,6 +163,9 @@ describe("RankifyPlayer", () => {
         minGameTime: 300n,
         timePerTurn: 60n,
         timeToJoin: 300n,
+        metadata: "ipfs://test-hash",
+        votePhaseDuration: 1800n,
+        proposingPhaseDuration: 1800n,
       };
 
       // Mock the contract read for price estimation
@@ -219,6 +226,7 @@ describe("RankifyPlayer", () => {
         chainId: mockChainId,
         instanceAddress: mockInstanceAddress,
         account: mockAccount,
+        envioClient: mockEnvioClient,
       });
 
       const mockGameParams = {
@@ -231,6 +239,9 @@ describe("RankifyPlayer", () => {
         minGameTime: 300n,
         timePerTurn: 60n,
         timeToJoin: 300n,
+        metadata: "ipfs://test-hash",
+        votePhaseDuration: 1800n,
+        proposingPhaseDuration: 1800n,
       };
 
       mockReadContract.mockResolvedValue(100n);

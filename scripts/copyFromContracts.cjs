@@ -60,9 +60,9 @@ function generateIndexFile(destDir) {
 ${namedExports}
 
 // Create and export the abis object
-const abis = {
+const abis: Record<string, readonly any[]> = {
 ${abiObjectEntries}
-} as const;
+};
 
 export { abis };
 export default abis;

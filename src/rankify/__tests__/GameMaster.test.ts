@@ -901,6 +901,9 @@ describe("GameMaster", () => {
         timeToJoin: 3600n,
         turnStartedAt: 0n,
         maxTurns: 10n,
+        proposingPhaseDuration: 1800n,
+        votePhaseDuration: 1800n,
+        phaseStartedAt: 0n,
       };
 
       // Mock all the required contract calls
@@ -958,6 +961,9 @@ describe("GameMaster", () => {
         timeToJoin: 3600n,
         turnStartedAt: 2000n,
         maxTurns: 10n,
+        proposingPhaseDuration: 1800n,
+        votePhaseDuration: 1800n,
+        phaseStartedAt: 2000n,
       };
 
       // Mock game over event
