@@ -1114,23 +1114,31 @@ export class GameMaster {
    * @returns Boolean indicating if turn can be ended
    */
   canEndProposingStage = async ({ instanceAddress, gameId }: { instanceAddress: Address; gameId: bigint }) => {
-    const canEnd = await this.publicClient.readContract({
-      address: instanceAddress,
-      abi: RankifyDiamondInstanceAbi,
-      functionName: "canEndProposingStage",
-      args: [gameId],
-    });
-    return canEnd;
+    try {
+      const canEnd = await this.publicClient.readContract({
+        address: instanceAddress,
+        abi: RankifyDiamondInstanceAbi,
+        functionName: "canEndProposingStage",
+        args: [gameId],
+      });
+      return canEnd;
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
   };
 
   canEndVotingStage = async ({ instanceAddress, gameId }: { instanceAddress: Address; gameId: bigint }) => {
-    const canEnd = await this.publicClient.readContract({
-      address: instanceAddress,
-      abi: RankifyDiamondInstanceAbi,
-      functionName: "canEndVotingStage",
-      args: [gameId],
-    });
-    return canEnd;
+    try {
+      const canEnd = await this.publicClient.readContract({
+        address: instanceAddress,
+        abi: RankifyDiamondInstanceAbi,
+        functionName: "canEndVotingStage",
+        args: [gameId],
+      });
+      return canEnd;
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
   };
 
   /**

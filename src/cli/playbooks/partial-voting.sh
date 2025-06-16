@@ -38,7 +38,7 @@ pnpm cli blockchain mine -t 1500
 pnpm cli fellowship game end-proposing $fellowshipId $gameId
 
 
-pnpm cli fellowship game vote $fellowshipId $gameId "0,1,0,0,0" -i 1
+pnpm cli fellowship game vote $fellowshipId $gameId "1,0,0,0,0" -i 1
 if [ "$finishTurn" = "true" ] || [ "$runToTurn" -gt 1 ]; then
     pnpm cli blockchain mine -t 1500
     pnpm cli fellowship game end-voting $fellowshipId $gameId
@@ -66,7 +66,7 @@ pnpm cli blockchain mine -t 1500
 pnpm cli fellowship game end-proposing $fellowshipId $gameId
 
 pnpm cli fellowship game vote $fellowshipId $gameId "0,1,0,0,0" -i 1
-if [ "$finishTurn" = "true" ] || [ "$runToTurn" -gt 2 ]; then
+if [ "$finishTurn" = "true" ] || [ "$runToTurn" -gt 3 ]; then
     pnpm cli blockchain mine -t 1500
     pnpm cli fellowship game end-voting $fellowshipId $gameId
     exit 0

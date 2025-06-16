@@ -1031,8 +1031,8 @@ export class EnvioGraphQLClient {
     }
 
     const variables = {
-      gameId: Number(gameId),
-      roundNumber: Number(turn),
+      gameId: gameId.toString(),
+      roundNumber: turn.toString(),
       contractAddress: contractAddress,
     };
 
@@ -1066,7 +1066,15 @@ export class EnvioGraphQLClient {
       }>;
     }>(query, variables);
 
-    return result.RankifyInstance_ProposingStageEnded;
+    return result.RankifyInstance_ProposingStageEnded.map((event) => ({
+      ...event,
+      gameId: BigInt(event.gameId),
+      roundNumber: BigInt(event.roundNumber),
+      numProposals: Number(event.numProposals),
+      blockNumber: BigInt(event.blockNumber),
+      blockTimestamp: Number(event.blockTimestamp),
+      srcAddress: event.srcAddress as Address,
+    }));
   }
 
   getVotingStageResults = async ({
@@ -1125,7 +1133,20 @@ export class EnvioGraphQLClient {
         srcAddress: string;
       }>;
     };
-    return result.RankifyInstance_VotingStageResults;
+
+    return result.RankifyInstance_VotingStageResults.map((event) => ({
+      ...event,
+      gameId: BigInt(event.gameId),
+      roundNumber: BigInt(event.roundNumber),
+      winner: event.winner as Address,
+      players: event.players.map((player) => player as Address),
+      scores: event.scores.map((score) => BigInt(score)),
+      votesSorted: event.votesSorted.map((votes) => votes.map((vote) => BigInt(vote))),
+      finalizedVotingMatrix: event.finalizedVotingMatrix.map((votes) => votes.map((vote) => BigInt(vote))),
+      blockNumber: BigInt(event.blockNumber),
+      blockTimestamp: Number(event.blockTimestamp),
+      srcAddress: event.srcAddress as Address,
+    }));
   };
 }
 export default EnvioGraphQLClient;

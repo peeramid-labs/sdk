@@ -212,6 +212,13 @@ export default class RankifyPlayer extends InstanceBase {
     if (!this.walletClient) throw new Error("Wallet client is required for this operation");
     if (!this.walletClient.account?.address) throw new Error("No account address found");
 
+    if (params.votePhaseDuration <= 0n) {
+      throw new Error("votePhaseDuration must be greater than 0");
+    }
+    if (params.proposingPhaseDuration <= 0n) {
+      throw new Error("proposingPhaseDuration must be greater than 0");
+    }
+
     try {
       // Estimate game price and approve tokens
       const gamePrice = await this.estimateGamePrice(params.minGameTime);
