@@ -23,7 +23,9 @@ export const create = new Command("create")
   .option("--min-players <number>", "Minimum number of players", "5")
   .option("--min-game-time <seconds>", "Minimum game time in seconds", "3600")
   .option("--turns <number>", "Number of turns", "5")
-  .option("--time-per-turn <seconds>", "Time per turn in seconds", "1800")
+  .option("--time-per-turn <seconds>", "Time per turn in seconds", "3000")
+  .option("--voting-period <seconds>", "Voting period in seconds", "1500")
+  .option("--proposing-period <seconds>", "Proposing period in seconds", "1500")
   .option("--vote-credits <number>", "Vote credits per player", "14")
   .option("--time-to-join <seconds>", "Time to join in seconds", "1800")
   .option("--metadata <string>", "Game metadata (ipfs url)", "ipfs://QmXLnWFvdbVzbHN3dqbhfnPPPtHSiKxx2B8gySLaRHhFmW")
@@ -83,6 +85,8 @@ export const create = new Command("create")
         timePerTurn: BigInt(options.timePerTurn),
         timeToJoin: BigInt(options.timeToJoin),
         metadata: options.metadata || "{}",
+        votePhaseDuration: BigInt(options.votingPeriod),
+        proposingPhaseDuration: BigInt(options.proposingPeriod),
       };
 
       const requirements = {

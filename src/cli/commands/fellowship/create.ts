@@ -18,6 +18,9 @@ enum FellowshipDefaults {
   TIME_CONSTANT = "604800", // 1 week
   METADATA = "ipfs://QmVzSvWjysUfVHzGMQ4y2EduXrVYLApZ3KHQb2gUTR4x6P",
   RANK_TOKEN_URI = "ipfs://your-rank-token-uri",
+  VOTING_DELAY = "7200",
+  VOTING_PERIOD = "50400",
+  QUORUM = "4",
 }
 
 export const createFellowshipCommand = new Command("create")
@@ -65,7 +68,9 @@ export const createFellowshipCommand = new Command("create")
         timeConstant: FellowshipDefaults.TIME_CONSTANT,
         metadata: FellowshipDefaults.METADATA,
         rankTokenUri: FellowshipDefaults.RANK_TOKEN_URI,
-        owner: walletClient.account?.address,
+        votingDelay: FellowshipDefaults.VOTING_DELAY,
+        votingPeriod: FellowshipDefaults.VOTING_PERIOD,
+        quorum: FellowshipDefaults.QUORUM,
       };
 
       // Check if auto-accept defaults is enabled
@@ -134,14 +139,38 @@ export const createFellowshipCommand = new Command("create")
           },
           {
             type: "input",
-            name: "owner",
-            message: "Enter owner address:",
-            default: defaultValues.owner,
+            name: "votingDelay",
+            message: "Enter voting delay (in seconds):",
+            default: defaultValues.votingDelay,
+            validate: (input: string) => {
+              const num = parseInt(input);
+              return !isNaN(num) && num > 0 ? true : "Please enter a valid number greater than 0";
+            },
+          },
+          {
+            type: "input",
+            name: "votingPeriod",
+            message: "Enter voting period (in seconds):",
+            default: defaultValues.votingPeriod,
+            validate: (input: string) => {
+              const num = parseInt(input);
+              return !isNaN(num) && num > 0 ? true : "Please enter a valid number greater than 0";
+            },
+          },
+          {
+            type: "input",
+            name: "quorum",
+            message: "Enter quorum (in percentage):",
+            default: defaultValues.quorum,
+            validate: (input: string) => {
+              const num = parseInt(input);
+              return !isNaN(num) && num > 0 ? true : "Please enter a valid number greater than 0";
+            },
           },
         ]);
       }
 
-      const { tokenName, tokenSymbol, principalCost, timeConstant, metadata, rankTokenUri, owner } = fellowshipDetails;
+      const { tokenName, tokenSymbol, principalCost, timeConstant, metadata, rankTokenUri } = fellowshipDetails;
 
       spinner.start("Creating fellowship...");
 
@@ -150,18 +179,21 @@ export const createFellowshipCommand = new Command("create")
 
       const args = [
         {
-          tokenSettings: {
+          govSettings: {
             tokenName,
             tokenSymbol,
             preMintAmounts: [],
             preMintReceivers: [],
+            orgName: tokenName,
+            votingDelay: Number(fellowshipDetails.votingDelay),
+            votingPeriod: Number(fellowshipDetails.votingPeriod),
+            quorum: BigInt(fellowshipDetails.quorum),
           },
           rankifySettings: {
             principalCost: BigInt(principalCost),
             principalTimeConstant: BigInt(timeConstant),
             rankTokenURI: rankTokenUri,
             rankTokenContractURI: metadata,
-            owner,
             paymentToken,
           },
         },
