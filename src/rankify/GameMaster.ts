@@ -642,22 +642,14 @@ export class GameMaster {
     gameState: GameState;
     gameId: bigint;
   }) => {
-    const prevTurnProposals = await this.decryptProposals({
-      instanceAddress,
-      gameId,
-      turn: gameState.currentTurn,
-      players: [...gameState.players],
-    });
-    const proposalCountInPrevTurn = prevTurnProposals.filter((p) => p.proposal !== "").length;
-    const proposalsMadeInCurrentTurn = await this.decryptProposals({
-      instanceAddress,
-      gameId,
-      turn: gameState.currentTurn,
-      players: [...gameState.players],
-    });
-    const proposalCountInCurrentTurn = proposalsMadeInCurrentTurn.filter((p) => p.proposal !== "").length;
-
-    if (proposalCountInPrevTurn === 0) {
+    if (gameState.phase === 0n) {
+      const proposalsMadeInCurrentTurn = await this.decryptProposals({
+        instanceAddress,
+        gameId,
+        turn: gameState.currentTurn,
+        players: [...gameState.players],
+      });
+      const proposalCountInCurrentTurn = proposalsMadeInCurrentTurn.filter((p) => p.proposal !== "").length;
       return (proposalCountInCurrentTurn / gameState.players.length) * 100;
     } else {
       const votesMadeInCurrentTurn = await this.decryptTurnVotes({
@@ -667,7 +659,7 @@ export class GameMaster {
         players: [...gameState.players],
       });
       const votesCount = votesMadeInCurrentTurn.filter((v) => this.hasVoted({ vote: v })).length;
-      return ((votesCount + proposalCountInCurrentTurn) / (gameState.players.length * 2)) * 100;
+      return (votesCount / gameState.players.length) * 100;
     }
   };
 

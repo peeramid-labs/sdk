@@ -185,8 +185,8 @@ export const createFellowshipCommand = new Command("create")
             preMintAmounts: [],
             preMintReceivers: [],
             orgName: tokenName,
-            votingDelay: BigInt(fellowshipDetails.votingDelay),
-            votingPeriod: BigInt(fellowshipDetails.votingPeriod),
+            votingDelay: Number(fellowshipDetails.votingDelay),
+            votingPeriod: Number(fellowshipDetails.votingPeriod),
             quorum: BigInt(fellowshipDetails.quorum),
           },
           rankifySettings: {

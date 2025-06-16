@@ -923,14 +923,13 @@ export class EnvioGraphQLClient {
       const gameStates = await Promise.all(
         result.RankifyInstance_gameCreated.map(async (game) => {
           const gameId = BigInt(game.gameId);
-          const [turnEndedEvents, gameOverEvents] = await Promise.all([
-            this.getTurnEndedEvents({ gameId, contractAddress }),
+          const [gameStartedEvents, gameOverEvents] = await Promise.all([
+            this.getGameStartedEvents({ gameId, contractAddress }),
             this.getGameOverEvents({ gameId, contractAddress }),
           ]);
 
           // Determine current state
-          const turn = turnEndedEvents.length > 0 ? turnEndedEvents[0].turn + 1n : 0n;
-          const hasStarted = turn > 0n;
+          const hasStarted = gameStartedEvents.length > 0;
           const isLastTurn = gameOverEvents.length > 0;
           const hasEnded = gameOverEvents.length > 0;
 
@@ -939,7 +938,7 @@ export class EnvioGraphQLClient {
             gm: game.gm as Address,
             creator: game.creator as Address,
             rank: BigInt(game.rank),
-            turn,
+            turn: 0n,
             hasStarted,
             isLastTurn,
             hasEnded,
