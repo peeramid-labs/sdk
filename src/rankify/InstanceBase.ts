@@ -98,7 +98,7 @@ export default class InstanceBase {
 
     const turnStats = players.map((player: string, playersIndex: number) => {
       const playersVote: number[] = votesOrdered[playersIndex];
-      const votersIndex: number = players.indexOf(player);
+      const votersIndex: number = players.indexOf(player as Address);
       const votes = playersVote.reduce((acc: number, vote: number) => acc + vote, 0);
       const score = votesOrdered.reduce((acc: number, score: number[]) => acc + score[votersIndex], 0);
       const scoreList =
