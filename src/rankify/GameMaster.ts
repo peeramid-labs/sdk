@@ -1635,11 +1635,11 @@ export class GameMaster {
       });
 
       const { request } = await this.publicClient.simulateContract({
-        address: instanceAddress,
         abi: RankifyDiamondInstanceAbi,
+        account: this.walletClient.account,
+        address: instanceAddress,
         functionName: "endProposing",
         args: [gameId, attested.newProposals],
-        account: this.walletClient.account,
       });
       const hash = await this.walletClient.writeContract(request);
       const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
@@ -1679,11 +1679,11 @@ export class GameMaster {
       });
 
       const { request } = await this.publicClient.simulateContract({
-        address: instanceAddress,
         abi: RankifyDiamondInstanceAbi,
+        account: this.walletClient.account,
+        address: instanceAddress,
         functionName: "endVoting",
         args: [gameId, votesDecrypted, permutation.map((p) => BigInt(p)), turnSalt],
-        account: this.walletClient.account,
       });
       const hash = await this.walletClient.writeContract(request);
       const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
