@@ -50,13 +50,13 @@ export type GraphQLFilter = Record<string, Record<FilterOperator, FilterValue>>;
  * Type for GraphQL query variables
  */
 type GraphQLQueryVariables = {
-  gameId?: string;
+  gameId?: string | number;
   creator?: string;
   gm?: string;
   participant?: string;
   proposer?: string;
   player?: string;
-  turn?: string;
+  roundNumber?: string | number;
   limit?: number;
   offset?: number;
   contractAddress?: string;
@@ -312,7 +312,7 @@ export class EnvioGraphQLClient {
       whereParts.push(`gameId: { _eq: ${gameIdStr} }`);
 
       if (turnStr !== undefined) {
-        whereParts.push(`turn: { _eq: ${turnStr} }`);
+        whereParts.push(`roundNumber: { _eq: ${turnStr} }`);
       }
 
       if (proposer) {
@@ -336,7 +336,7 @@ export class EnvioGraphQLClient {
           ) {
             id
             gameId
-            turn
+            roundNumber
             proposer
             commitment
             encryptedProposal
@@ -353,7 +353,7 @@ export class EnvioGraphQLClient {
         RankifyInstance_ProposalSubmitted: Array<{
           id: string;
           gameId: string;
-          turn: string;
+          roundNumber: string;
           proposer: string;
           commitment: string;
           encryptedProposal: string;
@@ -368,7 +368,7 @@ export class EnvioGraphQLClient {
       return result.RankifyInstance_ProposalSubmitted.map((event) => ({
         ...event,
         gameId: BigInt(event.gameId),
-        turn: BigInt(event.turn),
+        roundNumber: BigInt(event.roundNumber),
         commitment: BigInt(event.commitment),
         blockNumber: BigInt(event.blockNumber),
         contractAddress: event.srcAddress as Address,
@@ -404,7 +404,7 @@ export class EnvioGraphQLClient {
       whereParts.push(`gameId: { _eq: ${gameIdStr} }`);
 
       if (turnStr !== undefined) {
-        whereParts.push(`turn: { _eq: ${turnStr} }`);
+        whereParts.push(`roundNumber: { _eq: ${turnStr} }`);
       }
 
       if (player) {
@@ -428,7 +428,7 @@ export class EnvioGraphQLClient {
           ) {
             id
             gameId
-            turn
+            roundNumber
             player
             sealedBallotId
             gmSignature
@@ -445,7 +445,7 @@ export class EnvioGraphQLClient {
         RankifyInstance_VoteSubmitted: Array<{
           id: string;
           gameId: string;
-          turn: string;
+          roundNumber: string;
           player: string;
           sealedBallotId: string;
           gmSignature: string;
@@ -460,7 +460,7 @@ export class EnvioGraphQLClient {
       return result.RankifyInstance_VoteSubmitted.map((event) => ({
         ...event,
         gameId: BigInt(event.gameId),
-        turn: BigInt(event.turn),
+        roundNumber: BigInt(event.roundNumber),
         blockNumber: BigInt(event.blockNumber),
         contractAddress: event.srcAddress as Address,
         player: event.player as Address,
@@ -530,95 +530,6 @@ export class EnvioGraphQLClient {
   }
 
   /**
-   * Get turn ended events for a specific game and turn
-   */
-  async getTurnEndedEvents({
-    gameId,
-    turn,
-    contractAddress,
-  }: {
-    gameId: bigint;
-    turn?: bigint;
-    contractAddress: Address;
-  }) {
-    try {
-      // Use direct string interpolation for the query - no variables for numeric fields
-      const gameIdStr = gameId.toString();
-      const turnStr = turn !== undefined ? turn.toString() : undefined;
-
-      // Build where conditions
-      const whereParts = [];
-      whereParts.push(`gameId: { _eq: ${gameIdStr} }`);
-
-      if (turnStr !== undefined) {
-        whereParts.push(`turn: { _eq: ${turnStr} }`);
-      }
-
-      if (contractAddress) {
-        whereParts.push(`srcAddress: { _eq: "${contractAddress}" }`);
-      }
-
-      const whereClause = whereParts.join(", ");
-
-      // Simpler query with direct string literals instead of variables
-      const query = gql`
-        query {
-          RankifyInstance_TurnEnded(
-            where: {
-              ${whereClause}
-            }
-            order_by: { turn: desc }
-            limit: 1
-          ) {
-            id
-            gameId
-            turn
-            players
-            scores
-            newProposals
-            proposerIndices
-            votes
-            blockNumber
-            blockTimestamp
-            srcAddress
-          }
-        }
-      `;
-
-      const result = await this.client.request<{
-        RankifyInstance_TurnEnded: Array<{
-          id: string;
-          gameId: string;
-          turn: string;
-          players: string[];
-          scores: string[];
-          newProposals: string[];
-          proposerIndices: string[];
-          votes: string[][];
-          blockNumber: string;
-          blockTimestamp: string;
-          srcAddress: string;
-        }>;
-      }>(query);
-
-      return result.RankifyInstance_TurnEnded.map((event) => ({
-        ...event,
-        gameId: BigInt(event.gameId),
-        turn: BigInt(event.turn),
-        scores: event.scores.map((score) => BigInt(score)),
-        proposerIndices: event.proposerIndices.map((index) => BigInt(index)),
-        votes: event.votes.map((row) => row.map((vote) => BigInt(vote))),
-        blockNumber: BigInt(event.blockNumber),
-        contractAddress: event.srcAddress as Address,
-        players: event.players.map((player) => player as Address),
-      }));
-    } catch (error) {
-      console.error("Error fetching turn ended events:", error);
-      throw error;
-    }
-  }
-
-  /**
    * Get proposal score events for a specific game and turn
    */
   async getProposalScoreEvents({
@@ -640,7 +551,7 @@ export class EnvioGraphQLClient {
       whereParts.push(`gameId: { _eq: ${gameIdStr} }`);
 
       if (turnStr !== undefined) {
-        whereParts.push(`turn: { _eq: ${turnStr} }`);
+        whereParts.push(`roundNumber: { _eq: ${turnStr} }`);
       }
 
       if (contractAddress) {
@@ -660,7 +571,7 @@ export class EnvioGraphQLClient {
           ) {
             id
             gameId
-            turn
+            roundNumber
             proposalHash
             proposal
             score
@@ -675,7 +586,7 @@ export class EnvioGraphQLClient {
         RankifyInstance_ProposalScore: Array<{
           id: string;
           gameId: string;
-          turn: string;
+          roundNumber: string;
           proposalHash: string;
           proposal: string;
           score: string;
@@ -688,7 +599,8 @@ export class EnvioGraphQLClient {
       return result.RankifyInstance_ProposalScore.map((event) => ({
         ...event,
         gameId: BigInt(event.gameId),
-        turn: BigInt(event.turn),
+        turn: BigInt(event.roundNumber),
+        roundNumber: BigInt(event.roundNumber),
         score: BigInt(event.score),
         blockNumber: BigInt(event.blockNumber),
         contractAddress: event.srcAddress as Address,
@@ -1011,14 +923,13 @@ export class EnvioGraphQLClient {
       const gameStates = await Promise.all(
         result.RankifyInstance_gameCreated.map(async (game) => {
           const gameId = BigInt(game.gameId);
-          const [turnEndedEvents, gameOverEvents] = await Promise.all([
-            this.getTurnEndedEvents({ gameId, contractAddress }),
+          const [gameStartedEvents, gameOverEvents] = await Promise.all([
+            this.getGameStartedEvents({ gameId, contractAddress }),
             this.getGameOverEvents({ gameId, contractAddress }),
           ]);
 
           // Determine current state
-          const turn = turnEndedEvents.length > 0 ? turnEndedEvents[0].turn + 1n : 0n;
-          const hasStarted = turn > 0n;
+          const hasStarted = gameStartedEvents.length > 0;
           const isLastTurn = gameOverEvents.length > 0;
           const hasEnded = gameOverEvents.length > 0;
 
@@ -1027,7 +938,7 @@ export class EnvioGraphQLClient {
             gm: game.gm as Address,
             creator: game.creator as Address,
             rank: BigInt(game.rank),
-            turn,
+            turn: 0n,
             hasStarted,
             isLastTurn,
             hasEnded,
@@ -1105,5 +1016,137 @@ export class EnvioGraphQLClient {
       throw error;
     }
   }
+
+  async getProposingStageEndedEvents({
+    gameId,
+    turn,
+    contractAddress,
+  }: {
+    gameId: bigint;
+    turn: bigint;
+    contractAddress: Address;
+  }) {
+    if (!gameId || !turn) {
+      throw new Error("gameId and turn are required");
+    }
+
+    const variables = {
+      gameId: gameId.toString(),
+      roundNumber: turn.toString(),
+      contractAddress: contractAddress,
+    };
+
+    const query = gql`
+      query GetProposingStageEnded($gameId: numeric!, $roundNumber: numeric!, $contractAddress: String!) {
+        RankifyInstance_ProposingStageEnded(
+          where: { gameId: { _eq: $gameId }, roundNumber: { _eq: $roundNumber }, srcAddress: { _eq: $contractAddress } }
+        ) {
+          id
+          gameId
+          roundNumber
+          numProposals
+          proposals
+          blockNumber
+          blockTimestamp
+          srcAddress
+        }
+      }
+    `;
+
+    const result = await this.client.request<{
+      RankifyInstance_ProposingStageEnded: Array<{
+        id: string;
+        gameId: string;
+        roundNumber: string;
+        numProposals: string;
+        proposals: string[];
+        blockNumber: string;
+        blockTimestamp: string;
+        srcAddress: string;
+      }>;
+    }>(query, variables);
+
+    return result.RankifyInstance_ProposingStageEnded.map((event) => ({
+      ...event,
+      gameId: BigInt(event.gameId),
+      roundNumber: BigInt(event.roundNumber),
+      numProposals: Number(event.numProposals),
+      blockNumber: BigInt(event.blockNumber),
+      blockTimestamp: Number(event.blockTimestamp),
+      srcAddress: event.srcAddress as Address,
+    }));
+  }
+
+  getVotingStageResults = async ({
+    gameId,
+    turn,
+    contractAddress,
+  }: {
+    gameId: bigint;
+    turn: bigint;
+    contractAddress: string;
+  }) => {
+    if (!gameId || !turn) {
+      throw new Error("gameId and turn are required");
+    }
+
+    const query = `
+      query GetVotingStageResults($gameId: numeric!, $turn: numeric!, $contractAddress: String!) {
+        RankifyInstance_VotingStageResults(
+          where: { gameId: { _eq: $gameId }, roundNumber: { _eq: $turn }, srcAddress: { _eq: $contractAddress } }
+        ) {
+          id
+          gameId
+          roundNumber
+          winner
+          players
+          scores
+          votesSorted
+          isActive
+          finalizedVotingMatrix
+          blockNumber
+          blockTimestamp
+          srcAddress
+        }
+      }
+    `;
+
+    const variables = {
+      gameId: gameId.toString(),
+      turn: turn.toString(),
+      contractAddress,
+    };
+
+    const result = (await this.client.request(query, variables)) as {
+      RankifyInstance_VotingStageResults: Array<{
+        id: string;
+        gameId: string;
+        roundNumber: string;
+        winner: string;
+        players: string[];
+        scores: string[];
+        votesSorted: string[][];
+        isActive: boolean[];
+        finalizedVotingMatrix: string[][];
+        blockNumber: string;
+        blockTimestamp: string;
+        srcAddress: string;
+      }>;
+    };
+
+    return result.RankifyInstance_VotingStageResults.map((event) => ({
+      ...event,
+      gameId: BigInt(event.gameId),
+      roundNumber: BigInt(event.roundNumber),
+      winner: event.winner as Address,
+      players: event.players.map((player) => player as Address),
+      scores: event.scores.map((score) => BigInt(score)),
+      votesSorted: event.votesSorted.map((votes) => votes.map((vote) => BigInt(vote))),
+      finalizedVotingMatrix: event.finalizedVotingMatrix.map((votes) => votes.map((vote) => BigInt(vote))),
+      blockNumber: BigInt(event.blockNumber),
+      blockTimestamp: Number(event.blockTimestamp),
+      srcAddress: event.srcAddress as Address,
+    }));
+  };
 }
 export default EnvioGraphQLClient;
