@@ -48,8 +48,8 @@ importers:
         specifier: ^5.4.1
         version: 5.4.1
       rankify-contracts:
-        specifier: ^0.13.0
-        version: 0.13.0(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.8.2))(typescript@5.8.2))
+        specifier: ^0.14.0
+        version: 0.14.0(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.8.2))(typescript@5.8.2))
       viem:
         specifier: ^2.22.8
         version: 2.23.12(typescript@5.8.2)(zod@3.23.8)
@@ -1036,8 +1036,8 @@ packages:
   '@sinonjs/fake-timers@10.3.0':
     resolution: {integrity: sha512-V4BG07kuYSUkTCSBHG8G8TNhM+F19jXFWnQtzj+we8DrkpSBCee9Z3Ms8yiGer/dlmhe35/Xdgyo3/0rQKg7YA==}
 
-  '@solarity/hardhat-zkit@0.5.14':
-    resolution: {integrity: sha512-7RyANjpOERvgjy9FGzS82LMcJWAXvLAv0UTtZZ1TQUbX93++FvsANsT/DNrcvaqXJLCCbvMhLbV7zD8RCRp9kQ==}
+  '@solarity/hardhat-zkit@0.5.10':
+    resolution: {integrity: sha512-9JjsLeMA2cgNhPbJhvfGjPuef08LbQn6aJDZISvpil981CD0MaELBbQ/w0SIa75kyP6k4vIEncgYo/1zFwWNzQ==}
     engines: {node: '>=16'}
     peerDependencies:
       hardhat: ^2.16.0
@@ -1045,14 +1045,11 @@ packages:
   '@solarity/zkit@0.3.2':
     resolution: {integrity: sha512-wcsrS3e8YXiiL2KvuiwiTI0TDwhIdLl+OCelaXgZEJEDsADdro9ad986U2FK0faZa1FZqTkolzkYRec6h8c5gA==}
 
-  '@solarity/zkit@0.3.5':
-    resolution: {integrity: sha512-+hGep1Lc3/RRYViwJgfID/uuWKh8fwysjJbKECknmEfbtqhWeDxCpBycsDUKNix818rcDTTDJdH2hBYB4NxyDA==}
-
-  '@solarity/zktype@0.4.4':
-    resolution: {integrity: sha512-KJLCXoiivoSVIAxqgSrgrMEBFqEHGB0h1Ks+W9ct8C9YVCpSSyuW8YHQ5kDpv/FMRi9mZqy4sNJfG3GKi4A6/g==}
+  '@solarity/zktype@0.4.3':
+    resolution: {integrity: sha512-iPWBJcSf72DDsQX0B/Yelu9H24kud3yyZwpRhYoLS9is1SPgDN6tieOpjDU9NhDexhkBLZvQ/u2CMBqn1a5xdQ==}
     engines: {node: '>=18'}
     peerDependencies:
-      '@solarity/zkit': ^0.3.5
+      '@solarity/zkit': ^0.3.0-rc.0
 
   '@solidity-parser/parser@0.14.5':
     resolution: {integrity: sha512-6dKnHZn7fg/iQATVEzqyUOyEidbn05q7YA2mQ9hC0MMXhhV3/JrsxmFSYZAcr7j1yUP700LLhTruvJ3MiQmjJg==}
@@ -3078,8 +3075,8 @@ packages:
   randomfill@1.0.4:
     resolution: {integrity: sha512-87lcbR8+MhcWcUiQ+9e+Rwx8MyR2P7qnt15ynUlbm3TU/fjbgz4GsvfSUDTemtCCtVCqb4ZcEFlyPNTh9bBTLw==}
 
-  rankify-contracts@0.13.0:
-    resolution: {integrity: sha512-j+fvYZtaYwjwazCZhZV9SuuExb4tJ9npJX6c5mupZxVjVTMANbi+6Vgx2bNaRBVgiiBNxEMvODiV6W4nGKxMvg==}
+  rankify-contracts@0.14.0:
+    resolution: {integrity: sha512-yhZer/4OmCGZ6bxby2Y+s2UjQsP3hBQyhxMj49AoRVpGXIcnvd3jhgGDvRJRxjEOLNl35V+Qsr8xxv6oNINv5w==}
 
   raw-body@2.5.2:
     resolution: {integrity: sha512-8zGqypfENjCIqGhgXToC8aB2r7YrBX+AQAfIPs/Mlk+BtPTztOvTS01NRW/3Eh60J+a48lt8qsCzirQ6loCVfA==}
@@ -5134,11 +5131,11 @@ snapshots:
     dependencies:
       '@sinonjs/commons': 3.0.1
 
-  '@solarity/hardhat-zkit@0.5.14(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.8.2))(typescript@5.8.2))':
+  '@solarity/hardhat-zkit@0.5.10(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.8.2))(typescript@5.8.2))':
     dependencies:
       '@distributedlab/circom-parser': 0.2.6
-      '@solarity/zkit': 0.3.5
-      '@solarity/zktype': 0.4.4(@solarity/zkit@0.3.5)
+      '@solarity/zkit': 0.3.2
+      '@solarity/zktype': 0.4.3(@solarity/zkit@0.3.2)
       '@wasmer/wasi': 0.12.0
       chalk: 4.1.2
       cli-progress: 3.12.0
@@ -5162,14 +5159,9 @@ snapshots:
       ejs: 3.1.10
       snarkjs: 0.7.5
 
-  '@solarity/zkit@0.3.5':
+  '@solarity/zktype@0.4.3(@solarity/zkit@0.3.2)':
     dependencies:
-      ejs: 3.1.10
-      snarkjs: 0.7.5
-
-  '@solarity/zktype@0.4.4(@solarity/zkit@0.3.5)':
-    dependencies:
-      '@solarity/zkit': 0.3.5
+      '@solarity/zkit': 0.3.2
       ejs: 3.1.10
       prettier: 3.4.2
       typescript: 5.5.4
@@ -7583,14 +7575,14 @@ snapshots:
       randombytes: 2.1.0
       safe-buffer: 5.2.1
 
-  rankify-contracts@0.13.0(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.8.2))(typescript@5.8.2)):
+  rankify-contracts@0.14.0(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.8.2))(typescript@5.8.2)):
     dependencies:
       '@ethersproject/abi': 5.7.0
       '@ethersproject/providers': 5.7.2
       '@noble/secp256k1': 2.2.3
       '@openzeppelin/contracts': 5.1.0
       '@openzeppelin/contracts-upgradeable': 5.1.0(@openzeppelin/contracts@5.1.0)
-      '@solarity/hardhat-zkit': 0.5.14(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.8.2))(typescript@5.8.2))
+      '@solarity/hardhat-zkit': 0.5.10(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.8.2))(typescript@5.8.2))
       '@types/chai': 4.3.20
       '@types/mocha': 9.1.1
       '@types/node': 20.17.16
