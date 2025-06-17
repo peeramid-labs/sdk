@@ -136,7 +136,7 @@ export const start = new Command("start")
 
       // Generate deterministic permutation
       spinner.text = "Generating deterministic permutation...";
-      const { commitment } = await gameMaster.generateDeterministicPermutation({
+      await gameMaster.generateDeterministicPermutation({
         gameId: gameIdBigInt,
         turn: 0n,
         size: gameState.players.length,

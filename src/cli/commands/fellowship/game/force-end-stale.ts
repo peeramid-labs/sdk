@@ -1,8 +1,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { createPublic, createWallet } from "../../../client";
-import GameMaster from "../../../../rankify/GameMaster";
+import { createPublic } from "../../../client";
 import { CLIUtils } from "../../../utils";
 import EnvioGraphQLClient from "../../../../utils/EnvioGraphQLClient";
 
@@ -26,13 +25,12 @@ export const forceEndStale = new Command("force-end-stale")
 
     try {
       const publicClient = await createPublic(options.rpc);
-      const walletClient = await createWallet(options.rpc, options.key);
       const chainId = Number(await publicClient.getChainId());
       const envioClient = new EnvioGraphQLClient({
         endpoint: process.env.INDEXER_URL ?? options.envio,
       });
 
-      const resolvedInstanceAddress = await CLIUtils.resolveInstanceAddress(
+      await CLIUtils.resolveInstanceAddress(
         instanceAddress,
         chainId,
         publicClient,
@@ -40,13 +38,6 @@ export const forceEndStale = new Command("force-end-stale")
         options.distributionName,
         spinner
       );
-
-      const gameMaster = new GameMaster({
-        walletClient,
-        publicClient,
-        chainId,
-        envioClient,
-      });
 
       spinner.text = "Force ending stale game...";
 
