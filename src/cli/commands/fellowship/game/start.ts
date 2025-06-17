@@ -136,7 +136,7 @@ export const start = new Command("start")
 
       // Generate deterministic permutation
       spinner.text = "Generating deterministic permutation...";
-      const { commitment } = await gameMaster.generateDeterministicPermutation({
+      await gameMaster.generateDeterministicPermutation({
         gameId: gameIdBigInt,
         turn: 0n,
         size: gameState.players.length,
@@ -145,7 +145,7 @@ export const start = new Command("start")
 
       // Start the game
       spinner.text = "Starting game...";
-      const receipt = await player.startGame(gameIdBigInt, commitment);
+      const receipt = await player.startGame(gameIdBigInt);
 
       spinner.succeed("Game started successfully");
       console.log(chalk.green(`\nStarted game with ID: ${gameIdBigInt.toString()}`));

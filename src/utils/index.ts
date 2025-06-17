@@ -12,8 +12,9 @@ export const parseInstantiated = (instances: readonly string[]): MAOInstances =>
   return {
     govToken: instances[0],
     govTokenAccessManager: instances[1],
-    ACIDInstance: instances[2],
-    ACIDAccessManager: instances[10],
-    rankToken: instances[11],
+    governor: instances[2],
+    ACIDInstance: instances[3],
+    ACIDAccessManager: instances[4],
+    rankToken: instances[5],
   };
 };

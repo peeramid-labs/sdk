@@ -80,59 +80,46 @@ export default class InstanceBase {
    * @throws {ApiError} If the game or turn is not found.
    */
   getHistoricTurn = async (gameId: bigint, turnId: bigint) => {
-    const [logsWithProposals, logsWithVotesAndPermutation] = await Promise.all([
-      this.envioClient.getTurnEndedEvents({ gameId, turn: turnId, contractAddress: this.instanceAddress }),
-      this.envioClient.getTurnEndedEvents({ gameId, turn: turnId + 1n, contractAddress: this.instanceAddress }),
+    const [logsWithProposals, logsWithVotes] = await Promise.all([
+      this.envioClient.getProposingStageEndedEvents({ gameId, turn: turnId, contractAddress: this.instanceAddress }),
+      this.envioClient.getVotingStageResults({ gameId, turn: turnId, contractAddress: this.instanceAddress }),
     ]);
 
-    if (logsWithProposals.length === 0 || logsWithVotesAndPermutation.length === 0) {
+
+    if (logsWithProposals.length === 0 || logsWithVotes.length === 0) {
       return [];
     }
 
-    const gameState = await this.getGameState(gameId);
-    const players = logsWithProposals[0]?.players || [];
-    const permutation = logsWithVotesAndPermutation[0]?.proposerIndices || [];
-    const proposalsPermuted = { ...logsWithProposals[0] }?.newProposals?.slice(
-      0,
-      logsWithProposals[0]?.players?.length
-    );
-    const proposalsOrdered = reversePermutation({ array: proposalsPermuted || [], permutation });
-    const votesPermuted = { ...logsWithVotesAndPermutation[0] }?.votes || [];
-    const votesOrdered = votesPermuted.map((vote) => reversePermutation({ array: vote, permutation }));
-    const maxVotes = BigInt(Math.floor(Math.sqrt(Number(gameState.voteCredits))));
+    const players = logsWithVotes[0]?.players || [];
+    const proposalsPermuted = { ...logsWithProposals[0] }?.proposals?.slice(0, players.length);
+    const votesOrdered = logsWithVotes[0]?.finalizedVotingMatrix?.map((row) => row.map((v) => Number(v))) || [];
     const blockNumber = logsWithProposals[0].blockNumber;
-    const blockTimestamp = await this.getBlockTimestamp(blockNumber);
+    const blockTimestamp = await this.getBlockTimestamp(BigInt(blockNumber));
 
-    const returnObject = proposalsOrdered.map((proposal, proposersIndex) => {
-      const proposer = players[proposersIndex];
-      if (proposal === "") {
-        return {
-          player: proposer,
-          proposal: "",
-          score: 0n,
-          scoreList: [],
-        };
-      }
+    const turnStats = players.map((player: string, playersIndex: number) => {
+      const playersVote: number[] = votesOrdered[playersIndex];
+      const votersIndex: number = players.indexOf(player as Address);
+      const votes = playersVote.reduce((acc: number, vote: number) => acc + vote, 0);
+      const score = votesOrdered.reduce((acc: number, score: number[]) => acc + score[votersIndex], 0);
+      const scoreList =
+        players
+          .map((p, idx) => ({
+            player: p,
+            score: votesOrdered[idx][votersIndex],
+          }))
+          .filter((item) => item.score > 0) || [];
 
-      const scoreList = votesOrdered
-        .map((playersVote, votersIndex) => {
-          const isIdleVoter = playersVote.reduce((acc, vote) => acc + vote, 0n) === 0n;
-          if (votersIndex === proposersIndex) {
-            return { score: 0n, player: proposer };
-          }
-          return { score: isIdleVoter ? maxVotes : playersVote[proposersIndex], player: players[votersIndex] };
-        })
-        .filter((score) => score.score > 0n);
       return {
-        player: proposer,
-        proposal,
-        score: scoreList.reduce((acc, score) => acc + score.score, 0n),
+        player,
+        proposal: proposalsPermuted[playersIndex],
+        votes,
+        score,
         scoreList,
         blockTimestamp,
       };
     });
 
-    return returnObject;
+    return turnStats;
   };
 
   /**
@@ -172,7 +159,7 @@ export default class InstanceBase {
     }
 
     if (currentTurn > 1n) {
-      return this.getHistoricTurn(gameId, currentTurn - 1n);
+      return this.getHistoricTurn(gameId, currentTurn);
     } else {
       return {
         players: "N/A",
@@ -251,23 +238,20 @@ export default class InstanceBase {
         functionName: "getTurn",
         args: [gameId],
       });
-      const lastTurnEndedEvent = await this.envioClient.getTurnEndedEvents({
+      const players = await this.getPlayers(gameId);
+      const proposingStageEndedEvent = await this.envioClient.getProposingStageEndedEvents({
         gameId,
-        turn: currentTurn - 1n,
+        turn: currentTurn,
         contractAddress: this.instanceAddress,
       });
-      lastTurnEndedEvent[0].newProposals = lastTurnEndedEvent[0]?.newProposals?.slice(
-        0,
-        lastTurnEndedEvent[0]?.players?.length
-      );
 
-      if (lastTurnEndedEvent.length !== 1) {
-        console.error("getOngoingProposals", gameId, "failed:", lastTurnEndedEvent.length);
+      if (proposingStageEndedEvent.length !== 1) {
+        console.error("getOngoingProposals", gameId, "failed:", proposingStageEndedEvent.length);
         throw new ApiError("Game not found", { status: 404 });
       }
 
-      const args = lastTurnEndedEvent[0] as { newProposals: unknown[] };
-      return { currentTurn, proposals: args.newProposals };
+      const args = proposingStageEndedEvent[0] as { proposals: unknown[] };
+      return { currentTurn, proposals: args.proposals.slice(0, players.length) };
     } catch (error) {
       throw await handleRPCError(error);
     }
@@ -355,8 +339,8 @@ export default class InstanceBase {
             gameId,
             contractAddress: this.instanceAddress,
           })
-        : await this.envioClient.getTurnEndedEvents({
-            turn: currentTurn - 1n,
+        : await this.envioClient.getProposingStageEndedEvents({
+            turn: BigInt(currentTurn),
             gameId,
             contractAddress: this.instanceAddress,
           });
@@ -366,7 +350,7 @@ export default class InstanceBase {
       throw new ApiError("Game not found", { status: 404 });
     }
 
-    const block = await this.publicClient.getBlock({ blockNumber: logs[0].blockNumber });
+    const block = await this.publicClient.getBlock({ blockNumber: BigInt(logs[0].blockNumber) });
     return this.resolveTurnDeadline(block, gameId, timePerTurn);
   };
 

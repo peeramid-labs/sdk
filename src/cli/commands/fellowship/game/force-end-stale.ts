@@ -1,13 +1,12 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { createPublic, createWallet } from "../../../client";
-import GameMaster from "../../../../rankify/GameMaster";
+import { createPublic } from "../../../client";
 import { CLIUtils } from "../../../utils";
 import EnvioGraphQLClient from "../../../../utils/EnvioGraphQLClient";
 
-export const endTurn = new Command("end-turn")
-  .description("End turn in a game")
+export const forceEndStale = new Command("force-end-stale")
+  .description("Force end a stale game that is stuck in proposing phase")
   .argument("<instance>", "Address or instanceId of the Rankify instance")
   .argument("<game>", "Index of the game")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
@@ -15,7 +14,7 @@ export const endTurn = new Command("end-turn")
     "-k, --key <privateKey>",
     "Private key for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
   )
-  .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
+  .option("-d, --distribution-name <n>", "Distribution name", "MAO Distribution")
   .option(
     "-e, --envio <url>",
     "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
@@ -26,13 +25,12 @@ export const endTurn = new Command("end-turn")
 
     try {
       const publicClient = await createPublic(options.rpc);
-      const walletClient = await createWallet(options.rpc, options.key);
       const chainId = Number(await publicClient.getChainId());
       const envioClient = new EnvioGraphQLClient({
         endpoint: process.env.INDEXER_URL ?? options.envio,
       });
 
-      const resolvedInstanceAddress = await CLIUtils.resolveInstanceAddress(
+      await CLIUtils.resolveInstanceAddress(
         instanceAddress,
         chainId,
         publicClient,
@@ -41,21 +39,24 @@ export const endTurn = new Command("end-turn")
         spinner
       );
 
-      const gameMaster = new GameMaster({
-        walletClient,
-        publicClient,
-        chainId,
-        envioClient,
-      });
+      spinner.text = "Force ending stale game...";
 
-      spinner.text = "Ending turn...";
-      const { hash } = await gameMaster.endTurn({ instanceAddress: resolvedInstanceAddress, gameId: BigInt(gameId) });
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      // Note: This function will need to be implemented once the ABI is updated
+      console.log(chalk.yellow("Note: forceEndStaleGame function not yet available in current ABI version."));
+      console.log(chalk.yellow("Please update ABI when new contract is deployed."));
+      console.log(chalk.red("Command not yet functional - requires updated contract ABI."));
 
-      spinner.succeed("Turn ended successfully");
-      console.log(chalk.green(`\nTransaction hash: ${receipt.transactionHash}`));
+      // Placeholder for future implementation:
+      // const { hash } = await gameMaster.forceEndStaleGame({ instanceAddress: resolvedInstanceAddress, gameId: BigInt(gameId) });
+      // const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      //
+      // spinner.succeed("Stale game ended successfully");
+      // console.log(chalk.green(`\nTransaction hash: ${receipt.transactionHash}`));
+
+      spinner.fail("Command not yet available");
+      process.exit(1);
     } catch (error) {
-      spinner.fail("Failed to end turn");
+      spinner.fail("Failed to force end stale game");
       console.error(chalk.red(`Error: ${error instanceof Error ? error.message + "\n" + error.stack : String(error)}`));
       process.exit(1);
     }
