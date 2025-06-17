@@ -6,4 +6,3 @@
 import * as Core from "./core";
 export { Core };
 export * from "./core/ProposalsIntegrity15";
-
