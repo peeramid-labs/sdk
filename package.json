@@ -1,7 +1,7 @@
 {
   "name": "@peeramid-labs/sdk",
   "description": "Peeramid Labs JavaScript SDK and CLI tools for building your community",
-  "version": "3.12.0",
+  "version": "3.12.1",
   "private": "true",
   "type": "module",
   "main": "./src/index.ts",
@@ -60,7 +60,7 @@
     "inquirer": "^12.3.0",
     "lodash": "^4.17.21",
     "ora": "^5.4.1",
-    "rankify-contracts": "^0.14.1"
+    "rankify-contracts": "^0.14.2"
   },
   "peerDependencies": {
     "viem": "^2.22.8"

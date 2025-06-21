@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.12.1
+
+### Patch Changes
+
+- [#173](https://github.com/peeramid-labs/sdk/pull/173) [`cb5f69e663c7c976442858cfdf1a23de4b447352`](https://github.com/peeramid-labs/sdk/commit/cb5f69e663c7c976442858cfdf1a23de4b447352) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Update rankify-contracts version to 0.14.2
+
 ## 3.12.0
 
 ### Minor Changes
