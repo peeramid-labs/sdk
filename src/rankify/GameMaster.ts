@@ -688,9 +688,9 @@ export class GameMaster {
       permute: true,
     });
 
-    const prevTurnProposalsCount = prevTurnProposals.filter((p) => p.proposal !== "").length;
+    const prevTurnProposalsCount = prevTurnProposals.filter((p) => p.proposal !== "").length - 1;
     let pointsLeft = Number(voteCredits);
-    for (let i = 0; i < prevTurnProposalsCount || pointsLeft > 0; i++) {
+    for (let i = 0; i < prevTurnProposalsCount && pointsLeft > 0; i++) {
       const maxPoints = Math.floor(Math.sqrt(pointsLeft));
       if (maxPoints > 0) {
         pointsLeft -= maxPoints;
