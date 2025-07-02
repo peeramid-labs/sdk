@@ -1,5 +1,19 @@
 # peeramid-labs/sdk
 
+## 3.13.0
+
+### Minor Changes
+
+- [#177](https://github.com/peeramid-labs/sdk/pull/177) [`2625a687f5abed9645e05536741604c7981531ec`](https://github.com/peeramid-labs/sdk/commit/2625a687f5abed9645e05536741604c7981531ec) Thanks [@peersky](https://github.com/peersky)! - Migrated to the new contract structure using proposingStage and votingStage phases.
+
+### Patch Changes
+
+- [#177](https://github.com/peeramid-labs/sdk/pull/177) [`2625a687f5abed9645e05536741604c7981531ec`](https://github.com/peeramid-labs/sdk/commit/2625a687f5abed9645e05536741604c7981531ec) Thanks [@peersky](https://github.com/peersky)! - Update rankify-contracts version to 0.14.2
+
+- [#177](https://github.com/peeramid-labs/sdk/pull/177) [`2625a687f5abed9645e05536741604c7981531ec`](https://github.com/peeramid-labs/sdk/commit/2625a687f5abed9645e05536741604c7981531ec) Thanks [@peersky](https://github.com/peersky)! - Refactored end turn returned data
+
+- [#177](https://github.com/peeramid-labs/sdk/pull/177) [`2625a687f5abed9645e05536741604c7981531ec`](https://github.com/peeramid-labs/sdk/commit/2625a687f5abed9645e05536741604c7981531ec) Thanks [@peersky](https://github.com/peersky)! - Fix logic in GameMaster for proposal counting and voting points. Adjusted previous turn proposals count and updated loop condition to ensure correct point deduction.
+
 ## 3.12.2
 
 ### Patch Changes
