@@ -3,7 +3,7 @@
   "description": "Peeramid Labs JavaScript SDK and CLI tools for building your community",
   "version": "3.11.3",
   "private": "true",
-  "type": "module",
+  "type": "commonjs",
   "main": "./src/index.ts",
   "module": "./src/index.ts",
   "publishConfig": {
@@ -60,7 +60,7 @@
     "inquirer": "^12.3.0",
     "lodash": "^4.17.21",
     "ora": "^5.4.1",
-    "rankify-contracts": "^0.14.0"
+    "rankify-contracts": "^0.14.3"
   },
   "peerDependencies": {
     "viem": "^2.22.8"
