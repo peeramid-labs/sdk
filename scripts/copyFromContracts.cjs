@@ -48,6 +48,7 @@ function generateIndexFile(destDir) {
 
   // Create the abis object
   const abiObjectEntries = tsFiles
+    .filter((file) => path.basename(file, ".ts") == "superinterface")
     .map((file) => {
       const name = path.basename(file, ".ts");
       return `  ${name}Abi`;
@@ -60,9 +61,9 @@ function generateIndexFile(destDir) {
 ${namedExports}
 
 // Create and export the abis object
-const abis: Record<string, readonly any[]> = {
+const abis = {
 ${abiObjectEntries}
-};
+} as const;
 
 export { abis };
 export default abis;
