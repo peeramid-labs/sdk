@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.13.1
+
+### Patch Changes
+
+- [#180](https://github.com/peeramid-labs/sdk/pull/180) [`959dabe8fadc8836198d2f5052013628cd84319b`](https://github.com/peeramid-labs/sdk/commit/959dabe8fadc8836198d2f5052013628cd84319b) Thanks [@peersky](https://github.com/peersky)! - removed superinterface from abi to ts generation
+
 ## 3.13.0
 
 ### Minor Changes
