@@ -48,7 +48,7 @@ function generateIndexFile(destDir) {
 
   // Create the abis object
   const abiObjectEntries = tsFiles
-    .filter((file) => path.basename(file, ".ts") == "superinterface")
+    .filter((file) => path.basename(file, ".ts") !== "superinterface")
     .map((file) => {
       const name = path.basename(file, ".ts");
       return `  ${name}Abi`;
