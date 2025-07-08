@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.13.2
+
+### Patch Changes
+
+- [`84931e17c83cf8cc4f96722151a47088b983a62a`](https://github.com/peeramid-labs/sdk/commit/84931e17c83cf8cc4f96722151a47088b983a62a) Thanks [@peersky](https://github.com/peersky)! - bump for contracts 0.15 release;
+
 ## 3.13.1
 
 ### Patch Changes
