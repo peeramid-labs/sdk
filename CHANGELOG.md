@@ -1,5 +1,13 @@
 # peeramid-labs/sdk
 
+## 3.12.2
+
+### Patch Changes
+
+- [#175](https://github.com/peeramid-labs/sdk/pull/175) [`ad43645e58f24ec862fba04d57d9c8c98267952f`](https://github.com/peeramid-labs/sdk/commit/ad43645e58f24ec862fba04d57d9c8c98267952f) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Update rankify-contracts version to 0.14.2
+
+- [#175](https://github.com/peeramid-labs/sdk/pull/175) [`ad43645e58f24ec862fba04d57d9c8c98267952f`](https://github.com/peeramid-labs/sdk/commit/ad43645e58f24ec862fba04d57d9c8c98267952f) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Fix logic in GameMaster for proposal counting and voting points. Adjusted previous turn proposals count and updated loop condition to ensure correct point deduction.
+
 ## 3.12.1
 
 ### Patch Changes
