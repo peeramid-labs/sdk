@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.13.3
+
+### Patch Changes
+
+- [#183](https://github.com/peeramid-labs/sdk/pull/183) [`17b1a97e0248c7c6be5ac2e45835fa09a6f8a470`](https://github.com/peeramid-labs/sdk/commit/17b1a97e0248c7c6be5ac2e45835fa09a6f8a470) Thanks [@theKosmoss](https://github.com/theKosmoss)! - refactor: simplify GraphQL queries by using string interpolation for numeric fields
+
 ## 3.13.2
 
 ### Patch Changes
