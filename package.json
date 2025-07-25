@@ -1,7 +1,7 @@
 {
   "name": "@peeramid-labs/sdk",
   "description": "Peeramid Labs JavaScript SDK and CLI tools for building your community",
-  "version": "3.13.3",
+  "version": "3.13.4",
   "private": "true",
   "type": "commonjs",
   "main": "./src/index.ts",

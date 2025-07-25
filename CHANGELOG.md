@@ -1,5 +1,16 @@
 # peeramid-labs/sdk
 
+## 3.13.4
+
+### Patch Changes
+
+- [#185](https://github.com/peeramid-labs/sdk/pull/185) [`f59e51de4a6dcdeff69ac6b4a5093cbc713f69d5`](https://github.com/peeramid-labs/sdk/commit/f59e51de4a6dcdeff69ac6b4a5093cbc713f69d5) Thanks [@peersky](https://github.com/peersky)! - Fix getHistoricTurn function issues:
+
+  - Fixed getPreviousTurnStats to correctly retrieve previous turn data (currentTurn - 1) instead of current turn
+  - Added missing permutation field to VotingStageResults GraphQL query and TypeScript types
+  - Fixed proposal-to-player mapping in getHistoricTurn to use permutation indices for correct proposal attribution
+  - Enhanced EnvioGraphQLClient to include permutation data from VotingStageResults events
+
 ## 3.13.3
 
 ### Patch Changes
