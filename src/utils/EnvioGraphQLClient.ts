@@ -1037,10 +1037,10 @@ export class EnvioGraphQLClient {
     const query = gql`
       query {
         RankifyInstance_ProposingStageEnded(
-          where: { 
-            gameId: { _eq: ${gameIdStr} }, 
-            roundNumber: { _eq: ${roundNumberStr} }, 
-            srcAddress: { _eq: "${contractAddress}" } 
+          where: {
+            gameId: { _eq: ${gameIdStr} },
+            roundNumber: { _eq: ${roundNumberStr} },
+            srcAddress: { _eq: "${contractAddress}" }
           }
         ) {
           id
@@ -1099,10 +1099,10 @@ export class EnvioGraphQLClient {
     const query = gql`
       query {
         RankifyInstance_VotingStageResults(
-          where: { 
-            gameId: { _eq: ${gameIdStr} }, 
-            roundNumber: { _eq: ${turnStr} }, 
-            srcAddress: { _eq: "${contractAddress}" } 
+          where: {
+            gameId: { _eq: ${gameIdStr} },
+            roundNumber: { _eq: ${turnStr} },
+            srcAddress: { _eq: "${contractAddress}" }
           }
         ) {
           id
@@ -1114,6 +1114,7 @@ export class EnvioGraphQLClient {
           votesSorted
           isActive
           finalizedVotingMatrix
+          permutation
           blockNumber
           blockTimestamp
           srcAddress
@@ -1132,6 +1133,7 @@ export class EnvioGraphQLClient {
         votesSorted: string[][];
         isActive: boolean[];
         finalizedVotingMatrix: string[][];
+        permutation: string[];
         blockNumber: string;
         blockTimestamp: string;
         srcAddress: string;
@@ -1147,6 +1149,7 @@ export class EnvioGraphQLClient {
       scores: event.scores.map((score) => BigInt(score)),
       votesSorted: event.votesSorted.map((votes) => votes.map((vote) => BigInt(vote))),
       finalizedVotingMatrix: event.finalizedVotingMatrix.map((votes) => votes.map((vote) => BigInt(vote))),
+      permutation: event.permutation.map((index) => BigInt(index)),
       blockNumber: BigInt(event.blockNumber),
       blockTimestamp: Number(event.blockTimestamp),
       srcAddress: event.srcAddress as Address,
