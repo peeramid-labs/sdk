@@ -1,5 +1,13 @@
 # peeramid-labs/sdk
 
+## 3.13.5
+
+### Patch Changes
+
+- [#188](https://github.com/peeramid-labs/sdk/pull/188) [`c323484542254f3bfcc85d272754cc5dd5c5a031`](https://github.com/peeramid-labs/sdk/commit/c323484542254f3bfcc85d272754cc5dd5c5a031) Thanks [@peersky](https://github.com/peersky)! - added option to set distribution address in cli "distributions add"
+
+- [#190](https://github.com/peeramid-labs/sdk/pull/190) [`5b676687f85ebdf2bb6c4953670a0ab1f42cd7b6`](https://github.com/peeramid-labs/sdk/commit/5b676687f85ebdf2bb6c4953670a0ab1f42cd7b6) Thanks [@peersky](https://github.com/peersky)! - add ability to remove packages by pckg name
+
 ## 3.13.4
 
 ### Patch Changes
