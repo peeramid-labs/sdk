@@ -18,6 +18,7 @@ function formatBytes32String(text: string): `0x${string}` {
 
 export const addCommand = new Command("add")
   .description("Add a new distribution")
+  .option("-a, --address <address>", "Address of the distribution")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
   .option("-d, --distributor <address>", "Address of the distributor")
   .option("-i, --m-index <mnemonicIndex>", "Index to derive from mnemonic")
