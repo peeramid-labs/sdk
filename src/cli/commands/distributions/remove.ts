@@ -5,9 +5,11 @@ import { MAODistributorClient } from "../../../rankify/MAODistributor";
 import { createPublic, createWallet } from "../../client";
 import inquirer from "inquirer";
 import EnvioGraphQLClient from "../../../utils/EnvioGraphQLClient";
+import { toHex } from "viem";
 
 export const removeCommand = new Command("remove")
   .description("Remove a distribution")
+  .option("-n, --name <name>", "Name of the distribution")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
   .option(
     "-e, --envio <url>",
@@ -31,9 +33,14 @@ export const removeCommand = new Command("remove")
       });
 
       spinner.stop();
+      if (!options.name && !options.id) {
+        console.log(chalk.red("Please provide a distribution name or ID, not both"));
+        process.exit(1);
+      }
 
       // Use provided name, env var, or default
-      let id = options.id;
+      let id = options.name ? toHex(options.name, { size: 32 }) : options.id;
+      console.log(chalk.green(`Distribution ID: ${id}`));
       if (!id) {
         const response = await inquirer.prompt([
           {
