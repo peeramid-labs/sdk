@@ -20,7 +20,10 @@ export const addCommand = new Command("add")
   .description("Add a new distribution")
   .option("-a, --address <address>", "Address of the distribution")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
-  .option("-d, --distributor <address>", "Address of the distributor")
+  .option(
+    "-d, --distributor <address>",
+    "Distributor address, or env DISTRIBUTOR_ADDRESS. If none provided, will attempt to resolve from known chainId artifacts"
+  )
   .option("-i, --m-index <mnemonicIndex>", "Index to derive from mnemonic")
   .option(
     "-k, --key <privateKey>",
@@ -40,21 +43,18 @@ export const addCommand = new Command("add")
       const publicClient = await createPublic(options.rpc);
       const walletClient = await createWallet(options.rpc, resolvePk(options.mIndex ?? options.key, spinner));
       const chainId = Number(await publicClient.getChainId());
-
-      const maoDistributor = new MAODistributorClient(chainId, {
-        address: options.distributor ?? undefined,
-        publicClient,
-        walletClient,
-        envioClient: new EnvioGraphQLClient({
-          endpoint: process.env.INDEXER_URL ?? options.envio,
-        }),
-      });
-
       spinner.stop();
 
       // Default values
       const defaultName = options.distributionName;
-      const defaultAddress = getArtifact(chainId, "MAODistribution").address;
+      let defaultAddress;
+      try {
+        defaultAddress = getArtifact(chainId, "MAODistribution").address;
+      } catch {
+        console.warn(
+          "Failed to fetch default distribution address. If you are working with development deployments that haven't been added to SDK artifacts, you can ignore this warning and specify the address manually."
+        );
+      }
 
       // Check if auto-accept defaults is enabled
       const autoAcceptDefaults = options.yes;
@@ -84,7 +84,7 @@ export const addCommand = new Command("add")
       }
 
       if (!distributionAddress) {
-        if (autoAcceptDefaults) {
+        if (autoAcceptDefaults && defaultAddress) {
           console.log(`Auto-accepting default distribution address: ${defaultAddress}`);
           distributionAddress = defaultAddress;
         } else {
@@ -109,6 +109,18 @@ export const addCommand = new Command("add")
 
       spinner.start("Adding distribution...");
       if (!walletClient.chain) throw new Error("Chain not found");
+      const maoDistributor = new MAODistributorClient(
+        chainId,
+        {
+          address: options.distributor ?? undefined,
+          publicClient,
+          walletClient,
+          envioClient: new EnvioGraphQLClient({
+            endpoint: process.env.INDEXER_URL ?? options.envio,
+          }),
+        },
+        options.distributor || process.env.DISTRIBUTOR_ADDRESS
+      );
       const { receipt, distributionAddedEvent } = await maoDistributor.addNamedDistribution(
         walletClient.chain,
         nameBytes,

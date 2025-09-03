@@ -9,6 +9,10 @@ export const listCommand = new Command("list")
   .description("List all distributions")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
   .option(
+    "-d, --distributor <address>",
+    "Distributor address, or env DISTRIBUTOR_ADDRESS. If none provided, will attempt to resolve from known chainId artifacts"
+  )
+  .option(
     "-e, --envio <url>",
     "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
     "http://localhost:8080/v1/graphql"
@@ -23,12 +27,16 @@ export const listCommand = new Command("list")
       console.log(`Chain ID: ${chainId}`);
       console.log(`Envio endpoint: ${process.env.INDEXER_URL ?? options.envio}`);
 
-      const maoDistributor = new MAODistributorClient(chainId, {
-        publicClient,
-        envioClient: new EnvioGraphQLClient({
-          endpoint: process.env.INDEXER_URL ?? options.envio,
-        }),
-      });
+      const maoDistributor = new MAODistributorClient(
+        chainId,
+        {
+          publicClient,
+          envioClient: new EnvioGraphQLClient({
+            endpoint: process.env.INDEXER_URL ?? options.envio,
+          }),
+        },
+        options.distributor || process.env.DISTRIBUTOR_ADDRESS
+      );
 
       spinner.text = "Fetching distributions...";
       const distributions = await maoDistributor.getDistributions();
