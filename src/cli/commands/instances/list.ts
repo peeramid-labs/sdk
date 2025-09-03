@@ -15,6 +15,10 @@ export const listCommand = new Command("list")
     "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
     "http://localhost:8080/v1/graphql"
   )
+  .option(
+    "-d, --distributor-address <address>",
+    "Distributor address, or env DISTRIBUTOR_ADDRESS. If none provided, will attempt to resolve from known chainId artifacts"
+  )
   .action(async (options) => {
     const spinner = ora("Initializing client...").start();
 
@@ -22,13 +26,17 @@ export const listCommand = new Command("list")
       const publicClient = await createPublic(options.rpc);
       const chainId = Number(await publicClient.getChainId());
 
-      const maoDistributor = new MAODistributorClient(chainId, {
-        publicClient,
-        address: options.address && getAddress(options.address),
-        envioClient: new EnvioGraphQLClient({
-          endpoint: process.env.INDEXER_URL ?? options.envio,
-        }),
-      });
+      const maoDistributor = new MAODistributorClient(
+        chainId,
+        {
+          publicClient,
+          address: options.address && getAddress(options.address),
+          envioClient: new EnvioGraphQLClient({
+            endpoint: process.env.INDEXER_URL ?? options.envio,
+          }),
+        },
+        options.distributorAddress || process.env.DISTRIBUTOR_ADDRESS
+      );
 
       spinner.text = "Fetching instances...";
       const distributions = await maoDistributor.getDistributions();
