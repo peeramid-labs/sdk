@@ -66,7 +66,7 @@ export async function handleRPCError(e: unknown) {
             return new Error(data.results[0].text_signature);
           } else return e;
         } catch (error) {
-          console.warn(_revertError); //This happens if RPC error returns schema that breaks validation expected by viem
+          console.warn(error); //This happens if RPC error returns schema that breaks validation expected by viem
           return _revertError;
         }
       }

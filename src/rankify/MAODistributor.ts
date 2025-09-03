@@ -32,7 +32,7 @@ import {
 } from "viem";
 import MaoDistributionAbi from "../abis/MAODistribution";
 import distributorAbi from "../abis/DAODistributor";
-import { ERC7744Abi, RankifyAbi } from "../abis";
+import { ERC7744Abi } from "../abis";
 import { logger } from "../utils/logger";
 import EnvioGraphQLClient from "../utils/EnvioGraphQLClient";
 
