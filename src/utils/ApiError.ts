@@ -55,8 +55,26 @@ export async function handleRPCError(e: unknown) {
       const _revertError = revertError as ContractFunctionExecutionError;
       const errorName = _revertError?.name;
       if (!errorName) {
-        const cause = _revertError.cause as { signature?: string };
-        if (cause?.signature) {
+        try {
+          const cause = _revertError?.cause as { signature?: string };
+          if (cause?.signature) {
+            const remoteAttempt = fetch(
+              `https://www.4byte.directory/api/v1/signatures/?hex_signature=${cause.signature}`
+            );
+            const response = await remoteAttempt;
+            const data = await response.json();
+            return new Error(data.results[0].text_signature);
+          } else return e;
+        } catch (error) {
+          console.warn(error); //This happens if RPC error returns schema that breaks validation expected by viem
+          return _revertError;
+        }
+      }
+    }
+    if (revertError instanceof CallExecutionError) {
+      try {
+        const cause = revertError.cause.cause as { signature?: string };
+        if (!e.name) {
           const remoteAttempt = fetch(
             `https://www.4byte.directory/api/v1/signatures/?hex_signature=${cause.signature}`
           );
@@ -64,16 +82,10 @@ export async function handleRPCError(e: unknown) {
           const data = await response.json();
           return new Error(data.results[0].text_signature);
         } else return e;
+      } catch (error) {
+        console.warn(error);
+        return revertError;
       }
-    }
-    if (revertError instanceof CallExecutionError) {
-      const cause = revertError.cause.cause as { signature?: string };
-      if (!e.name) {
-        const remoteAttempt = fetch(`https://www.4byte.directory/api/v1/signatures/?hex_signature=${cause.signature}`);
-        const response = await remoteAttempt;
-        const data = await response.json();
-        return new Error(data.results[0].text_signature);
-      } else return e;
     }
     const cause = e?.cause as { signature?: string };
     if (cause?.signature) {

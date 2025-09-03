@@ -75,8 +75,8 @@ export default class RankifyPlayer extends InstanceBase {
    * @returns A promise that resolves when the tokens are approved
    * @throws If the account is not found or the tokens cannot be approved
    */
-  approveTokensIfNeeded = async (value: bigint) => {
-    const tokenContract = getContract(this.chainId, "Rankify", this.walletClient);
+  approveTokensIfNeeded = async (value: bigint, overrideArtifact?: { address: Address; pathOverride: string }) => {
+    const tokenContract = getContract(this.chainId, "Rankify", this.walletClient, overrideArtifact);
     if (!this.walletClient.account?.address) throw new Error("Account not found");
     if (value > 0n) {
       try {
