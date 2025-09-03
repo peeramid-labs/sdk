@@ -85,7 +85,6 @@ export default class InstanceBase {
       this.envioClient.getVotingStageResults({ gameId, turn: turnId, contractAddress: this.instanceAddress }),
     ]);
 
-
     if (logsWithProposals.length === 0 || logsWithVotes.length === 0) {
       return [];
     }
@@ -93,6 +92,7 @@ export default class InstanceBase {
     const players = logsWithVotes[0]?.players || [];
     const proposalsPermuted = { ...logsWithProposals[0] }?.proposals?.slice(0, players.length);
     const votesOrdered = logsWithVotes[0]?.finalizedVotingMatrix?.map((row) => row.map((v) => Number(v))) || [];
+    const permutation = logsWithVotes[0]?.permutation || [];
     const blockNumber = logsWithProposals[0].blockNumber;
     const blockTimestamp = await this.getBlockTimestamp(BigInt(blockNumber));
 
@@ -109,9 +109,12 @@ export default class InstanceBase {
           }))
           .filter((item) => item.score > 0) || [];
 
+      // Use permutation to correctly map proposal to player
+      const proposalIndex = permutation.length > 0 ? Number(permutation[playersIndex]) : playersIndex;
+
       return {
         player,
-        proposal: proposalsPermuted[playersIndex],
+        proposal: proposalsPermuted[proposalIndex],
         votes,
         score,
         scoreList,
@@ -159,7 +162,7 @@ export default class InstanceBase {
     }
 
     if (currentTurn > 1n) {
-      return this.getHistoricTurn(gameId, currentTurn);
+      return this.getHistoricTurn(gameId, currentTurn - 1n);
     } else {
       return {
         players: "N/A",
