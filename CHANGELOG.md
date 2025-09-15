@@ -1,5 +1,56 @@
 # peeramid-labs/sdk
 
+## 3.13.5
+
+### Patch Changes
+
+- [#188](https://github.com/peeramid-labs/sdk/pull/188) [`c323484542254f3bfcc85d272754cc5dd5c5a031`](https://github.com/peeramid-labs/sdk/commit/c323484542254f3bfcc85d272754cc5dd5c5a031) Thanks [@peersky](https://github.com/peersky)! - added option to set distribution address in cli "distributions add"
+
+- [#190](https://github.com/peeramid-labs/sdk/pull/190) [`5b676687f85ebdf2bb6c4953670a0ab1f42cd7b6`](https://github.com/peeramid-labs/sdk/commit/5b676687f85ebdf2bb6c4953670a0ab1f42cd7b6) Thanks [@peersky](https://github.com/peersky)! - add ability to remove packages by pckg name
+
+## 3.13.4
+
+### Patch Changes
+
+- [#185](https://github.com/peeramid-labs/sdk/pull/185) [`f59e51de4a6dcdeff69ac6b4a5093cbc713f69d5`](https://github.com/peeramid-labs/sdk/commit/f59e51de4a6dcdeff69ac6b4a5093cbc713f69d5) Thanks [@peersky](https://github.com/peersky)! - Fix getHistoricTurn function issues:
+
+  - Fixed getPreviousTurnStats to correctly retrieve previous turn data (currentTurn - 1) instead of current turn
+  - Added missing permutation field to VotingStageResults GraphQL query and TypeScript types
+  - Fixed proposal-to-player mapping in getHistoricTurn to use permutation indices for correct proposal attribution
+  - Enhanced EnvioGraphQLClient to include permutation data from VotingStageResults events
+
+## 3.13.3
+
+### Patch Changes
+
+- [#183](https://github.com/peeramid-labs/sdk/pull/183) [`17b1a97e0248c7c6be5ac2e45835fa09a6f8a470`](https://github.com/peeramid-labs/sdk/commit/17b1a97e0248c7c6be5ac2e45835fa09a6f8a470) Thanks [@theKosmoss](https://github.com/theKosmoss)! - refactor: simplify GraphQL queries by using string interpolation for numeric fields
+
+## 3.13.2
+
+### Patch Changes
+
+- [`84931e17c83cf8cc4f96722151a47088b983a62a`](https://github.com/peeramid-labs/sdk/commit/84931e17c83cf8cc4f96722151a47088b983a62a) Thanks [@peersky](https://github.com/peersky)! - bump for contracts 0.15 release;
+
+## 3.13.1
+
+### Patch Changes
+
+- [#180](https://github.com/peeramid-labs/sdk/pull/180) [`959dabe8fadc8836198d2f5052013628cd84319b`](https://github.com/peeramid-labs/sdk/commit/959dabe8fadc8836198d2f5052013628cd84319b) Thanks [@peersky](https://github.com/peersky)! - removed superinterface from abi to ts generation
+
+## 3.13.0
+
+### Minor Changes
+
+- [#177](https://github.com/peeramid-labs/sdk/pull/177) [`2625a687f5abed9645e05536741604c7981531ec`](https://github.com/peeramid-labs/sdk/commit/2625a687f5abed9645e05536741604c7981531ec) Thanks [@peersky](https://github.com/peersky)! - Migrated to the new contract structure using proposingStage and votingStage phases.
+
+### Patch Changes
+
+- [#177](https://github.com/peeramid-labs/sdk/pull/177) [`2625a687f5abed9645e05536741604c7981531ec`](https://github.com/peeramid-labs/sdk/commit/2625a687f5abed9645e05536741604c7981531ec) Thanks [@peersky](https://github.com/peersky)! - Update rankify-contracts version to 0.14.2
+
+- [#177](https://github.com/peeramid-labs/sdk/pull/177) [`2625a687f5abed9645e05536741604c7981531ec`](https://github.com/peeramid-labs/sdk/commit/2625a687f5abed9645e05536741604c7981531ec) Thanks [@peersky](https://github.com/peersky)! - Refactored end turn returned data
+
+- [#177](https://github.com/peeramid-labs/sdk/pull/177) [`2625a687f5abed9645e05536741604c7981531ec`](https://github.com/peeramid-labs/sdk/commit/2625a687f5abed9645e05536741604c7981531ec) Thanks [@peersky](https://github.com/peersky)! - Fix logic in GameMaster for proposal counting and voting points. Adjusted previous turn proposals count and updated loop condition to ensure correct point deduction.
+
 ## 3.12.2
 
 ### Patch Changes

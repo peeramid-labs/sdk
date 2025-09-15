@@ -32,7 +32,7 @@ import {
 } from "viem";
 import MaoDistributionAbi from "../abis/MAODistribution";
 import distributorAbi from "../abis/DAODistributor";
-import { ERC7744Abi, RankifyAbi } from "../abis";
+import { ERC7744Abi } from "../abis";
 import { logger } from "../utils/logger";
 import EnvioGraphQLClient from "../utils/EnvioGraphQLClient";
 
@@ -127,9 +127,9 @@ export class MAODistributorClient extends DistributorClient {
       walletClient?: WalletClient;
       address?: Address;
       envioClient: EnvioGraphQLClient;
-    }
+    },
+    address: Address = getArtifact(chainId, "DAODistributor").address
   ) {
-    const { address } = getArtifact(chainId, "DAODistributor");
     super({
       address: client.address ?? getAddress(address),
       publicClient: client.publicClient,
@@ -425,13 +425,13 @@ export class MAODistributorClient extends DistributorClient {
       });
       const chainid = this.publicClient?.chain?.id;
       if (!chainid) throw new Error("No chain id found");
-      const RankifyTokenBalance = await this.publicClient.readContract({
-        abi: RankifyAbi,
+      const balance = await this.publicClient.readContract({
+        abi: erc20Abi,
         functionName: "balanceOf",
-        address: getArtifact(chainid, "Rankify").address,
+        address: paymentToken,
         args: [this.walletClient.account?.address],
       });
-      logger(`Rankify Token Balance ${RankifyTokenBalance.toString()}`);
+      logger(`Balance ${balance.toString()}`);
       logger(`Allowance ${allowance.toString()} for ${this.walletClient.account?.address} on ${this.address}`);
       return allowance < (await this.getInstantiatePrice(distributorsId));
     } catch (e) {

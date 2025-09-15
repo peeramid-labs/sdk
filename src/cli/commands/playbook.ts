@@ -5,7 +5,10 @@ import { exec } from "child_process";
 
 export const playbookCommand = new Command("playbook")
   .description("Execute playbook scripts from the playbooks folder")
-  .argument("<playbook-name>", "Name of the playbook to execute (without .sh extension)")
+  .argument(
+    "<playbook-name>",
+    "Name of the playbook to execute (without .sh extension; Available playbooks: demo-script, partial-voting)"
+  )
   .option("-f, --fellowship-id <id>", "Fellowship ID", "1")
   .option("-g, --game-id <id>", "Game ID", "1")
   .option("--run-to-turn <turn>", "Run up to this turn number")

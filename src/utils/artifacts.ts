@@ -66,7 +66,6 @@ export const getArtifact = (
     logs: Log<bigint, number, false>[];
   };
 } => {
-  const chainPath = overrideChainName ?? getChainPath(chainId);
   if (artifactName === "CodeIndex") {
     return {
       abi: ERC7744Abi,
@@ -81,6 +80,7 @@ export const getArtifact = (
       },
     };
   }
+  const chainPath = overrideChainName ?? getChainPath(chainId);
   const artifact = (
     artifactName === "Multipass"
       ? require(`@peeramid-labs/multipass/deployments/${chainPath}/${artifactName}.json`)
@@ -120,11 +120,15 @@ export const getArtifact = (
 export const getContract = <TArtifactName extends ArtifactTypes, TClient extends PublicClient | WalletClient>(
   chainId: number,
   artifactName: TArtifactName,
-  client: TClient
+  client: TClient,
+  overrideArtifact?: {
+    address: Address;
+    pathOverride: string;
+  }
 ): GetContractReturnType<ArtifactAbi[TArtifactName], TClient> => {
-  const artifact = getArtifact(chainId, artifactName);
+  const artifact = getArtifact(chainId, artifactName, overrideArtifact && overrideArtifact.pathOverride);
   return viemGetContract({
-    address: artifact.address,
+    address: overrideArtifact ? overrideArtifact.address : artifact.address,
     abi: artifact.abi,
     client,
   }) as GetContractReturnType<ArtifactAbi[TArtifactName], TClient>;

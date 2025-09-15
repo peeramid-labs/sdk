@@ -44,6 +44,10 @@ export const createFellowshipCommand = new Command("create")
     "Payment token address. If not provided, will use the Rankify token address",
     undefined
   )
+  .option(
+    "-a, --distributor-address <address>",
+    "Distributor address, or env DISTRIBUTOR_ADDRESS. If none provided, will attempt to resolve from known chainId artifacts"
+  )
   .action(async (options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -52,13 +56,17 @@ export const createFellowshipCommand = new Command("create")
       const walletClient = await createWallet(options.rpc, resolvePk(options.mnemonicIndex ?? options.key, spinner));
       const chainId = Number(await publicClient.getChainId());
 
-      const maoDistributor = new MAODistributorClient(chainId, {
-        publicClient,
-        walletClient,
-        envioClient: new EnvioGraphQLClient({
-          endpoint: process.env.INDEXER_URL ?? options.envio,
-        }),
-      });
+      const maoDistributor = new MAODistributorClient(
+        chainId,
+        {
+          publicClient,
+          walletClient,
+          envioClient: new EnvioGraphQLClient({
+            endpoint: process.env.INDEXER_URL ?? options.envio,
+          }),
+        },
+        options.distributorAddress || process.env.DISTRIBUTOR_ADDRESS
+      );
 
       // Default values for fellowship creation
       const defaultValues = {
@@ -175,7 +183,15 @@ export const createFellowshipCommand = new Command("create")
       spinner.start("Creating fellowship...");
 
       // Get payment token address from options or fallback to Rankify address
-      const paymentToken = options.paymentToken || getArtifact(chainId, "Rankify").address;
+      let paymentToken;
+      try {
+        paymentToken = options.paymentToken || getArtifact(chainId, "Rankify").address;
+      } catch (error) {
+        console.warn(
+          "\n\n ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ \n\n\n If you are using development build, you MUST provide a payment token address via --payment-token \n\n ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ \n"
+        );
+        throw error;
+      }
 
       const args = [
         {

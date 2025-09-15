@@ -48,8 +48,8 @@ importers:
         specifier: ^5.4.1
         version: 5.4.1
       rankify-contracts:
-        specifier: ^0.14.2
-        version: 0.14.2(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.8.2))(typescript@5.8.2))
+        specifier: ^0.15.0
+        version: 0.15.0(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.8.2))(typescript@5.8.2))
       viem:
         specifier: ^2.22.8
         version: 2.23.12(typescript@5.8.2)(zod@3.23.8)
@@ -3075,8 +3075,8 @@ packages:
   randomfill@1.0.4:
     resolution: {integrity: sha512-87lcbR8+MhcWcUiQ+9e+Rwx8MyR2P7qnt15ynUlbm3TU/fjbgz4GsvfSUDTemtCCtVCqb4ZcEFlyPNTh9bBTLw==}
 
-  rankify-contracts@0.14.2:
-    resolution: {integrity: sha512-1QFdvz+S0sfWUxraAX246/7jRSY44QlgFp2oQqOk3km5WoD2gZKT88P1MeTld1rbkfON7kovsKdwVMcdh8eUxA==}
+  rankify-contracts@0.15.0:
+    resolution: {integrity: sha512-CMGRME2rT4p9zUL3TsA2IzNtIlBT5c8tfUbMPoEvFrvcyCsBiXu5Bb0gUX94nR63E07Y/BX6XtPIuE5365V4tg==}
 
   raw-body@2.5.2:
     resolution: {integrity: sha512-8zGqypfENjCIqGhgXToC8aB2r7YrBX+AQAfIPs/Mlk+BtPTztOvTS01NRW/3Eh60J+a48lt8qsCzirQ6loCVfA==}
@@ -7575,7 +7575,7 @@ snapshots:
       randombytes: 2.1.0
       safe-buffer: 5.2.1
 
-  rankify-contracts@0.14.2(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.8.2))(typescript@5.8.2)):
+  rankify-contracts@0.15.0(@swc/core@1.10.18)(hardhat@2.22.17(ts-node@10.9.2(@swc/core@1.10.18)(@types/node@20.17.12)(typescript@5.8.2))(typescript@5.8.2)):
     dependencies:
       '@ethersproject/abi': 5.7.0
       '@ethersproject/providers': 5.7.2
