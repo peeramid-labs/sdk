@@ -13,15 +13,11 @@ import { ApiError, findContractDeploymentBlock, handleRPCError } from "../utils/
 import { getSharedSecret } from "@noble/secp256k1";
 import { CONTENT_STORAGE, FellowshipMetadata, GameMetadata, gameStatusEnum, SUBMISSION_TYPES } from "../types";
 import instanceAbi from "../abis/RankifyDiamondInstance";
-import { ScoreGetterFacetAbi } from "../abis/ScoreGetterFacet";
 import { reversePermutation } from "../utils/permutations";
 import { MAODistributorClient, MAOInstanceContracts } from "./MAODistributor";
 import RankTokenClient from "./RankToken";
 import { EnvioGraphQLClient } from "../utils/EnvioGraphQLClient";
 import { logger } from "../utils/logger";
-
-// Combine the main instance ABI with ScoreGetterFacet ABI
-const combinedInstanceAbi = [...instanceAbi, ...ScoreGetterFacetAbi] as const;
 
 export interface GameState extends ContractFunctionReturnType<typeof instanceAbi, "view", "getGameState"> {
   joinRequirements: ContractFunctionReturnType<typeof instanceAbi, "view", "getJoinRequirements">;
@@ -363,7 +359,7 @@ export default class InstanceBase {
 
   /**
    * Retrieves the contract state.
-   * @returns Object containing numGames, contractInitialized, and commonParams
+   * @returns InstanceState object (maintains backward compatibility)
    */
   getContractState = async () => {
     try {
@@ -373,29 +369,51 @@ export default class InstanceBase {
         functionName: "getContractState",
       });
 
-      // The new contract returns [numGames, contractInitialized, commonParams]
-      const [numGames, contractInitialized, commonParams] = result as unknown as [
-        bigint,
-        boolean,
-        {
-          principalCost: bigint;
-          principalTimeConstant: bigint;
-          gamePaymentToken: `0x${string}`;
-          rankTokenAddress: `0x${string}`;
-          beneficiary: `0x${string}`;
-          derivedToken: `0x${string}`;
-          minimumParticipantsInCircle: bigint;
-          proposalIntegrityVerifier: `0x${string}`;
-          poseidon5: `0x${string}`;
-          poseidon2: `0x${string}`;
-        },
-      ];
+      // Handle both old and new contract formats for backward compatibility
+      if (Array.isArray(result)) {
+        // New contract format: [numGames, contractInitialized, commonParams]
+        const [numGames, contractInitialized, commonParams] = result as [
+          bigint,
+          boolean,
+          {
+            principalCost: bigint;
+            principalTimeConstant: bigint;
+            gamePaymentToken: `0x${string}`;
+            rankTokenAddress: `0x${string}`;
+            beneficiary: `0x${string}`;
+            derivedToken: `0x${string}`;
+            minimumParticipantsInCircle: bigint;
+            proposalIntegrityVerifier: `0x${string}`;
+            poseidon5: `0x${string}`;
+            poseidon2: `0x${string}`;
+          },
+        ];
 
-      return {
-        numGames,
-        contractInitialized,
-        commonParams,
-      };
+        // Return in old format for backward compatibility
+        return {
+          numGames,
+          contractInitialized,
+          commonParams,
+        };
+      } else {
+        // Old contract format: return as-is
+        return result as unknown as {
+          numGames: bigint;
+          contractInitialized: boolean;
+          commonParams: {
+            principalCost: bigint;
+            principalTimeConstant: bigint;
+            gamePaymentToken: `0x${string}`;
+            rankTokenAddress: `0x${string}`;
+            beneficiary: `0x${string}`;
+            derivedToken: `0x${string}`;
+            minimumParticipantsInCircle: bigint;
+            proposalIntegrityVerifier: `0x${string}`;
+            poseidon5: `0x${string}`;
+            poseidon2: `0x${string}`;
+          };
+        };
+      }
     } catch (e) {
       throw await handleRPCError(e);
     }
@@ -900,7 +918,7 @@ export default class InstanceBase {
     try {
       return await this.publicClient.readContract({
         address: this.instanceAddress,
-        abi: combinedInstanceAbi,
+        abi: instanceAbi,
         functionName: "getProposalGameScore",
         args: [gameId, proposalHash],
       });
@@ -920,7 +938,7 @@ export default class InstanceBase {
     try {
       const [score, proposedBy] = await this.publicClient.readContract({
         address: this.instanceAddress,
-        abi: combinedInstanceAbi,
+        abi: instanceAbi,
         functionName: "getProposalTurnScore",
         args: [gameId, turn, proposalHash],
       });
@@ -940,7 +958,7 @@ export default class InstanceBase {
     try {
       const [proposalHashes, scores, proposedBy] = await this.publicClient.readContract({
         address: this.instanceAddress,
-        abi: combinedInstanceAbi,
+        abi: instanceAbi,
         functionName: "getProposalsTurnScores",
         args: [gameId, turn],
       });
@@ -961,7 +979,7 @@ export default class InstanceBase {
     try {
       const [exists, proposedBy] = await this.publicClient.readContract({
         address: this.instanceAddress,
-        abi: combinedInstanceAbi,
+        abi: instanceAbi,
         functionName: "proposalExistsInTurn",
         args: [gameId, turn, proposalHash],
       });
@@ -981,7 +999,7 @@ export default class InstanceBase {
     try {
       return await this.publicClient.readContract({
         address: this.instanceAddress,
-        abi: combinedInstanceAbi,
+        abi: instanceAbi,
         functionName: "proposalExistsInGame",
         args: [gameId, proposalHash],
       });
@@ -999,7 +1017,7 @@ export default class InstanceBase {
     try {
       return await this.publicClient.readContract({
         address: this.instanceAddress,
-        abi: combinedInstanceAbi,
+        abi: instanceAbi,
         functionName: "proposalExists",
         args: [proposalHash],
       });
@@ -1017,7 +1035,7 @@ export default class InstanceBase {
     try {
       return await this.publicClient.readContract({
         address: this.instanceAddress,
-        abi: combinedInstanceAbi,
+        abi: instanceAbi,
         functionName: "getProposalTotalScore",
         args: [proposalHash],
       });
