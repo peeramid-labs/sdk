@@ -359,15 +359,61 @@ export default class InstanceBase {
 
   /**
    * Retrieves the contract state.
+   * @returns InstanceState object (maintains backward compatibility)
    */
   getContractState = async () => {
     try {
-      const state = await this.publicClient.readContract({
+      const result = await this.publicClient.readContract({
         address: this.instanceAddress,
         abi: instanceAbi,
         functionName: "getContractState",
       });
-      return state;
+
+      // Handle both old and new contract formats for backward compatibility
+      if (Array.isArray(result)) {
+        // New contract format: [numGames, contractInitialized, commonParams]
+        const [numGames, contractInitialized, commonParams] = result as [
+          bigint,
+          boolean,
+          {
+            principalCost: bigint;
+            principalTimeConstant: bigint;
+            gamePaymentToken: `0x${string}`;
+            rankTokenAddress: `0x${string}`;
+            beneficiary: `0x${string}`;
+            derivedToken: `0x${string}`;
+            minimumParticipantsInCircle: bigint;
+            proposalIntegrityVerifier: `0x${string}`;
+            poseidon5: `0x${string}`;
+            poseidon2: `0x${string}`;
+          },
+        ];
+
+        // Return in old format for backward compatibility
+        return {
+          numGames,
+          contractInitialized,
+          commonParams,
+        };
+      } else {
+        // Old contract format: return as-is
+        return result as unknown as {
+          numGames: bigint;
+          contractInitialized: boolean;
+          commonParams: {
+            principalCost: bigint;
+            principalTimeConstant: bigint;
+            gamePaymentToken: `0x${string}`;
+            rankTokenAddress: `0x${string}`;
+            beneficiary: `0x${string}`;
+            derivedToken: `0x${string}`;
+            minimumParticipantsInCircle: bigint;
+            proposalIntegrityVerifier: `0x${string}`;
+            poseidon5: `0x${string}`;
+            poseidon2: `0x${string}`;
+          };
+        };
+      }
     } catch (e) {
       throw await handleRPCError(e);
     }
@@ -857,6 +903,144 @@ export default class InstanceBase {
     } catch (error) {
       console.error("Error fetching metadata:", error);
       throw error;
+    }
+  };
+
+  // ScoreGetterFacet methods
+
+  /**
+   * Get the score of a proposal in a specific game
+   * @param gameId - The ID of the game
+   * @param proposalHash - The hash of the proposal
+   * @returns The score of the proposal
+   */
+  getProposalGameScore = async (gameId: bigint, proposalHash: `0x${string}`) => {
+    try {
+      return await this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "getProposalGameScore",
+        args: [gameId, proposalHash],
+      });
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
+  /**
+   * Get the score of a proposal in a specific turn
+   * @param gameId - The ID of the game
+   * @param turn - The turn number
+   * @param proposalHash - The hash of the proposal
+   * @returns Object with score and proposedBy array
+   */
+  getProposalTurnScore = async (gameId: bigint, turn: bigint, proposalHash: `0x${string}`) => {
+    try {
+      const [score, proposedBy] = await this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "getProposalTurnScore",
+        args: [gameId, turn, proposalHash],
+      });
+      return { score, proposedBy };
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
+  /**
+   * Get the scores of all proposals in a specific turn
+   * @param gameId - The ID of the game
+   * @param turn - The turn number
+   * @returns Object with proposalHashes, scores, and proposedBy arrays
+   */
+  getProposalsTurnScores = async (gameId: bigint, turn: bigint) => {
+    try {
+      const [proposalHashes, scores, proposedBy] = await this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "getProposalsTurnScores",
+        args: [gameId, turn],
+      });
+      return { proposalHashes, scores, proposedBy };
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
+  /**
+   * Check if a proposal exists in a specific turn
+   * @param gameId - The ID of the game
+   * @param turn - The turn number
+   * @param proposalHash - The hash of the proposal
+   * @returns Object with exists boolean and proposedBy array
+   */
+  proposalExistsInTurn = async (gameId: bigint, turn: bigint, proposalHash: `0x${string}`) => {
+    try {
+      const [exists, proposedBy] = await this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "proposalExistsInTurn",
+        args: [gameId, turn, proposalHash],
+      });
+      return { exists, proposedBy };
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
+  /**
+   * Check if a proposal exists in a specific game
+   * @param gameId - The ID of the game
+   * @param proposalHash - The hash of the proposal
+   * @returns Boolean indicating if the proposal exists
+   */
+  proposalExistsInGame = async (gameId: bigint, proposalHash: `0x${string}`) => {
+    try {
+      return await this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "proposalExistsInGame",
+        args: [gameId, proposalHash],
+      });
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
+  /**
+   * Check if a proposal exists in the instance
+   * @param proposalHash - The hash of the proposal
+   * @returns Boolean indicating if the proposal exists
+   */
+  proposalExists = async (proposalHash: `0x${string}`) => {
+    try {
+      return await this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "proposalExists",
+        args: [proposalHash],
+      });
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
+  /**
+   * Get the total aggregated score of a proposal across all games
+   * @param proposalHash - The hash of the proposal
+   * @returns The total score of the proposal
+   */
+  getProposalTotalScore = async (proposalHash: `0x${string}`) => {
+    try {
+      return await this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "getProposalTotalScore",
+        args: [proposalHash],
+      });
+    } catch (e) {
+      throw await handleRPCError(e);
     }
   };
 }
