@@ -170,6 +170,7 @@ export default class RankifyPlayer extends InstanceBase {
    * Create and open a game in one transaction
    * @param params Game parameters
    * @param requirements Game requirements
+   * @param overrideArtifact Optional override artifact for token approval on unsupported chains
    * @returns The created game ID
    */
   async createAndOpenGame(
@@ -207,7 +208,8 @@ export default class RankifyPlayer extends InstanceBase {
           bet: { data: Hex; amount: bigint };
         };
       }[];
-    }
+    },
+    overrideArtifact?: { address: Address; pathOverride: string }
   ): Promise<bigint> {
     if (!this.walletClient) throw new Error("Wallet client is required for this operation");
     if (!this.walletClient.account?.address) throw new Error("No account address found");
@@ -222,7 +224,8 @@ export default class RankifyPlayer extends InstanceBase {
     try {
       // Estimate game price and approve tokens
       const gamePrice = await this.estimateGamePrice(params.minGameTime);
-      await this.approveTokensIfNeeded(gamePrice);
+
+      await this.approveTokensIfNeeded(gamePrice, overrideArtifact);
 
       const { request } = await this.publicClient.simulateContract({
         abi: instanceAbi,

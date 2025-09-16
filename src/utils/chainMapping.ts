@@ -10,7 +10,7 @@ export const chainToPath: ChainMapping = {
 export function getChainPath(chainId: number): string {
   const path = chainToPath[chainId.toString() as keyof typeof chainToPath];
   if (!path) {
-    return "Custom network";
+    throw new Error(`Chain ID ${chainId} is not supported`);
   }
   return path;
 }

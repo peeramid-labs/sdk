@@ -41,6 +41,7 @@ export const create = new Command("create")
     try {
       const publicClient = await createPublic(options.rpc);
       const walletClient = await createWallet(options.rpc, resolvePk(options.mIndex ?? options.key, spinner));
+
       const chainId = Number(await publicClient.getChainId());
       const envioClient = new EnvioGraphQLClient({
         endpoint: process.env.INDEXER_URL ?? options.envio,
@@ -72,6 +73,11 @@ export const create = new Command("create")
         envioClient,
       });
 
+      spinner.text = "Checking chain support and preparing token approval...";
+
+      // Check if chain is supported, if not prepare override artifact for token approval
+      const overrideArtifact = await CLIUtils.overrideArtifact(chainId, resolvedInstanceAddress, publicClient, spinner);
+
       spinner.text = "Creating and opening game...";
 
       const params = {
@@ -100,7 +106,7 @@ export const create = new Command("create")
         contracts: [],
       };
 
-      const gameId = await player.createAndOpenGame(params, requirements);
+      const gameId = await player.createAndOpenGame(params, requirements, overrideArtifact);
 
       spinner.succeed("Game created and opened successfully");
 
