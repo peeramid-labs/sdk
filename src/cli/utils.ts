@@ -3,7 +3,7 @@ import { MAODistributorClient } from "../rankify/MAODistributor";
 import chalk from "chalk";
 import { Ora } from "ora";
 import EnvioGraphQLClient from "../utils/EnvioGraphQLClient";
-import { getArtifact } from "../utils/artifacts";
+import { getArtifact, ArtifactTypes } from "../utils/artifacts";
 import instanceAbi from "../abis/RankifyDiamondInstance";
 /**
  * Utility functions for CLI commands
@@ -71,6 +71,7 @@ export class CLIUtils {
   /**
    * Creates an override artifact for unsupported chains by getting payment token from instance contract
    * @param chainId - The chain ID to check support for
+   * @param artifactName - The name of the artifact to check support for
    * @param instanceAddress - The instance address to query for payment token
    * @param publicClient - The public client for contract calls
    * @param spinner - Optional ora spinner for status updates
@@ -78,13 +79,14 @@ export class CLIUtils {
    */
   static async overrideArtifact(
     chainId: number,
+    artifactName: ArtifactTypes,
     instanceAddress: Address,
     publicClient: PublicClient,
     spinner?: Ora
   ): Promise<{ address: `0x${string}`; pathOverride: string } | undefined> {
     try {
       // Try to get artifacts for current chain
-      getArtifact(chainId, "Rankify");
+      getArtifact(chainId, artifactName);
       return undefined; // Chain is supported, no override needed
     } catch {
       if (spinner) {
@@ -106,7 +108,7 @@ export class CLIUtils {
         };
 
         console.warn(
-          `\n⚠️  Chain ${chainId} not supported for Rankify token artifacts.\n` +
+          `\n⚠️  Chain ${chainId} not supported for ${artifactName} token artifacts.\n` +
             `Using payment token from instance contract: ${commonParams.gamePaymentToken}\n` +
             `Falling back to Arbitrum Sepolia artifacts for ABI compatibility.\n`
         );

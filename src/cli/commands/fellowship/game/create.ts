@@ -76,7 +76,13 @@ export const create = new Command("create")
       spinner.text = "Checking chain support and preparing token approval...";
 
       // Check if chain is supported, if not prepare override artifact for token approval
-      const overrideArtifact = await CLIUtils.overrideArtifact(chainId, resolvedInstanceAddress, publicClient, spinner);
+      const overrideArtifact = await CLIUtils.overrideArtifact(
+        chainId,
+        "Rankify",
+        resolvedInstanceAddress,
+        publicClient,
+        spinner
+      );
 
       spinner.text = "Creating and opening game...";
 
