@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.14.0
+
+### Minor Changes
+
+- [#194](https://github.com/peeramid-labs/sdk/pull/194) [`c8c12c0d97c1ab05d9ec40429c8205fca059854a`](https://github.com/peeramid-labs/sdk/commit/c8c12c0d97c1ab05d9ec40429c8205fca059854a) Thanks [@peersky](https://github.com/peersky)! - enabled CLI usage outside of known chainIds
+
 ## 3.13.5
 
 ### Patch Changes
