@@ -5,6 +5,7 @@ import { Ora } from "ora";
 import EnvioGraphQLClient from "../utils/EnvioGraphQLClient";
 import { getArtifact, ArtifactTypes } from "../utils/artifacts";
 import instanceAbi from "../abis/RankifyDiamondInstance";
+import { logger } from "../utils/logger";
 /**
  * Utility functions for CLI commands
  */
@@ -107,10 +108,11 @@ export class CLIUtils {
           pathOverride: "arbsepolia",
         };
 
-        console.warn(
+        logger(
           `\n⚠️  Chain ${chainId} not supported for ${artifactName} token artifacts.\n` +
             `Using payment token from instance contract: ${commonParams.gamePaymentToken}\n` +
-            `Falling back to Arbitrum Sepolia artifacts for ABI compatibility.\n`
+            `Falling back to Arbitrum Sepolia artifacts for ABI compatibility.\n`,
+          2
         );
 
         return overrideArtifact;
