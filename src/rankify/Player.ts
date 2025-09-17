@@ -16,6 +16,7 @@ import InstanceBase from "./InstanceBase";
 import { handleRPCError } from "../utils";
 import { GmProposalParams } from "../types/contracts";
 import EnvioGraphQLClient from "../utils/EnvioGraphQLClient";
+import { logger } from "../utils/log";
 
 type stateMutability = "nonpayable" | "payable";
 export type NewGameParams = {
@@ -80,6 +81,7 @@ export default class RankifyPlayer extends InstanceBase {
     if (!this.walletClient.account?.address) throw new Error("Account not found");
     if (value > 0n) {
       try {
+        logger(`Approving tokens`, 3);
         const { request } = await this.publicClient.simulateContract({
           address: tokenContract.address,
           abi: tokenContract.abi,
@@ -87,8 +89,10 @@ export default class RankifyPlayer extends InstanceBase {
           args: [this.instanceAddress, value],
           account: this.walletClient.account,
         });
-
+        logger(`Simulated contract call:`, 3);
+        logger(request, 3);
         const hash = await this.walletClient.writeContract(request);
+        logger(`Tokens approved: ${hash}`, 3);
         await this.publicClient.waitForTransactionReceipt({ hash });
       } catch (e) {
         throw await handleRPCError(e);
@@ -223,8 +227,9 @@ export default class RankifyPlayer extends InstanceBase {
 
     try {
       // Estimate game price and approve tokens
+      logger("estimating game price", 3);
       const gamePrice = await this.estimateGamePrice(params.minGameTime);
-
+      logger(`game price estimated: ${gamePrice.toString()}`, 3);
       await this.approveTokensIfNeeded(gamePrice, overrideArtifact);
 
       const { request } = await this.publicClient.simulateContract({
@@ -235,20 +240,28 @@ export default class RankifyPlayer extends InstanceBase {
         account: this.walletClient.account,
         chain: this.walletClient.chain,
       });
-
+      logger(`Simulated contract call:`, 3);
       const receipt = await this.walletClient
         .writeContract(request)
         .then((h: Hex) => this.publicClient.waitForTransactionReceipt({ hash: h }));
-
+      logger(`Transaction receipt:`, 3);
+      logger(receipt, 3);
+      logger(`Transaction status: ${receipt.status}`, 3);
       const gameCreatedEvent = parseEventLogs({
         abi: instanceAbi,
         logs: receipt.logs,
         eventName: "gameCreated",
       });
+      logger(`Game created event:`, 3);
+      logger(gameCreatedEvent, 3);
+      logger(`Game created event length: ${gameCreatedEvent.length}`, 3);
 
       if (gameCreatedEvent.length === 0) {
         throw new Error("Game created event not found in transaction receipt");
       }
+
+      logger(`Game created event args:`, 3);
+      logger(gameCreatedEvent[0].args, 3);
 
       return gameCreatedEvent[0].args.gameId;
     } catch (e) {
