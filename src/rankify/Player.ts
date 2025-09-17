@@ -92,8 +92,9 @@ export default class RankifyPlayer extends InstanceBase {
         logger(`Simulated contract call:`, 3);
         logger(request, 3);
         const hash = await this.walletClient.writeContract(request);
-        logger(`Tokens approved: ${hash}`, 3);
+        logger(`token approval tx submitted, hash: ${hash}`, 3);
         await this.publicClient.waitForTransactionReceipt({ hash });
+        logger(`token approval transaction completed`, 3);
       } catch (e) {
         throw await handleRPCError(e);
       }
@@ -232,6 +233,7 @@ export default class RankifyPlayer extends InstanceBase {
       logger(`game price estimated: ${gamePrice.toString()}`, 3);
       await this.approveTokensIfNeeded(gamePrice, overrideArtifact);
 
+      logger(`simulating createAndOpenGame contract call`, 3);
       const { request } = await this.publicClient.simulateContract({
         abi: instanceAbi,
         address: this.instanceAddress,
@@ -244,7 +246,7 @@ export default class RankifyPlayer extends InstanceBase {
       const receipt = await this.walletClient
         .writeContract(request)
         .then((h: Hex) => this.publicClient.waitForTransactionReceipt({ hash: h }));
-      logger(`Transaction receipt:`, 3);
+      logger(`Transaction receipt for createAndOpenGame:`, 3);
       logger(receipt, 3);
       logger(`Transaction status: ${receipt.status}`, 3);
       const gameCreatedEvent = parseEventLogs({
