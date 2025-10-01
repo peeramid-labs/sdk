@@ -97,7 +97,7 @@ export const chainToPath: ChainMapping = ${JSON.stringify(mapping, null, 2)} as 
 export function getChainPath(chainId: number): string {
   const path = chainToPath[chainId.toString() as keyof typeof chainToPath];
   if (!path) {
-    throw new Error(\`Chain ID \${chainId} is not supported\`);
+    return "Custom network";
   }
   return path;
 }

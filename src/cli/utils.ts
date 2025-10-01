@@ -3,6 +3,9 @@ import { MAODistributorClient } from "../rankify/MAODistributor";
 import chalk from "chalk";
 import { Ora } from "ora";
 import EnvioGraphQLClient from "../utils/EnvioGraphQLClient";
+import { getArtifact, ArtifactTypes } from "../utils/artifacts";
+import instanceAbi from "../abis/RankifyDiamondInstance";
+import { logger } from "../utils/logger";
 /**
  * Utility functions for CLI commands
  */
@@ -62,6 +65,64 @@ export class CLIUtils {
 
         console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
         process.exit(1);
+      }
+    }
+  }
+
+  /**
+   * Creates an override artifact for unsupported chains by getting payment token from instance contract
+   * @param chainId - The chain ID to check support for
+   * @param artifactName - The name of the artifact to check support for
+   * @param instanceAddress - The instance address to query for payment token
+   * @param publicClient - The public client for contract calls
+   * @param spinner - Optional ora spinner for status updates
+   * @returns Override artifact object or undefined if chain is supported
+   */
+  static async overrideArtifact(
+    chainId: number,
+    artifactName: ArtifactTypes,
+    instanceAddress: Address,
+    publicClient: PublicClient,
+    spinner?: Ora
+  ): Promise<{ address: `0x${string}`; pathOverride: string } | undefined> {
+    try {
+      // Try to get artifacts for current chain
+      getArtifact(chainId, artifactName);
+      return undefined; // Chain is supported, no override needed
+    } catch {
+      if (spinner) {
+        spinner.text = "Chain not supported, getting payment token from instance contract...";
+      }
+
+      try {
+        // Get payment token address from instance contract
+        const commonParams = await publicClient.readContract({
+          abi: instanceAbi,
+          address: instanceAddress,
+          functionName: "getCommonParams",
+        });
+
+        // Fallback to arbsepolia for ABI but use actual payment token address
+        const overrideArtifact = {
+          address: commonParams.gamePaymentToken as `0x${string}`,
+          pathOverride: "arbsepolia",
+        };
+
+        logger(
+          `\n⚠️  Chain ${chainId} not supported for ${artifactName} token artifacts.\n` +
+            `Using payment token from instance contract: ${commonParams.gamePaymentToken}\n` +
+            `Falling back to Arbitrum Sepolia artifacts for ABI compatibility.\n`,
+          2
+        );
+
+        return overrideArtifact;
+      } catch (error) {
+        if (spinner) {
+          spinner.fail("Failed to get payment token from instance contract");
+        }
+        throw new Error(
+          `Failed to create override artifact: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     }
   }

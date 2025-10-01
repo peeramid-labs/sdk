@@ -16,6 +16,7 @@ import InstanceBase from "./InstanceBase";
 import { handleRPCError } from "../utils";
 import { GmProposalParams } from "../types/contracts";
 import EnvioGraphQLClient from "../utils/EnvioGraphQLClient";
+import { logger } from "../utils/log";
 
 type stateMutability = "nonpayable" | "payable";
 export type NewGameParams = {
@@ -80,6 +81,7 @@ export default class RankifyPlayer extends InstanceBase {
     if (!this.walletClient.account?.address) throw new Error("Account not found");
     if (value > 0n) {
       try {
+        logger(`Approving tokens`, 3);
         const { request } = await this.publicClient.simulateContract({
           address: tokenContract.address,
           abi: tokenContract.abi,
@@ -87,9 +89,12 @@ export default class RankifyPlayer extends InstanceBase {
           args: [this.instanceAddress, value],
           account: this.walletClient.account,
         });
-
+        logger(`Simulated contract call:`, 3);
+        logger(request, 3);
         const hash = await this.walletClient.writeContract(request);
+        logger(`token approval tx submitted, hash: ${hash}`, 3);
         await this.publicClient.waitForTransactionReceipt({ hash });
+        logger(`token approval transaction completed`, 3);
       } catch (e) {
         throw await handleRPCError(e);
       }
@@ -170,6 +175,7 @@ export default class RankifyPlayer extends InstanceBase {
    * Create and open a game in one transaction
    * @param params Game parameters
    * @param requirements Game requirements
+   * @param overrideArtifact Optional override artifact for token approval on unsupported chains
    * @returns The created game ID
    */
   async createAndOpenGame(
@@ -207,7 +213,8 @@ export default class RankifyPlayer extends InstanceBase {
           bet: { data: Hex; amount: bigint };
         };
       }[];
-    }
+    },
+    overrideArtifact?: { address: Address; pathOverride: string }
   ): Promise<bigint> {
     if (!this.walletClient) throw new Error("Wallet client is required for this operation");
     if (!this.walletClient.account?.address) throw new Error("No account address found");
@@ -221,9 +228,12 @@ export default class RankifyPlayer extends InstanceBase {
 
     try {
       // Estimate game price and approve tokens
+      logger("estimating game price", 3);
       const gamePrice = await this.estimateGamePrice(params.minGameTime);
-      await this.approveTokensIfNeeded(gamePrice);
+      logger(`game price estimated: ${gamePrice.toString()}`, 3);
+      await this.approveTokensIfNeeded(gamePrice, overrideArtifact);
 
+      logger(`simulating createAndOpenGame contract call`, 3);
       const { request } = await this.publicClient.simulateContract({
         abi: instanceAbi,
         address: this.instanceAddress,
@@ -232,20 +242,28 @@ export default class RankifyPlayer extends InstanceBase {
         account: this.walletClient.account,
         chain: this.walletClient.chain,
       });
-
+      logger(`Simulated contract call:`, 3);
       const receipt = await this.walletClient
         .writeContract(request)
         .then((h: Hex) => this.publicClient.waitForTransactionReceipt({ hash: h }));
-
+      logger(`Transaction receipt for createAndOpenGame:`, 3);
+      logger(receipt, 3);
+      logger(`Transaction status: ${receipt.status}`, 3);
       const gameCreatedEvent = parseEventLogs({
         abi: instanceAbi,
         logs: receipt.logs,
         eventName: "gameCreated",
       });
+      logger(`Game created event:`, 3);
+      logger(gameCreatedEvent, 3);
+      logger(`Game created event length: ${gameCreatedEvent.length}`, 3);
 
       if (gameCreatedEvent.length === 0) {
         throw new Error("Game created event not found in transaction receipt");
       }
+
+      logger(`Game created event args:`, 3);
+      logger(gameCreatedEvent[0].args, 3);
 
       return gameCreatedEvent[0].args.gameId;
     } catch (e) {
