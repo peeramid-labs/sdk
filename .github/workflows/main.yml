@@ -1,16 +1,16 @@
 name: CI
 on:
   pull_request:
-    branches: [main,staging]
+    branches: [main, staging, dev]
     types: [opened, reopened, labeled, synchronize]
 env:
-    NODE_ENV: 'TEST'
+  NODE_ENV: "TEST"
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: './.github/setup'
+      - uses: "./.github/setup"
       - name: Building
         run: pnpm build
       - name: Linting
@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: './.github/setup'
+      - uses: "./.github/setup"
 
       - name: Running tests
         run: pnpm test:ci
