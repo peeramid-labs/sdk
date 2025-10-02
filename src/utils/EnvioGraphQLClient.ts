@@ -17,6 +17,11 @@ export interface EnvioGraphQLClientConfig {
   apiKey?: string;
 
   /**
+   * Chain ID for filtering events
+   */
+  chainId?: number;
+
+  /**
    * Whether to fall back to RPC when GraphQL queries fail
    * @default true
    */
@@ -28,6 +33,7 @@ export interface EnvioGraphQLClientConfig {
  */
 const DEFAULT_CONFIG: EnvioGraphQLClientConfig = {
   endpoint: process.env.INDEXER_URL || "http://localhost:8080/v1/graphql",
+  chainId: process.env.CHAIN_ID ? parseInt(process.env.CHAIN_ID) : undefined,
   fallbackToRPC: true,
 };
 
@@ -73,6 +79,7 @@ export interface MAOInstanceData {
   args: string;
   blockNumber: string;
   blockTimestamp: string;
+  chainId: number;
 }
 
 /**
@@ -152,6 +159,10 @@ export class EnvioGraphQLClient {
         whereParts.push(`srcAddress: { _eq: "${contractAddress}" }`);
       }
 
+      if (this.config.chainId !== undefined) {
+        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+      }
+
       const whereClause = whereParts.length > 0 ? whereParts.join(", ") : "";
 
       // Simpler query with direct string literals instead of variables
@@ -172,6 +183,7 @@ export class EnvioGraphQLClient {
             rank
             blockNumber
             blockTimestamp
+            chainId
             srcAddress
           }
         }
@@ -186,6 +198,7 @@ export class EnvioGraphQLClient {
           rank: string;
           blockNumber: string;
           blockTimestamp: string;
+          chainId: number;
           srcAddress: string;
         }>;
       }>(query);
@@ -195,6 +208,7 @@ export class EnvioGraphQLClient {
         gameId: BigInt(event.gameId),
         rank: BigInt(event.rank),
         blockNumber: BigInt(event.blockNumber),
+        chainId: event.chainId,
         contractAddress: event.srcAddress as Address,
         gm: event.gm as Address,
         creator: event.creator as Address,
@@ -233,6 +247,10 @@ export class EnvioGraphQLClient {
         whereParts.push(`srcAddress: { _eq: "${contractAddress}" }`);
       }
 
+      if (this.config.chainId !== undefined) {
+        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+      }
+
       const whereClause = whereParts.join(", ");
 
       // Simpler query with direct string literals instead of variables
@@ -251,6 +269,7 @@ export class EnvioGraphQLClient {
             voterPubKey
             blockNumber
             blockTimestamp
+            chainId
             srcAddress
             transactionIndex
             logIndex
@@ -267,6 +286,7 @@ export class EnvioGraphQLClient {
           voterPubKey: string;
           blockNumber: string;
           blockTimestamp: string;
+          chainId: number;
           srcAddress: string;
           transactionIndex: number;
           logIndex: number;
@@ -277,6 +297,7 @@ export class EnvioGraphQLClient {
         ...event,
         gameId: BigInt(event.gameId),
         blockNumber: BigInt(event.blockNumber),
+        chainId: event.chainId,
         contractAddress: event.srcAddress as Address,
         participant: event.participant as Address,
         transactionIndex: event.transactionIndex,
@@ -323,6 +344,10 @@ export class EnvioGraphQLClient {
         whereParts.push(`srcAddress: { _eq: "${contractAddress}" }`);
       }
 
+      if (this.config.chainId !== undefined) {
+        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+      }
+
       const whereClause = whereParts.join(", ");
 
       // Simpler query with direct string literals instead of variables
@@ -344,6 +369,7 @@ export class EnvioGraphQLClient {
             proposerSignature
             blockNumber
             blockTimestamp
+            chainId
             srcAddress
           }
         }
@@ -361,6 +387,7 @@ export class EnvioGraphQLClient {
           proposerSignature: string;
           blockNumber: string;
           blockTimestamp: string;
+          chainId: number;
           srcAddress: string;
         }>;
       }>(query);
@@ -371,6 +398,7 @@ export class EnvioGraphQLClient {
         roundNumber: BigInt(event.roundNumber),
         commitment: BigInt(event.commitment),
         blockNumber: BigInt(event.blockNumber),
+        chainId: event.chainId,
         contractAddress: event.srcAddress as Address,
         proposer: event.proposer as Address,
       }));
@@ -415,6 +443,10 @@ export class EnvioGraphQLClient {
         whereParts.push(`srcAddress: { _eq: "${contractAddress}" }`);
       }
 
+      if (this.config.chainId !== undefined) {
+        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+      }
+
       const whereClause = whereParts.join(", ");
 
       // Simpler query with direct string literals instead of variables
@@ -436,6 +468,7 @@ export class EnvioGraphQLClient {
             ballotHash
             blockNumber
             blockTimestamp
+            chainId
             srcAddress
           }
         }
@@ -453,6 +486,7 @@ export class EnvioGraphQLClient {
           ballotHash: string;
           blockNumber: string;
           blockTimestamp: string;
+          chainId: number;
           srcAddress: string;
         }>;
       }>(query);
@@ -462,6 +496,7 @@ export class EnvioGraphQLClient {
         gameId: BigInt(event.gameId),
         roundNumber: BigInt(event.roundNumber),
         blockNumber: BigInt(event.blockNumber),
+        chainId: event.chainId,
         contractAddress: event.srcAddress as Address,
         player: event.player as Address,
       }));
@@ -487,6 +522,10 @@ export class EnvioGraphQLClient {
         whereParts.push(`srcAddress: { _eq: "${contractAddress}" }`);
       }
 
+      if (this.config.chainId !== undefined) {
+        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+      }
+
       const whereClause = whereParts.join(", ");
 
       // Simpler query with direct string literals instead of variables
@@ -502,6 +541,7 @@ export class EnvioGraphQLClient {
             gameId
             blockNumber
             blockTimestamp
+            chainId
             srcAddress
           }
         }
@@ -513,6 +553,7 @@ export class EnvioGraphQLClient {
           gameId: string;
           blockNumber: string;
           blockTimestamp: string;
+          chainId: number;
           srcAddress: string;
         }>;
       }>(query);
@@ -521,6 +562,7 @@ export class EnvioGraphQLClient {
         ...event,
         gameId: BigInt(event.gameId),
         blockNumber: BigInt(event.blockNumber),
+        chainId: event.chainId,
         contractAddress: event.srcAddress as Address,
       }));
     } catch (error) {
@@ -558,6 +600,10 @@ export class EnvioGraphQLClient {
         whereParts.push(`srcAddress: { _eq: "${contractAddress}" }`);
       }
 
+      if (this.config.chainId !== undefined) {
+        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+      }
+
       const whereClause = whereParts.join(", ");
 
       // Simpler query with direct string literals instead of variables
@@ -577,6 +623,7 @@ export class EnvioGraphQLClient {
             score
             blockNumber
             blockTimestamp
+            chainId
             srcAddress
           }
         }
@@ -592,6 +639,7 @@ export class EnvioGraphQLClient {
           score: string;
           blockNumber: string;
           blockTimestamp: string;
+          chainId: number;
           srcAddress: string;
         }>;
       }>(query);
@@ -603,6 +651,7 @@ export class EnvioGraphQLClient {
         roundNumber: BigInt(event.roundNumber),
         score: BigInt(event.score),
         blockNumber: BigInt(event.blockNumber),
+        chainId: event.chainId,
         contractAddress: event.srcAddress as Address,
       }));
     } catch (error) {
@@ -627,6 +676,10 @@ export class EnvioGraphQLClient {
         whereParts.push(`srcAddress: { _eq: "${contractAddress}" }`);
       }
 
+      if (this.config.chainId !== undefined) {
+        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+      }
+
       const whereClause = whereParts.join(", ");
 
       // Simpler query with direct string literals instead of variables
@@ -644,6 +697,7 @@ export class EnvioGraphQLClient {
             scores
             blockNumber
             blockTimestamp
+            chainId
             srcAddress
           }
         }
@@ -657,6 +711,7 @@ export class EnvioGraphQLClient {
           scores: string[];
           blockNumber: string;
           blockTimestamp: string;
+          chainId: number;
           srcAddress: string;
         }>;
       }>(query);
@@ -666,6 +721,7 @@ export class EnvioGraphQLClient {
         gameId: BigInt(event.gameId),
         scores: event.scores.map((score) => BigInt(score)),
         blockNumber: BigInt(event.blockNumber),
+        chainId: event.chainId,
         contractAddress: event.srcAddress as Address,
         players: event.players.map((player) => player as Address),
       }));
@@ -691,6 +747,10 @@ export class EnvioGraphQLClient {
         whereParts.push(`srcAddress: { _eq: "${contractAddress}" }`);
       }
 
+      if (this.config.chainId !== undefined) {
+        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+      }
+
       const whereClause = whereParts.join(", ");
 
       // Simpler query with direct string literals instead of variables
@@ -707,6 +767,7 @@ export class EnvioGraphQLClient {
             gameId
             blockNumber
             blockTimestamp
+            chainId
             srcAddress
           }
         }
@@ -718,6 +779,7 @@ export class EnvioGraphQLClient {
           gameId: string;
           blockNumber: string;
           blockTimestamp: string;
+          chainId: number;
           srcAddress: string;
         }>;
       }>(query);
@@ -726,6 +788,7 @@ export class EnvioGraphQLClient {
         ...event,
         gameId: BigInt(event.gameId),
         blockNumber: BigInt(event.blockNumber),
+        chainId: event.chainId,
         contractAddress: event.srcAddress as Address,
       }));
     } catch (error) {
@@ -762,6 +825,10 @@ export class EnvioGraphQLClient {
         conditions.push(`distributionId: { _eq: "${distributionIdStr}" }`);
       }
 
+      if (this.config.chainId !== undefined) {
+        conditions.push(`chainId: { _eq: ${this.config.chainId} }`);
+      }
+
       // For a simple query, let's just use these two main identifiers
       // and filter the results client-side for other criteria
 
@@ -786,6 +853,7 @@ export class EnvioGraphQLClient {
             args
             blockNumber
             blockTimestamp
+            chainId
             version
           }
         }
@@ -804,6 +872,7 @@ export class EnvioGraphQLClient {
           args: string;
           blockNumber: string;
           blockTimestamp: string;
+          chainId: number;
           version?: string;
         }>;
       }>(query);
@@ -827,6 +896,7 @@ export class EnvioGraphQLClient {
         args: event.args,
         blockNumber: event.blockNumber,
         blockTimestamp: event.blockTimestamp,
+        chainId: event.chainId,
       }));
     } catch (error) {
       console.error("Error querying instances:", error);
@@ -890,6 +960,7 @@ export class EnvioGraphQLClient {
         RankifyInstance_gameCreated(
           where: {
             srcAddress: { _eq: $contractAddress }
+            ${this.config.chainId !== undefined ? `chainId: { _eq: ${this.config.chainId} }` : ""}
           }
           limit: $limit
           offset: $offset
@@ -901,6 +972,7 @@ export class EnvioGraphQLClient {
           rank
           blockNumber
           blockTimestamp
+          chainId
           srcAddress
         }
       }
@@ -915,6 +987,7 @@ export class EnvioGraphQLClient {
           rank: string;
           blockNumber: string;
           blockTimestamp: string;
+          chainId: number;
           srcAddress: string;
         }>;
       }>(query, variables);
@@ -968,6 +1041,10 @@ export class EnvioGraphQLClient {
         whereParts.push(`srcAddress: { _eq: "${contractAddress}" }`);
       }
 
+      if (this.config.chainId !== undefined) {
+        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+      }
+
       const whereClause = whereParts.join(", ");
 
       // Simpler query with direct string literals instead of variables
@@ -986,6 +1063,7 @@ export class EnvioGraphQLClient {
             args
             blockNumber
             blockTimestamp
+            chainId
             version
             srcAddress
           }
@@ -1001,6 +1079,7 @@ export class EnvioGraphQLClient {
           args: string;
           blockNumber: string;
           blockTimestamp: string;
+          chainId: number;
           version?: string;
           srcAddress: string;
         }>;
@@ -1009,6 +1088,7 @@ export class EnvioGraphQLClient {
       return result.DAODistributor_Instantiated.map((event) => ({
         ...event,
         blockNumber: BigInt(event.blockNumber),
+        chainId: event.chainId,
         contractAddress: event.srcAddress as Address,
       }));
     } catch (error) {
@@ -1041,6 +1121,7 @@ export class EnvioGraphQLClient {
             gameId: { _eq: ${gameIdStr} },
             roundNumber: { _eq: ${roundNumberStr} },
             srcAddress: { _eq: "${contractAddress}" }
+            ${this.config.chainId !== undefined ? `, chainId: { _eq: ${this.config.chainId} }` : ""}
           }
         ) {
           id
@@ -1050,6 +1131,7 @@ export class EnvioGraphQLClient {
           proposals
           blockNumber
           blockTimestamp
+          chainId
           srcAddress
         }
       }
@@ -1064,6 +1146,7 @@ export class EnvioGraphQLClient {
         proposals: string[];
         blockNumber: string;
         blockTimestamp: string;
+        chainId: number;
         srcAddress: string;
       }>;
     }>(query);
@@ -1075,6 +1158,7 @@ export class EnvioGraphQLClient {
       numProposals: Number(event.numProposals),
       blockNumber: BigInt(event.blockNumber),
       blockTimestamp: Number(event.blockTimestamp),
+      chainId: event.chainId,
       srcAddress: event.srcAddress as Address,
     }));
   }
@@ -1103,6 +1187,7 @@ export class EnvioGraphQLClient {
             gameId: { _eq: ${gameIdStr} },
             roundNumber: { _eq: ${turnStr} },
             srcAddress: { _eq: "${contractAddress}" }
+            ${this.config.chainId !== undefined ? `, chainId: { _eq: ${this.config.chainId} }` : ""}
           }
         ) {
           id
@@ -1117,6 +1202,7 @@ export class EnvioGraphQLClient {
           permutation
           blockNumber
           blockTimestamp
+          chainId
           srcAddress
         }
       }
@@ -1136,6 +1222,7 @@ export class EnvioGraphQLClient {
         permutation: string[];
         blockNumber: string;
         blockTimestamp: string;
+        chainId: number;
         srcAddress: string;
       }>;
     };
@@ -1152,6 +1239,7 @@ export class EnvioGraphQLClient {
       permutation: event.permutation.map((index) => BigInt(index)),
       blockNumber: BigInt(event.blockNumber),
       blockTimestamp: Number(event.blockTimestamp),
+      chainId: event.chainId,
       srcAddress: event.srcAddress as Address,
     }));
   };

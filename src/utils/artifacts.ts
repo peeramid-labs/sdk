@@ -80,7 +80,16 @@ export const getArtifact = (
       },
     };
   }
-  const chainPath = overrideChainName ?? getChainPath(chainId);
+  let chainPath: string;
+  if (overrideChainName) {
+    chainPath = overrideChainName;
+  } else {
+    chainPath = getChainPath(chainId);
+    if (chainPath === "Custom network") {
+      chainPath = "arbsepolia";
+    }
+  }
+
   const artifact = (
     artifactName === "Multipass"
       ? require(`@peeramid-labs/multipass/deployments/${chainPath}/${artifactName}.json`)
