@@ -7,7 +7,19 @@ if [ "$#" -lt 1 ]; then
     exit 1
 fi
 NETWORK="$1"
-CLEAN="$2"
+CLEAN=""
+INDEXER_FLAG=""
+
+# Parse command line arguments
+shift # Remove network from arguments
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --clean) CLEAN="clean"; shift ;;
+        --indexer) INDEXER_FLAG="true"; shift ;; 
+        *) shift ;;
+    esac
+done
+
 # Exit on error
 set -e
 
@@ -44,12 +56,44 @@ start_anvil() {
     fi
 }
 
+start_indexer() {
+    if ! tmux_session_exists "indexer"; then
+        echo "📦 Starting Envio indexer in tmux session..."
+
+        # This creates a reliable path from the script's location to the `envio` directory
+        local envio_path
+        envio_path="$(dirname "$0")/../../envio"
+        local indexer_cmd="cd '${envio_path}' && pnpm install --force && pnpm dev:local"
+
+        # Step 1: Create a new, detached session without a command.
+        tmux new-session -d -s indexer
+
+        # Give it a moment to stabilize
+        sleep 1
+
+        # Step 2: Send the commands to the session's first window.
+        tmux send-keys -t indexer "${indexer_cmd}" C-m
+
+        # Give the process time to start up
+        sleep 5
+
+        # Check if the process started successfully.
+        if ! tmux capture-pane -pt indexer | grep -q "Config file updated"; then
+            echo "Error: The indexer process failed to start. Attach to the session to see the error: tmux a -t indexer"
+            exit 1
+        fi
+
+        echo "✅ Indexer started successfully in tmux session 'indexer'"
+    else
+        echo "✅ Indexer already running in tmux session 'indexer'"
+    fi
+}
+
 # Check required environment variables
 required_vars=(
     "RPC_URL"
     "PRIVATE_KEY"
     "RANKIFY_CONTRACTS_PATH"
-    "MULTIPASS_PATH"
 )
 
 for var in "${required_vars[@]}"; do
@@ -107,11 +151,27 @@ setup_repo() {
 }
 
 # Setup each repository
-setup_repo "$MULTIPASS_PATH" "multipass" "multipass,rankify"
 setup_repo "$RANKIFY_CONTRACTS_PATH" "rankify-contracts" "ERC7744,MAO,rankify"
+
+
+if [ "$INDEXER_FLAG" = "true" ]; then
+    start_indexer
+fi
+
+if [ "$INDEXER_FLAG" = "true" ]; then
+    echo "📦 Indexer is running in tmux session 'indexer'"
+fi
 
 echo "✅ Local development environment setup complete!"
 echo "🔨 Anvil is running in tmux session 'anvil'"
 echo "To view Anvil logs: tmux attach -t anvil"
 echo "To detach from Anvil logs: Ctrl+B then D"
 echo "To stop Anvil: tmux kill-session -t anvil"
+if [ "$INDEXER_FLAG" = "true" ]; then
+    echo "To view Indexer logs: tmux attach -t indexer"
+fi
+if [ "$INDEXER_FLAG" = "true" ]; then
+    echo "To stop all services: tmux kill-session -t anvil && tmux kill-session -t indexer"
+else
+    echo "To stop Anvil: tmux kill-session -t anvil"
+fi

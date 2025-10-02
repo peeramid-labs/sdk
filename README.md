@@ -86,10 +86,17 @@ To set up your local development environment:
    ```bash
    chmod +x scripts/deploy-contracts.sh
    ```
+Possible CLI arguments for deployment:
+
+```bash
+./scripts/deploy-contracts.sh --clean  #rebuilds and redeploys contracts and all upstream deps
+./scripts/deploy-contracts.sh --indexer #launches envio indexer right after contracts (requires ../envio checked out)
+```
+
 
 4. Run the setup script:
    ```bash
-   ./scripts/deploy-contracts.sh <network> clean # set last argument to clean the deployments & artifacts
+   ./scripts/deploy-contracts.sh <network> --clean # set last argument to clean the deployments & artifacts
    ```
 
 This will:
