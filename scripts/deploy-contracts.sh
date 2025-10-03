@@ -3,20 +3,19 @@
 # Set default environment variables if not set
 export NODE_ENV="${NODE_ENV:-TEST}"
 if [ "$#" -lt 1 ]; then
-    echo "Usage: $0 <network> <clean>"
+    echo "Usage: $0 <network> [--clean] [--indexer]"
     exit 1
 fi
 NETWORK="$1"
 CLEAN=""
 INDEXER_FLAG=""
 
-# Parse command line arguments
 shift # Remove network from arguments
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --clean) CLEAN="clean"; shift ;;
-        --indexer) INDEXER_FLAG="true"; shift ;; 
-        *) shift ;;
+        --indexer) INDEXER_FLAG="true"; shift ;;
+        *) echo "Unknown option: $1"; exit 1 ;;
     esac
 done
 
@@ -127,6 +126,7 @@ setup_repo() {
     local repo_path=$1
     local repo_name=$2
     local tags=$3
+    local clean_flag=$4
     echo "📦 Setting up $repo_name..."
 
     # Check if directory exists
@@ -144,7 +144,7 @@ setup_repo() {
 
     # Deploy contracts
     echo "Deploying $repo_name contracts..."
-    if [ "$CLEAN" = "clean" ]; then
+    if [ "$clean_flag" = "clean" ]; then
         echo "Cleaning up deployments for $NETWORK..."
         pnpm hardhat clean && rm -rf deployments/$NETWORK
     fi
@@ -163,7 +163,7 @@ setup_repo() {
 }
 
 # Setup each repository
-setup_repo "$RANKIFY_CONTRACTS_PATH" "rankify-contracts" "ERC7744,MAO,rankify"
+setup_repo "$RANKIFY_CONTRACTS_PATH" "rankify-contracts" "ERC7744,MAO,rankify" "$CLEAN"
 
 
 if [ "$INDEXER_FLAG" = "true" ]; then
