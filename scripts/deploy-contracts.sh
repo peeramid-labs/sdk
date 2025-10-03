@@ -38,6 +38,15 @@ tmux_session_exists() {
     tmux has-session -t $1 2>/dev/null
 }
 
+# Function to kill anvil tmux session
+kill_anvil() {
+    if tmux_session_exists "anvil"; then
+        echo "🔨 Killing existing Anvil session..."
+        tmux kill-session -t anvil
+        echo "✅ Anvil session killed"
+    fi
+}
+
 # Function to start anvil in tmux if not already running
 start_anvil() {
     if ! tmux_session_exists "anvil"; then
@@ -103,8 +112,11 @@ for var in "${required_vars[@]}"; do
     fi
 done
 
-# Always try to start anvil if network is localhost, but it will skip if already running
+# Handle anvil for localhost network
 if [ "$NETWORK" = "localhost" ]; then
+    if [ "$CLEAN" = "clean" ]; then
+        kill_anvil
+    fi
     start_anvil
 fi
 
