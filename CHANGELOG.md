@@ -1,5 +1,64 @@
 # peeramid-labs/sdk
 
+## 3.15.0
+
+### Minor Changes
+
+- [#198](https://github.com/peeramid-labs/sdk/pull/198) [`e48219e304212e445344735caf39372d7cdc5b49`](https://github.com/peeramid-labs/sdk/commit/e48219e304212e445344735caf39372d7cdc5b49) Thanks [@peersky](https://github.com/peersky)! - enabled CLI usage outside of known chainIds
+
+### Patch Changes
+
+- [#198](https://github.com/peeramid-labs/sdk/pull/198) [`e48219e304212e445344735caf39372d7cdc5b49`](https://github.com/peeramid-labs/sdk/commit/e48219e304212e445344735caf39372d7cdc5b49) Thanks [@peersky](https://github.com/peersky)! - Update rankify-contracts version to 0.14.2
+
+- [#198](https://github.com/peeramid-labs/sdk/pull/198) [`e48219e304212e445344735caf39372d7cdc5b49`](https://github.com/peeramid-labs/sdk/commit/e48219e304212e445344735caf39372d7cdc5b49) Thanks [@peersky](https://github.com/peersky)! - added ability to launch indexer from deploy-contracts dev script, removed from it multipass
+
+- [#198](https://github.com/peeramid-labs/sdk/pull/198) [`e48219e304212e445344735caf39372d7cdc5b49`](https://github.com/peeramid-labs/sdk/commit/e48219e304212e445344735caf39372d7cdc5b49) Thanks [@peersky](https://github.com/peersky)! - Enhance InstanceBase with ScoreGetterFacet integration
+
+  - Added methods to retrieve proposal scores and existence checks across games and turns.
+  - Updated getContractState method to return additional parameters.
+  - Improved error handling for new contract functions.
+
+- [#198](https://github.com/peeramid-labs/sdk/pull/198) [`e48219e304212e445344735caf39372d7cdc5b49`](https://github.com/peeramid-labs/sdk/commit/e48219e304212e445344735caf39372d7cdc5b49) Thanks [@peersky](https://github.com/peersky)! - Implement overrideArtifact method for unsupported chains in CLIUtils
+
+  - Added overrideArtifact method to create an override artifact for unsupported chains by fetching the payment token from the instance contract.
+  - Updated create command to check chain support and prepare the override artifact for token approval if necessary.
+  - Modified createAndOpenGame method in RankifyPlayer to accept an optional overrideArtifact parameter for token approval on unsupported chains.
+  - Enhanced error handling in getChainPath to throw an error for unsupported chain IDs.
+
+- [#198](https://github.com/peeramid-labs/sdk/pull/198) [`e48219e304212e445344735caf39372d7cdc5b49`](https://github.com/peeramid-labs/sdk/commit/e48219e304212e445344735caf39372d7cdc5b49) Thanks [@peersky](https://github.com/peersky)! - Fix logic in GameMaster for proposal counting and voting points. Adjusted previous turn proposals count and updated loop condition to ensure correct point deduction.
+
+- [#198](https://github.com/peeramid-labs/sdk/pull/198) [`e48219e304212e445344735caf39372d7cdc5b49`](https://github.com/peeramid-labs/sdk/commit/e48219e304212e445344735caf39372d7cdc5b49) Thanks [@peersky](https://github.com/peersky)! - ## Development Infrastructure Improvements and Bug Fixes
+
+  ### 🚀 New Features
+
+  - **Indexer Integration**: Added `--indexer` flag to deploy-contracts script to automatically launch Envio indexer after contract deployment
+  - **Enhanced CLI Arguments**: Improved deploy-contracts script with proper flag parsing (`--clean`, `--indexer`)
+
+  ### 🐛 Bug Fixes
+
+  - **Vote Validation Fix**: Fixed points calculation bug in GameMaster where points were being subtracted incorrectly (using `maxPoints` instead of `maxPoints * maxPoints`)
+
+  ### 🔧 Improvements
+
+  - **Simplified Dependencies**: Removed multipass from deployment process, focusing on core rankify contracts
+  - **Better Session Management**: Added ability to kill existing Anvil sessions when using `--clean` flag
+  - **Enhanced Documentation**: Updated README with clearer usage instructions and new CLI options
+  - **Improved Error Handling**: Better script reliability with enhanced session detection and management
+
+  ### 📝 Documentation Updates
+
+  - Updated deployment script usage examples with new CLI argument format
+  - Added comprehensive CLI argument documentation
+  - Improved setup instructions for local development environment
+
+  ### 🛠️ Technical Changes
+
+  - Refactored deploy-contracts.sh with proper argument parsing using while loop
+  - Added tmux session management for indexer with error checking
+  - Enhanced environment variable validation (removed MULTIPASS_PATH requirement)
+  - Improved script error handling and user feedback
+  - Fixed mathematical error in vote points calculation algorithm
+
 ## 3.14.0
 
 ### Minor Changes
