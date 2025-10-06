@@ -35,7 +35,7 @@
     "build-cli": "tsc --project tsconfig.cli.json",
     "build-commonjs": "tsc --project tsconfig.commonjs.json",
     "build": "pnpm build-all && node ./scripts/copyPackageFile.cjs prod",
-    "postbuild": "jq '.type = \"module\"' package.json > temp.json && mv temp.json package.json && cp README.md dist && cp -r .changeset ./dist/.changeset && cp -r docs dist/docs && cp -r zk_artifacts dist/zk_artifacts && prettier --write \"dist/**/*.{ts,js,json,md}\" && cd ./dist && pnpm install",
+    "postbuild": "cp README.md dist && cp -r .changeset ./dist/.changeset && cp -r docs dist/docs && cp -r zk_artifacts dist/zk_artifacts && prettier --write \"dist/**/*.{ts,js,json,md}\" && cd ./dist && pnpm install",
     "dist": "changeset && changeset version && pnpm build && cp -r .changeset ./dist && cd dist && pnpm changeset publish",
     "version": "changeset version",
     "release": "pnpm build && cd ./dist && changeset publish",
@@ -60,7 +60,7 @@
     "inquirer": "^12.3.0",
     "lodash": "^4.17.21",
     "ora": "^5.4.1",
-    "rankify-contracts": "^0.15.0"
+    "rankify-contracts": "0.16.0-pr-221.0"
   },
   "peerDependencies": {
     "viem": "^2.22.8"

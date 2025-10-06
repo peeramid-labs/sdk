@@ -693,7 +693,7 @@ export class GameMaster {
     for (let i = 0; i < prevTurnProposalsCount && pointsLeft > 0; i++) {
       const maxPoints = Math.floor(Math.sqrt(pointsLeft));
       if (maxPoints > 0) {
-        pointsLeft -= maxPoints;
+        pointsLeft -= maxPoints * maxPoints;
       }
     }
     return pointsLeft <= 0;
