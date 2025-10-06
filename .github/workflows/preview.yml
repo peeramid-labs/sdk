@@ -1,0 +1,62 @@
+name: 'Deploy Preview'
+
+on:
+  pull_request:
+    branches: [changeset-release/main]
+    types: [opened, reopened, synchronize]
+env:
+  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  deploy_and_publish_contracts_preview:
+    runs-on: ubuntu-latest
+    concurrency:
+     group: preview-${{ github.event.pull_request.number }}
+     cancel-in-progress: true
+    if: ${{ !github.event.pull_request.head.repo.fork }}
+    outputs:
+      deployment_details: ${{ steps.export_addresses.outputs.deployment_details }}
+      contracts_package_version: ${{ steps.get_version.outputs.package_version }}
+    steps:
+      - name: 'Checkout Code'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Necessary for changesets to work correctly
+
+      - uses: './.github/setup'
+
+      - name: 'Setup Node.js for npm'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: 'Build SDK'
+        run: pnpm build
+
+      - name: Setup git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create empty changeset
+        run: pnpm changeset add --empty
+
+      - name: Enter prerelease mode
+        run: pnpm changeset pre enter pr-${{ github.event.pull_request.number }}
+
+      - name: Bump versions
+        run: pnpm changeset version
+
+      - name: Get package version
+        id: get_version
+        run: |
+          VERSION=$(jq -r .version package.json)
+          echo "package_version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: 'Publish Preview to npm'
+        run: cd ./dist && pnpm changeset publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
