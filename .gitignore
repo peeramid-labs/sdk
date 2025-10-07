@@ -6,3 +6,4 @@ node_modules
 src/abis
 .env
 docs/
+.pnpm-store/v3/files/*
