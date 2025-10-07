@@ -1,4 +1,6 @@
+import { GameMaster } from "@peeramid-labs/sdk";
 import { execSync } from "child_process";
+import { Address } from "viem";
 
 export function executeCommand(command: string, description?: string) {
   if (description) {
@@ -41,7 +43,7 @@ export function logSuccess(message: string) {
   console.log(`\n✅ ${message}`);
 }
 
-export function logError(message: string, error?: any) {
+export function logError(message: string, error?: unknown) {
   console.error(`\n❌ ${message}`, error);
 }
 
@@ -77,7 +79,7 @@ export async function storeOrUpdateThreadInApi(params: {
   console.log(`\n${action} thread ${threadId} in API server...`);
 
   try {
-    let threadData: any = {
+    let threadData = {
       id: threadId,
       fellowshipId: fellowshipId,
       instanceAddress: instanceAddress,
@@ -165,7 +167,7 @@ async function retryWithBackoff<T>(
   maxRetries: number = 3,
   initialDelayMs: number = 1000
 ): Promise<T> {
-  let lastError: any;
+  let lastError: unknown;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
@@ -191,16 +193,16 @@ async function retryWithBackoff<T>(
  * Decrypt proposals with retry logic
  */
 export async function decryptProposalsWithRetry(
-  gameMaster: any,
+  gameMaster: GameMaster,
   params: {
-    instanceAddress: string;
+    instanceAddress: Address;
     gameId: bigint;
     turn: bigint;
-    players: string[];
+    players: Address[];
     permute: boolean;
   },
   maxRetries: number = 3
-): Promise<Array<{ proposer: string; proposal: string }>> {
+): Promise<Array<{ proposer: Address; proposal: string }>> {
   console.log(`Decrypting proposals for turn ${params.turn}...`);
 
   return await retryWithBackoff(() => gameMaster.decryptProposals(params), maxRetries);

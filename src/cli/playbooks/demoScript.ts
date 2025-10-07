@@ -3,7 +3,6 @@
 import {
   executeCommand,
   createGameAndGetId,
-  sleep,
   logSection,
   logSuccess,
   findProposalPosition,
@@ -246,7 +245,6 @@ export async function runDemoScript(args: string[], gameMaster: GameMaster): Pro
 }
 
 function main() {
-  const args = process.argv.slice(2);
   console.log("This script should be run through cliPlaybooks.sh which provides the GameMaster instance");
   console.log("Usage: ./cliPlaybooks.sh demo-script <fellowshipId> <instanceAddress>");
   process.exit(1);
