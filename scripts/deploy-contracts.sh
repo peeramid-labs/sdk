@@ -495,8 +495,11 @@ setup_repo() {
         # Add distribution in SDK
         echo "Adding distribution in SDK..."
         local sdk_path
-        # We know the SDK is in the same directory as contracts, so go up from contracts to Projects, then into sdk
-        sdk_path="/Users/kosmoss/Projects/sdk"
+        sdk_path="$(dirname "$repo_path")/sdk"
+        if [ ! -d "$sdk_path" ]; then
+            echo "Error: expected SDK repo at $sdk_path"
+            exit 1
+        fi
         echo "SDK path: $sdk_path"
         cd "$sdk_path"
         pnpm install
