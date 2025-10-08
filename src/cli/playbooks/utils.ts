@@ -79,7 +79,20 @@ export async function storeOrUpdateThreadInApi(params: {
   console.log(`\n${action} thread ${threadId} in API server...`);
 
   try {
-    let threadData = {
+    let threadData: {
+      id: number;
+      fellowshipId: number;
+      instanceAddress: string;
+      gamePhase?: string;
+      owner?: string;
+      threadType?: string;
+      metadata?: Record<string, unknown>;
+      canStartEarlyIfFull?: boolean;
+      onlyOwnerCanStart?: boolean;
+      canStartNextTurnIfFinished?: boolean;
+      private?: boolean;
+      cronChecked?: boolean;
+    } = {
       id: threadId,
       fellowshipId: fellowshipId,
       instanceAddress: instanceAddress,

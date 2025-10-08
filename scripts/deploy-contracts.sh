@@ -522,6 +522,8 @@ if [ "$INDEXER_FLAG" = "true" ]; then
 fi
 
 if [ "$API_FLAG" = "true" ]; then
+    echo "⏳ Waiting 3 seconds before starting API..."
+    sleep 3
     start_api "$CLEAN"
 fi
 
