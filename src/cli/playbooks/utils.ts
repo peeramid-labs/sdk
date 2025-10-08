@@ -1,4 +1,4 @@
-import { GameMaster } from "@peeramid-labs/sdk";
+import { GameMaster } from "../../rankify/GameMaster";
 import { execSync } from "child_process";
 import { Address } from "viem";
 
