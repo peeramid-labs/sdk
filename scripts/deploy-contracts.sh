@@ -3,7 +3,7 @@
 # Set default environment variables if not set
 export NODE_ENV="${NODE_ENV:-TEST}"
 if [ "$#" -lt 1 ]; then
-    echo "Usage: $0 <network> [--clean] [--indexer] [--api] [--fe] [--monitor] [--demo-script]"
+    echo "Usage: $0 <network> [--clean] [--indexer] [--api] [--fe] [--monitor] [--demo-script] [--multipass]"
     exit 1
 fi
 NETWORK="$1"
@@ -13,6 +13,7 @@ API_FLAG=""
 FE_FLAG=""
 MONITOR_FLAG=""
 DEMO_SCRIPT_FLAG=""
+MULTIPASS_FLAG=""
 
 shift # Remove network from arguments
 while [[ "$#" -gt 0 ]]; do
@@ -23,6 +24,7 @@ while [[ "$#" -gt 0 ]]; do
         --fe) FE_FLAG="true"; shift ;;
         --monitor) MONITOR_FLAG="true"; shift ;;
         --demo-script) DEMO_SCRIPT_FLAG="true"; shift ;;
+        --multipass) MULTIPASS_FLAG="true"; shift ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
 done
@@ -516,6 +518,38 @@ setup_repo() {
 # Setup each repository
 setup_repo "$RANKIFY_CONTRACTS_PATH" "rankify-contracts" "ERC7744,MAO,rankify" "$CLEAN"
 
+# Deploy and initialize Multipass if flag is set
+if [ "$MULTIPASS_FLAG" = "true" ]; then
+    echo "🎫 Deploying and initializing Multipass..."
+    MULTIPASS_PATH="$(dirname "$0")/../../multipass"
+    
+    if [ ! -d "$MULTIPASS_PATH" ]; then
+        echo "Error: Multipass directory not found at $MULTIPASS_PATH"
+        exit 1
+    fi
+    
+    cd "$MULTIPASS_PATH"
+    
+    # Install dependencies
+    echo "Installing Multipass dependencies..."
+    pnpm install
+    
+    # Link SDK with Multipass
+    echo "Linking SDK with Multipass..."
+    pnpm link ../sdk
+    
+    # Run the deployment script
+    echo "Running Multipass deployment script..."
+    ./playbook/utils/deploy-to-local-anvil.sh
+    
+    # Initialize the domain
+    echo "Initializing Multipass domain..."
+    pnpm hardhat --network localhost initializeDomain --registrar-address 0xaA63aA2D921F23f204B6Bcb43c2844Fb83c82eb9 --domain "invisible.garden"
+    
+    echo "✅ Multipass deployed and initialized"
+    
+    cd -
+fi
 
 if [ "$INDEXER_FLAG" = "true" ]; then
     start_indexer "$CLEAN"
