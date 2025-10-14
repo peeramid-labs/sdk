@@ -469,6 +469,12 @@ setup_repo() {
     # Install dependencies
     echo "Installing dependencies for $repo_name..."
     pnpm install
+    
+    # Link multipass only if multipass flag is set
+    if [ "$MULTIPASS_FLAG" = "true" ]; then
+        echo "Linking multipass to $repo_name..."
+        pnpm link ../multipass
+    fi
 
     # Deploy contracts
     echo "Deploying $repo_name contracts..."
@@ -515,10 +521,7 @@ setup_repo() {
     cd -
 }
 
-# Setup each repository
-setup_repo "$RANKIFY_CONTRACTS_PATH" "rankify-contracts" "ERC7744,MAO,rankify" "$CLEAN"
-
-# Deploy and initialize Multipass if flag is set
+# Deploy and initialize Multipass if flag is set (BEFORE rankify contracts)
 if [ "$MULTIPASS_FLAG" = "true" ]; then
     echo "🎫 Deploying and initializing Multipass..."
     MULTIPASS_PATH="$(dirname "$0")/../../multipass"
@@ -550,6 +553,9 @@ if [ "$MULTIPASS_FLAG" = "true" ]; then
     
     cd -
 fi
+
+# Setup each repository (AFTER multipass so it can find Multipass deployment)
+setup_repo "$RANKIFY_CONTRACTS_PATH" "rankify-contracts" "ERC7744,MAO,rankify,multipass" "$CLEAN"
 
 if [ "$INDEXER_FLAG" = "true" ]; then
     start_indexer "$CLEAN"
