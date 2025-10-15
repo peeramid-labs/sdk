@@ -5,7 +5,7 @@ import MultipassBase from "../../../multipass/MultipassBase";
 import { createPublic, createWallet } from "../../client";
 import MultipassOwner from "../../../multipass/Owner";
 import inquirer from "inquirer";
-import { Address, Hex, hexToString } from "viem";
+import { Address, Hex, hexToString, toHex, stringToBytes } from "viem";
 
 const domainsCommand = new Command("domains")
   .addCommand(
@@ -62,6 +62,8 @@ const domainsCommand = new Command("domains")
       .option("-e, --referrer-reward <referrerReward>", "Referrer reward in wei")
       .option("-d, --referral-discount <referralDiscount>", "Referral discount in wei")
       .option("-a, --activate", "Activate the domain immediately after initialization")
+      .option("-b, --bytes32", "Use bytes32 encoding with length in last byte (UBI format)")
+      .option("-t, --registrar <registrar>", "Registrar address")
       .action(async (options) => {
         const spinner = ora("Initializing domain...").start();
 
@@ -124,12 +126,13 @@ const domainsCommand = new Command("domains")
           spinner.start("Initializing domain...");
 
           const tx = await multipass.initializeDomain({
-            registrar: walletClient.account?.address as Address,
+            registrar: options.registrar || (walletClient.account?.address as Address),
             fee: BigInt(answers.fee || options.fee),
             renewalFee: BigInt(answers.renewalFee || options.renewalFee),
             domainName: answers.name || options.name,
             referrerReward: BigInt(answers.referrerReward || options.referrerReward),
             referralDiscount: BigInt(answers.referralDiscount || options.referralDiscount),
+            bytes32: options.bytes32,
           });
           await publicClient.waitForTransactionReceipt({ hash: tx });
 
@@ -138,7 +141,7 @@ const domainsCommand = new Command("domains")
 
           if (options.activate) {
             spinner.start("Activating domain...");
-            const activationTx = await multipass.activateDomain(answers.name || options.name);
+            const activationTx = await multipass.activateDomain(answers.name || options.name, options.bytes32);
             await publicClient.waitForTransactionReceipt({ hash: activationTx });
             spinner.succeed("Domain activated successfully!");
             console.log(chalk.green("Activation transaction hash:"), activationTx);

@@ -10,6 +10,7 @@ export { default as InstancePlayer } from "./rankify/Player";
 export { default as MultipassBase, type NameQuery } from "./multipass/MultipassBase";
 export { default as Registrar } from "./multipass/Registrar";
 export { GameMaster } from "./rankify/GameMaster";
+export { default as InstanceUBI } from "./ubi/InstanceUBI";
 
 // Utility exports
 export * from "./utils";
@@ -22,6 +23,7 @@ export { default as EnvioGraphQLClient, type EnvioGraphQLClientConfig } from "./
 
 // Type exports
 export { type MAOInstances, type GmProposalParams } from "./types/contracts";
+export type { VoteElement, DailyProposal, ProposalGlobalStats, UBIParams, UserState } from "./ubi/InstanceUBI";
 
 // Re-export the abis object
 export { abis } from "./abis/index";

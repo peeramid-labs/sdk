@@ -465,6 +465,7 @@ domainCommand
     new Command("activate")
       .description("Activate a domain")
       .argument("<domainName>", "Name of the domain to activate")
+      .option("-b, --bytes32", "Use bytes32 encoding with length in last byte (UBI format)")
       .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
       .option(
         "-k, --key <privateKey>",
@@ -486,10 +487,21 @@ domainCommand
 
           spinner.stop();
 
-          const tx = await multipass.activateDomain(domainName);
+          // Show information about encoding format
+          if (options.bytes32) {
+            console.log(chalk.yellow("Using UBI bytes32 format (length encoded in last byte)"));
+          }
+
+          const tx = await multipass.activateDomain(domainName, options.bytes32);
 
           spinner.succeed("Domain activated successfully!");
           console.log(chalk.green("Transaction hash:"), tx);
+          console.log(chalk.green("Domain name:"), domainName);
+          if (options.bytes32) {
+            console.log(chalk.green("Bytes32 (UBI format):"), multipass.getShortStringBytes32(domainName));
+          } else {
+            console.log(chalk.green("Bytes32 (standard):"), stringToHex(domainName, { size: 32 }));
+          }
         } catch (error) {
           spinner.fail("Domain activation failed");
           console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));

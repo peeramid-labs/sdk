@@ -1,4 +1,13 @@
-import { type Address, type Hex, stringToHex, zeroAddress, isAddress, type PublicClient } from "viem";
+import {
+  type Address,
+  type Hex,
+  stringToHex,
+  zeroAddress,
+  isAddress,
+  type PublicClient,
+  stringToBytes,
+  toHex,
+} from "viem";
 import type { RegisterMessage } from "../types";
 import { MultipassAbi } from "../abis";
 import { getArtifact } from "../utils";
@@ -83,6 +92,26 @@ export default class MultipassBase {
     );
   }
 
+  /**
+   * Convert a string to bytes32 format with length encoded in the last byte (UBI format)
+   * @param text - The string to convert
+   * @returns Hex string representing the bytes32 value
+   */
+  public getShortStringBytes32(text: string): `0x${string}` {
+    const utf8Bytes = stringToBytes(text);
+    const len = utf8Bytes.length;
+
+    if (len > 31) {
+      throw new Error(`String "${text}" is too long for a bytes32. Maximum length is 31 bytes.`);
+    }
+
+    const bytes32Array = new Uint8Array(32);
+    bytes32Array.set(utf8Bytes);
+    bytes32Array[31] = len;
+
+    return toHex(bytes32Array);
+  }
+
   public getRegistrarMessage = ({
     username,
     id,
@@ -115,17 +144,19 @@ export default class MultipassBase {
     address,
     domainName,
     targetDomain,
+    useBytes32,
   }: {
     address: string;
     domainName: string;
     targetDomain?: string;
+    useBytes32?: boolean;
   }): NameQuery => {
     if (!isAddress(address)) throw new Error("formQueryByAddress: is not a valid address");
     return {
       name: stringToHex("", { size: 32 }),
       id: stringToHex("", { size: 32 }),
       wallet: address,
-      domainName: stringToHex(domainName, { size: 32 }),
+      domainName: useBytes32 ? this.getShortStringBytes32(domainName) : stringToHex(domainName, { size: 32 }),
       targetDomain: stringToHex(targetDomain ?? "", { size: 32 }),
     };
   };
