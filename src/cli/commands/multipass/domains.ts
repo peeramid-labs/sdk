@@ -5,7 +5,7 @@ import MultipassBase from "../../../multipass/MultipassBase";
 import { createPublic, createWallet } from "../../client";
 import MultipassOwner from "../../../multipass/Owner";
 import inquirer from "inquirer";
-import { Address, Hex, hexToString, toHex, stringToBytes } from "viem";
+import { Address, Hex, hexToString } from "viem";
 
 const domainsCommand = new Command("domains")
   .addCommand(
