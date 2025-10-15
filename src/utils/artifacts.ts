@@ -90,11 +90,7 @@ export const getArtifact = (
     }
   }
 
-  const artifact = (
-    artifactName === "Multipass"
-      ? require(`@peeramid-labs/multipass/deployments/${chainPath}/${artifactName}.json`)
-      : require(`rankify-contracts/deployments/${chainPath}/${artifactName}.json`)
-  ) as {
+  const artifact = require(`rankify-contracts/deployments/${chainPath}/${artifactName}.json`) as {
     abi: AbiItem[];
     address: Address;
     execute: { args: string[] };
