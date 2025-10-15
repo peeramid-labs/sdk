@@ -353,7 +353,7 @@ run_demo_script() {
             break
         fi
         echo "⏳ Waiting for indexer to be ready (attempt $attempt/$max_attempts)..."
-        sleep 2
+        sleep $((2 * attempt * attempt))
         attempt=$((attempt + 1))
     done
     
@@ -520,6 +520,7 @@ setup_repo() {
     # Return to original directory
     cd -
 }
+setup_repo "$RANKIFY_CONTRACTS_PATH" "rankify-contracts" "ERC7744,MAO,rankify,multipass" "$CLEAN"
 
 # Deploy and initialize Multipass if flag is set (BEFORE rankify contracts)
 if [ "$MULTIPASS_FLAG" = "true" ]; then
@@ -543,19 +544,16 @@ if [ "$MULTIPASS_FLAG" = "true" ]; then
     
     # Run the deployment script
     echo "Running Multipass deployment script..."
-    ./playbook/utils/deploy-to-local-anvil.sh
+    #./playbook/utils/deploy-to-local-anvil.sh
     
     # Initialize the domain
     echo "Initializing Multipass domain..."
-    pnpm hardhat --network localhost initializeDomain --registrar-address 0xaA63aA2D921F23f204B6Bcb43c2844Fb83c82eb9 --domain "invisible.garden"
+    pnpm hardhat --network localhost initializeDomain --registrar-address 0xaA63aA2D921F23f204B6Bcb43c2844Fb83c82eb9 --domain "invisible.garden.mao"
     
     echo "✅ Multipass deployed and initialized"
     
     cd -
 fi
-
-# Setup each repository (AFTER multipass so it can find Multipass deployment)
-setup_repo "$RANKIFY_CONTRACTS_PATH" "rankify-contracts" "ERC7744,MAO,rankify,multipass" "$CLEAN"
 
 if [ "$INDEXER_FLAG" = "true" ]; then
     start_indexer "$CLEAN"
