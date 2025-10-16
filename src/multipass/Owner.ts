@@ -1,5 +1,6 @@
 import { type Address, type Hash, stringToHex, type WalletClient, type PublicClient } from "viem";
 import MultipassBase from "./MultipassBase";
+import EnvioGraphQLClient from "../utils/EnvioGraphQLClient";
 export type NameQuery = {
   name: `0x${string}`;
   id: `0x${string}`;
@@ -24,12 +25,14 @@ export default class MultipassOwner extends MultipassBase {
     chainId,
     walletClient,
     publicClient,
+    envioClient,
   }: {
     chainId: number;
     walletClient: WalletClient;
     publicClient: PublicClient;
+    envioClient: EnvioGraphQLClient;
   }) {
-    super({ chainId, publicClient });
+    super({ chainId, publicClient, envioClient });
     this.walletClient = walletClient;
   }
 
@@ -127,7 +130,7 @@ export default class MultipassOwner extends MultipassBase {
     domainName: string;
     referrerReward: bigint;
     referralDiscount: bigint;
-    bytes32: boolean;
+    bytes32?: boolean;
   }): Promise<Hash> {
     if (!this.walletClient.account) throw new Error("No account found");
 

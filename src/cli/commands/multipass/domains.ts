@@ -6,6 +6,7 @@ import { createPublic, createWallet } from "../../client";
 import MultipassOwner from "../../../multipass/Owner";
 import inquirer from "inquirer";
 import { Address, Hex, hexToString } from "viem";
+import EnvioGraphQLClient from "../../../utils/EnvioGraphQLClient";
 
 const domainsCommand = new Command("domains")
   .addCommand(
@@ -13,16 +14,24 @@ const domainsCommand = new Command("domains")
       .description("List all domains")
       .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
       .option("-a, --active", "Only list active domains")
+      .option(
+        "-e, --envio <url>",
+        "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+        "http://localhost:8080/v1/graphql"
+      )
       .action(async (options) => {
         const spinner = ora("Fetching domains...").start();
 
         try {
           const publicClient = await createPublic(options.rpc);
           const chainId = Number(await publicClient.getChainId());
-
+          const envioClient = new EnvioGraphQLClient({
+            endpoint: process.env.INDEXER_URL ?? options.envio,
+          });
           const multipass = new MultipassBase({
             chainId,
             publicClient,
+            envioClient,
           });
 
           spinner.stop();

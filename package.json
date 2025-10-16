@@ -39,9 +39,9 @@
     "dist": "changeset && changeset version && pnpm build && cp -r .changeset ./dist && cd dist && pnpm changeset publish",
     "version": "changeset version",
     "release": "pnpm build && cd ./dist && changeset publish",
-    "test": "jest",
-    "test:ci": "pnpm generate-chain-mapping && node scripts/copyFromContracts.cjs && pnpm jest",
-    "test:watch": "jest --watch",
+    "test": "export IS_UNIT_TEST='true'&& jest",
+    "test:ci": "pnpm generate-chain-mapping && node scripts/copyFromContracts.cjs && export IS_UNIT_TEST='true'&&  pnpm jest",
+    "test:watch": "export IS_UNIT_TEST='true' && jest --watch",
     "lint:ci": "pnpm generate-chain-mapping && node scripts/copyFromContracts.cjs && pnpm lint --max-warnings 0",
     "docs": "typedoc",
     "docs:watch": "typedoc --watch"

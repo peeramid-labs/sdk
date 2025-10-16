@@ -81,16 +81,17 @@ export const getArtifact = (
     };
   }
   let chainPath: string;
-  if (overrideChainName) {
-    chainPath = overrideChainName;
+  if (overrideChainName || process.env.IS_UNIT_TEST) {
+    chainPath = process.env.IS_UNIT_TEST || !overrideChainName ? "arbsepolia" : overrideChainName;
   } else {
     chainPath = getChainPath(chainId);
     if (chainPath === "Custom network") {
       chainPath = "arbsepolia";
     }
   }
+  const repoPath = artifactName == "Multipass" ? "@peeramid-labs/multipass" : "rankify-contracts";
 
-  const artifact = require(`rankify-contracts/deployments/${chainPath}/${artifactName}.json`) as {
+  const artifact = require(`${repoPath}/deployments/${chainPath}/${artifactName}.json`) as {
     abi: AbiItem[];
     address: Address;
     execute: { args: string[] };
