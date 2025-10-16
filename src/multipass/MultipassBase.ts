@@ -1,7 +1,17 @@
-import { type Address, type Hex, stringToHex, zeroAddress, isAddress, type PublicClient } from "viem";
+import {
+  type Address,
+  type Hex,
+  stringToHex,
+  zeroAddress,
+  isAddress,
+  type PublicClient,
+  stringToBytes,
+  toHex,
+} from "viem";
 import type { RegisterMessage } from "../types";
 import { MultipassAbi } from "../abis";
 import { getArtifact } from "../utils";
+import EnvioGraphQLClient from "../utils/EnvioGraphQLClient";
 
 export type Domain = {
   name: string;
@@ -46,19 +56,27 @@ export default class MultipassBase {
   chainId: number;
   /** Public client for reading contracts */
   publicClient: PublicClient;
-  creationBlock: bigint;
+  envioClient: EnvioGraphQLClient;
 
   /**
    * Creates a new MultipassBase instance
    * @param params - Constructor parameters
    * @param params.chainId - ID of the blockchain network
    * @param params.publicClient - Public client for reading contracts
+   * @param params.envioClient - Envio GraphQL client for querying data
    */
-  constructor({ chainId, publicClient }: { chainId: number; publicClient: PublicClient }) {
+  constructor({
+    chainId,
+    publicClient,
+    envioClient,
+  }: {
+    chainId: number;
+    publicClient: PublicClient;
+    envioClient: EnvioGraphQLClient;
+  }) {
     this.chainId = chainId;
     this.publicClient = publicClient;
-    const { receipt } = getArtifact(chainId, "Multipass");
-    this.creationBlock = BigInt(receipt.blockNumber);
+    this.envioClient = envioClient;
   }
 
   /**
@@ -81,6 +99,26 @@ export default class MultipassBase {
       "&chainId=" +
       this.chainId
     );
+  }
+
+  /**
+   * Convert a string to bytes32 format with length encoded in the last byte (UBI format)
+   * @param text - The string to convert
+   * @returns Hex string representing the bytes32 value
+   */
+  public getShortStringBytes32(text: string): `0x${string}` {
+    const utf8Bytes = stringToBytes(text);
+    const len = utf8Bytes.length;
+
+    if (len > 31) {
+      throw new Error(`String "${text}" is too long for a bytes32. Maximum length is 31 bytes.`);
+    }
+
+    const bytes32Array = new Uint8Array(32);
+    bytes32Array.set(utf8Bytes);
+    bytes32Array[31] = len;
+
+    return toHex(bytes32Array);
   }
 
   public getRegistrarMessage = ({
@@ -115,17 +153,19 @@ export default class MultipassBase {
     address,
     domainName,
     targetDomain,
+    useBytes32,
   }: {
     address: string;
     domainName: string;
     targetDomain?: string;
+    useBytes32?: boolean;
   }): NameQuery => {
     if (!isAddress(address)) throw new Error("formQueryByAddress: is not a valid address");
     return {
       name: stringToHex("", { size: 32 }),
       id: stringToHex("", { size: 32 }),
       wallet: address,
-      domainName: stringToHex(domainName, { size: 32 }),
+      domainName: useBytes32 ? this.getShortStringBytes32(domainName) : stringToHex(domainName, { size: 32 }),
       targetDomain: stringToHex(targetDomain ?? "", { size: 32 }),
     };
   };
@@ -299,56 +339,32 @@ export default class MultipassBase {
    * @returns Array of domains with their states
    */
   public async listDomains(onlyActive?: boolean): Promise<Domain[]> {
-    const initializedFilter = await this.publicClient.getContractEvents({
-      address: this.getContractAddress(),
-      abi: MultipassAbi,
-      fromBlock: this.creationBlock,
-      eventName: "InitializedDomain",
-    });
+    const initializedFilter = await this.envioClient.getMultipassInitializedDomainEvents({});
 
-    const activatedFilter = await this.publicClient.getContractEvents({
-      address: this.getContractAddress(),
-      abi: MultipassAbi,
-      fromBlock: 0n,
-      eventName: "DomainActivated",
-    });
+    const activatedFilter = await this.envioClient.getMultipassDomainActivatedEvents({});
 
-    const deactivatedFilter = await this.publicClient.getContractEvents({
-      address: this.getContractAddress(),
-      abi: MultipassAbi,
-      fromBlock: 0n,
-      eventName: "DomainDeactivated",
-    });
+    const deactivatedFilter = await this.envioClient.getMultipassDomainDeactivatedEvents({});
 
     const domains = new Map<string, Domain>();
 
     // Process initialized domains
     for (const event of initializedFilter) {
-      const { args } = event;
-      if (!args) continue;
-
-      const domainState = await this.getDomainState(args.domainName as `0x${string}`);
-      domains.set(args.domainName as string, domainState);
+      const domainState = await this.getDomainState(event.domainName as `0x${string}`);
+      domains.set(event.domainName as string, domainState);
     }
 
     // Update active status
     for (const event of activatedFilter) {
-      const { args } = event;
-      if (!args || !domains.has(args.domainName as string)) continue;
-
-      const domain = domains.get(args.domainName as string)!;
+      const domain = domains.get(event.domainName as string)!;
       domain.isActive = true;
-      domains.set(args.domainName as string, domain);
+      domains.set(event.domainName as string, domain);
     }
 
     // Update deactive status
     for (const event of deactivatedFilter) {
-      const { args } = event;
-      if (!args || !domains.has(args.domainName as string)) continue;
-
-      const domain = domains.get(args.domainName as string)!;
+      const domain = domains.get(event.domainName as string)!;
       domain.isActive = false;
-      domains.set(args.domainName as string, domain);
+      domains.set(event.domainName as string, domain);
     }
 
     let result = Array.from(domains.values());
@@ -365,26 +381,11 @@ export default class MultipassBase {
    * @returns Array of records with their states
    */
   public async listRecords(onlyActive?: boolean): Promise<Array<{ record: CustomRecord; isActive: boolean }>> {
-    const registeredFilterP = this.publicClient.getContractEvents({
-      address: this.getContractAddress(),
-      abi: MultipassAbi,
-      fromBlock: this.creationBlock,
-      eventName: "Registered",
-    });
+    const registeredFilterP = this.envioClient.getMultipassRegisteredEvents({});
 
-    const renewedFilterP = this.publicClient.getContractEvents({
-      address: this.getContractAddress(),
-      abi: MultipassAbi,
-      fromBlock: this.creationBlock,
-      eventName: "Renewed",
-    });
+    const renewedFilterP = this.envioClient.getMultipassRenewedEvents({});
 
-    const deletedFilterP = this.publicClient.getContractEvents({
-      address: this.getContractAddress(),
-      abi: MultipassAbi,
-      fromBlock: this.creationBlock,
-      eventName: "nameDeleted",
-    });
+    const deletedFilterP = this.envioClient.getMultipassNameDeletedEvents({});
 
     const [registeredFilter, renewedFilter, deletedFilter] = await Promise.all([
       registeredFilterP,
@@ -395,28 +396,19 @@ export default class MultipassBase {
 
     // Process registered records
     for (const event of registeredFilter) {
-      const { args } = event;
-      if (!args || !args.NewRecord) continue;
-
-      const key = `${args.NewRecord.name}-${args.NewRecord.id}-${args.NewRecord.domainName}`;
-      records.set(key, { record: args.NewRecord, isActive: true });
+      const key = `${event.name}-${event.userId}-${event.domainName}`;
+      records.set(key, { record: event, isActive: true });
     }
 
     // Update renewed records
     for (const event of renewedFilter) {
-      const { args } = event;
-      if (!args || !args.newRecord) continue;
-
-      const key = `${args.newRecord.name}-${args.newRecord.id}-${args.newRecord.domainName}`;
-      records.set(key, { record: args.newRecord, isActive: true });
+      const key = `${event.name}-${event.userId}-${event.domainName}`;
+      records.set(key, { record: event, isActive: true });
     }
 
     // Update deleted records
     for (const event of deletedFilter) {
-      const { args } = event;
-      if (!args) continue;
-
-      const key = `${args.name}-${args.id}-${args.domainName}`;
+      const key = `${event.name}-${event.userId}-${event.domainName}`;
       if (records.has(key)) {
         const record = records.get(key)!;
         record.isActive = false;

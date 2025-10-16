@@ -6,6 +6,7 @@ import chalk from "chalk";
 import { createPublic, createWallet } from "../../client";
 import { MultipassAbi } from "../../../abis/Multipass";
 import { chainToPath } from "../../../utils/chainMapping";
+import EnvioGraphQLClient from "../../../utils/EnvioGraphQLClient";
 
 const contractCommand = new Command("contract");
 
@@ -15,9 +16,17 @@ contractCommand
   .command("state")
   .description("Get total number of domains in the contract")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
+  .option(
+    "-e, --envio <url>",
+    "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+    "http://localhost:8080/v1/graphql"
+  )
   .action(async (options) => {
     const spinner = ora("Initializing client...").start();
     const rpcUrl = options.rpc || process.env.RPC_URL;
+    const envioClient = new EnvioGraphQLClient({
+      endpoint: process.env.INDEXER_URL ?? options.envio,
+    });
     if (!rpcUrl) {
       spinner.fail("RPC URL is required");
       process.exit(1);
@@ -30,6 +39,7 @@ contractCommand
     const multipass = new MultipassBase({
       chainId,
       publicClient,
+      envioClient,
     });
     const state = await multipass.getContractState();
     console.log("Total number of domains:", state.toString());
@@ -39,6 +49,11 @@ contractCommand
   .command("owner")
   .description("Get the current owner of the contract")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
+  .option(
+    "-e, --envio <url>",
+    "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+    "http://localhost:8080/v1/graphql"
+  )
   .action(async (options) => {
     const spinner = ora("Fetching owner...").start();
     const rpcUrl = options.rpc || process.env.RPC_URL;
@@ -51,9 +66,13 @@ contractCommand
     });
     const chainId = await publicClient.getChainId();
     spinner.stop();
+    const envioClient = new EnvioGraphQLClient({
+      endpoint: process.env.INDEXER_URL ?? options.envio,
+    });
     const multipass = new MultipassBase({
       chainId,
       publicClient,
+      envioClient,
     });
     const owner = await multipass.publicClient.readContract({
       address: multipass.getContractAddress(),
@@ -68,6 +87,11 @@ contractCommand
   .command("eip712-domain")
   .description("Get the EIP712 domain details")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
+  .option(
+    "-e, --envio <url>",
+    "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+    "http://localhost:8080/v1/graphql"
+  )
   .action(async (options) => {
     const spinner = ora("Fetching EIP712 domain...").start();
     const rpcUrl = options.rpc || process.env.RPC_URL;
@@ -79,10 +103,14 @@ contractCommand
       transport: http(rpcUrl),
     });
     const chainId = await publicClient.getChainId();
+    const envioClient = new EnvioGraphQLClient({
+      endpoint: process.env.INDEXER_URL ?? options.envio,
+    });
     spinner.stop();
     const multipass = new MultipassBase({
       chainId,
       publicClient,
+      envioClient,
     });
     const eip712Domain = await multipass.publicClient.readContract({
       address: multipass.getContractAddress(),
@@ -98,6 +126,11 @@ contractCommand
   .description("Check if a specific interface is supported")
   .argument("<interfaceId>", "Interface ID to check")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
+  .option(
+    "-e, --envio <url>",
+    "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+    "http://localhost:8080/v1/graphql"
+  )
   .action(async (interfaceId: Hex, options) => {
     const spinner = ora("Checking interface support...").start();
     const rpcUrl = options.rpc || process.env.RPC_URL;
@@ -109,10 +142,14 @@ contractCommand
       transport: http(rpcUrl),
     });
     const chainId = await publicClient.getChainId();
+    const envioClient = new EnvioGraphQLClient({
+      endpoint: process.env.INDEXER_URL ?? options.envio,
+    });
     spinner.stop();
     const multipass = new MultipassBase({
       chainId,
       publicClient,
+      envioClient,
     });
     const isSupported = await multipass.publicClient.readContract({
       address: multipass.getContractAddress(),
@@ -132,6 +169,11 @@ contractCommand
     "-k, --key <privateKey>",
     "Private key for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
   )
+  .option(
+    "-e, --envio <url>",
+    "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+    "http://localhost:8080/v1/graphql"
+  )
   .action(async (newOwner: string, options) => {
     const spinner = ora("Transferring ownership...").start();
     try {
@@ -142,10 +184,13 @@ contractCommand
       if (!walletClient.account) {
         throw new Error("No account found");
       }
-
+      const envioClient = new EnvioGraphQLClient({
+        endpoint: process.env.INDEXER_URL ?? options.envio,
+      });
       const multipass = new MultipassBase({
         chainId,
         publicClient,
+        envioClient,
       });
       const chain: Chain = {
         id: chainId,
