@@ -89,7 +89,9 @@ export const getArtifact = (
       chainPath = "arbsepolia";
     }
   }
-  const repoPath = artifactName == "Multipass" ? "@peeramid-labs/multipass" : "rankify-contracts";
+  //eslint-disable-next-line
+  //const repoPath = artifactName == "Multipass" ? "@peeramid-labs/multipass" : "rankify-contracts";
+  const repoPath = "rankify-contracts";
 
   const artifact = require(`${repoPath}/deployments/${chainPath}/${artifactName}.json`) as {
     abi: AbiItem[];
