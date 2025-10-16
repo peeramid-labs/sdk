@@ -89,7 +89,11 @@ export const getArtifact = (
       chainPath = "arbsepolia";
     }
   }
-  const artifact = require(`rankify-contracts/deployments/${chainPath}/${artifactName}.json`) as {
+  const artifact = (
+    artifactName == "Multipass" && process.env.NODE_ENV !== "development"
+      ? require(`@peeramid-labs/multipass/deployments/${chainPath}/${artifactName}.json`)
+      : require(`rankify-contracts/deployments/${chainPath}/${artifactName}.json`)
+  ) as {
     abi: AbiItem[];
     address: Address;
     execute: { args: string[] };
@@ -101,6 +105,19 @@ export const getArtifact = (
       logs?: Log<bigint, number, false>[];
     };
   };
+
+  // const artifact = require(`${repoPath}/deployments/${chainPath}/${artifactName}.json`) as {
+  //   abi: AbiItem[];
+  //   address: Address;
+  //   execute: { args: string[] };
+  //   receipt: {
+  //     from: Address;
+  //     transactionHash: Hex;
+  //     blockNumber: number;
+  //     args: string[];
+  //     logs?: Log<bigint, number, false>[];
+  //   };
+  // };
 
   if (!artifact) {
     throw new Error("Contract deployment not found");
