@@ -73,6 +73,11 @@ const domainsCommand = new Command("domains")
       .option("-a, --activate", "Activate the domain immediately after initialization")
       .option("-b, --bytes32", "Use bytes32 encoding with length in last byte (UBI format)")
       .option("-t, --registrar <registrar>", "Registrar address")
+      .option(
+        "--envio <url>",
+        "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+        "http://localhost:8080/v1/graphql"
+      )
       .action(async (options) => {
         const spinner = ora("Initializing domain...").start();
 
@@ -80,11 +85,15 @@ const domainsCommand = new Command("domains")
           const publicClient = await createPublic(options.rpc);
           const walletClient = await createWallet(options.rpc, options.key);
           const chainId = Number(await publicClient.getChainId());
+          const envioClient = new EnvioGraphQLClient({
+            endpoint: process.env.INDEXER_URL ?? options.envio,
+          });
 
           const multipass = new MultipassOwner({
             chainId,
             walletClient,
             publicClient,
+            envioClient,
           });
 
           spinner.stop();

@@ -496,6 +496,11 @@ domainCommand
         "-k, --key <privateKey>",
         "Private key for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
       )
+      .option(
+        "-e, --envio <url>",
+        "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+        "http://localhost:8080/v1/graphql"
+      )
       .action(async (domainName, options) => {
         const spinner = ora("Activating domain...").start();
 
@@ -503,11 +508,15 @@ domainCommand
           const publicClient = await createPublic(options.rpc);
           const walletClient = await createWallet(options.rpc, options.key);
           const chainId = Number(await publicClient.getChainId());
+          const envioClient = new EnvioGraphQLClient({
+            endpoint: process.env.INDEXER_URL ?? options.envio,
+          });
 
           const multipass = new MultipassOwner({
             chainId,
             walletClient,
             publicClient,
+            envioClient,
           });
 
           spinner.stop();
@@ -539,16 +548,25 @@ domainCommand
       .description("Get the state of a domain")
       .argument("<domainName>", "Name of the domain to get the state for")
       .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
+      .option(
+        "-e, --envio <url>",
+        "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+        "http://localhost:8080/v1/graphql"
+      )
       .action(async (domainName, options) => {
         const spinner = ora("Fetching domain state...").start();
 
         try {
           const publicClient = await createPublic(options.rpc);
           const chainId = Number(await publicClient.getChainId());
+          const envioClient = new EnvioGraphQLClient({
+            endpoint: process.env.INDEXER_URL ?? options.envio,
+          });
 
           const multipass = new MultipassBase({
             chainId,
             publicClient,
+            envioClient,
           });
 
           spinner.stop();
@@ -578,16 +596,25 @@ domainCommand
       .argument("<domainName>", "Name of the domain to list records for")
       .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
       .option("-a, --active", "Only list active records")
+      .option(
+        "-e, --envio <url>",
+        "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+        "http://localhost:8080/v1/graphql"
+      )
       .action(async (domainName, options) => {
         const spinner = ora("Fetching records...").start();
 
         try {
           const publicClient = await createPublic(options.rpc);
           const chainId = Number(await publicClient.getChainId());
+          const envioClient = new EnvioGraphQLClient({
+            endpoint: process.env.INDEXER_URL ?? options.envio,
+          });
 
           const multipass = new MultipassBase({
             chainId,
             publicClient,
+            envioClient,
           });
 
           spinner.stop();
