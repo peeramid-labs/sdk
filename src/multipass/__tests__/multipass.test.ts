@@ -56,6 +56,7 @@ describe("Multipass", () => {
     chainId: mockChainId,
     publicClient: mockPublicClient,
     walletClient: mockWalletClient,
+    envioClient: mockEnvioClient,
   });
 
   beforeEach(() => {
@@ -129,6 +130,7 @@ describe("Multipass", () => {
         chainId: mockChainId,
         publicClient: mockPublicClient,
         walletClient: { ...mockWalletClient, account: undefined } as WalletClient,
+        envioClient: mockEnvioClient,
       });
 
       await expect(multipassNoAccount.signRegistrarMessage(message, verifierAddress)).rejects.toThrow(
