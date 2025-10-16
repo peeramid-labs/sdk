@@ -82,6 +82,140 @@ export interface MAOInstanceData {
   chainId: number;
 }
 
+// Raw GraphQL event types for Multipass
+interface RawMultipassDomainActivatedEvent {
+  id: string;
+  domainName: string;
+  blockNumber: string;
+  blockTimestamp: string;
+  chainId: number;
+  hash: string;
+}
+
+interface RawMultipassDomainDeactivatedEvent {
+  id: string;
+  domainName: string;
+  blockNumber: string;
+  blockTimestamp: string;
+  chainId: number;
+  hash: string;
+}
+
+interface RawMultipassDomainFeeChangedEvent {
+  id: string;
+  domainName: string;
+  newFee: string;
+  blockNumber: string;
+  blockTimestamp: string;
+  chainId: number;
+  hash: string;
+}
+
+interface RawMultipassInitializedDomainEvent {
+  id: string;
+  registrar: string;
+  fee: string;
+  domainName: string;
+  renewalFee: string;
+  referrerReward: string;
+  referralDiscount: string;
+  blockNumber: string;
+  blockTimestamp: string;
+  chainId: number;
+  hash: string;
+}
+
+interface RawMultipassOwnershipTransferredEvent {
+  id: string;
+  previousOwner: string;
+  newOwner: string;
+  blockNumber: string;
+  blockTimestamp: string;
+  chainId: number;
+  hash: string;
+}
+
+interface RawMultipassReferralProgramChangedEvent {
+  id: string;
+  domainName: string;
+  reward: string;
+  discount: string;
+  blockNumber: string;
+  blockTimestamp: string;
+  chainId: number;
+  hash: string;
+}
+
+interface RawMultipassRegisteredEvent {
+  id: string;
+  domainName: string;
+  wallet: string;
+  userId: string;
+  nonce: string;
+  validUntil: string;
+  name: string;
+  blockNumber: string;
+  blockTimestamp: string;
+  chainId: number;
+  hash: string;
+}
+
+interface RawMultipassRegistrarChangedEvent {
+  id: string;
+  domainName: string;
+  registrar: string;
+  blockNumber: string;
+  blockTimestamp: string;
+  chainId: number;
+  hash: string;
+}
+
+interface RawMultipassRenewalFeeChangedEvent {
+  id: string;
+  domainName: string;
+  newFee: string;
+  blockNumber: string;
+  blockTimestamp: string;
+  chainId: number;
+  hash: string;
+}
+
+interface RawMultipassRenewedEvent {
+  id: string;
+  domainName: string;
+  wallet: string;
+  userId: string;
+  nonce: string;
+  validUntil: string;
+  name: string;
+  blockNumber: string;
+  blockTimestamp: string;
+  chainId: number;
+  hash: string;
+}
+
+interface RawMultipassFundsWithdrawnEvent {
+  id: string;
+  account: string;
+  amount: string;
+  blockNumber: string;
+  blockTimestamp: string;
+  chainId: number;
+  hash: string;
+}
+
+interface RawMultipassNameDeletedEvent {
+  id: string;
+  domainName: string;
+  wallet: string;
+  userId: string;
+  name: string;
+  blockNumber: string;
+  blockTimestamp: string;
+  chainId: number;
+  hash: string;
+}
+
 /**
  * Client for interacting with Envio GraphQL API to retrieve indexed blockchain events
  */
@@ -1243,5 +1377,201 @@ export class EnvioGraphQLClient {
       srcAddress: event.srcAddress as Address,
     }));
   };
+
+  private async _queryMultipassEvents<T, R>(
+    eventName: string,
+    params: Record<string, string | number | bigint | undefined>,
+    fields: string,
+    mapper: (event: T) => R
+  ): Promise<R[]> {
+    try {
+      const whereParts = Object.entries(params)
+        .filter(([, value]) => value !== undefined)
+        .map(([key, value]) => `${key}: { _eq: "${value}" }`);
+
+      if (this.config.chainId !== undefined) {
+        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+      }
+
+      const whereClause = whereParts.join(", ");
+
+      const query = gql`
+        query {
+          ${eventName}(
+            where: { ${whereClause} },
+            order_by: { blockTimestamp: desc }
+          ) {
+            ${fields}
+          }
+        }
+      `;
+
+      const result = await this.client.request<{ [key: string]: T[] }>(query);
+      return result[eventName].map(mapper);
+    } catch (error) {
+      console.error(`Error fetching ${eventName} events:`, error);
+      throw error;
+    }
+  }
+
+  async getMultipassDomainActivatedEvents(params: { domainName?: string }) {
+    return this._queryMultipassEvents(
+      "MultipassDomainActivated",
+      params,
+      "id domainName blockNumber blockTimestamp chainId hash",
+      (event: RawMultipassDomainActivatedEvent) => ({ ...event, blockNumber: BigInt(event.blockNumber) })
+    );
+  }
+
+  async getMultipassDomainDeactivatedEvents(params: { domainName?: string }) {
+    return this._queryMultipassEvents(
+      "MultipassDomainDeactivated",
+      params,
+      "id domainName blockNumber blockTimestamp chainId hash",
+      (event: RawMultipassDomainDeactivatedEvent) => ({ ...event, blockNumber: BigInt(event.blockNumber) })
+    );
+  }
+
+  async getMultipassDomainFeeChangedEvents(params: { domainName?: string; newFee?: bigint }) {
+    return this._queryMultipassEvents(
+      "MultipassDomainFeeChanged",
+      { ...params, newFee: params.newFee?.toString() },
+      "id domainName newFee blockNumber blockTimestamp chainId hash",
+      (event: RawMultipassDomainFeeChangedEvent) => ({
+        ...event,
+        blockNumber: BigInt(event.blockNumber),
+        newFee: BigInt(event.newFee),
+      })
+    );
+  }
+
+  async getMultipassInitializedDomainEvents(params: { domainName?: string; registrar?: Address }) {
+    return this._queryMultipassEvents(
+      "MultipassInitializedDomain",
+      params,
+      "id registrar fee domainName renewalFee referrerReward referralDiscount blockNumber blockTimestamp chainId hash",
+      (event: RawMultipassInitializedDomainEvent) => ({
+        ...event,
+        registrar: event.registrar as Address,
+        fee: BigInt(event.fee),
+        renewalFee: BigInt(event.renewalFee),
+        referrerReward: BigInt(event.referrerReward),
+        referralDiscount: BigInt(event.referralDiscount),
+        blockNumber: BigInt(event.blockNumber),
+      })
+    );
+  }
+
+  async getMultipassOwnershipTransferredEvents(params: { previousOwner?: Address; newOwner?: Address }) {
+    return this._queryMultipassEvents(
+      "MultipassOwnershipTransferred",
+      params,
+      "id previousOwner newOwner blockNumber blockTimestamp chainId hash",
+      (event: RawMultipassOwnershipTransferredEvent) => ({
+        ...event,
+        previousOwner: event.previousOwner as Address,
+        newOwner: event.newOwner as Address,
+        blockNumber: BigInt(event.blockNumber),
+      })
+    );
+  }
+
+  async getMultipassReferralProgramChangedEvents(params: { domainName?: string }) {
+    return this._queryMultipassEvents(
+      "MultipassReferralProgramChanged",
+      params,
+      "id domainName reward discount blockNumber blockTimestamp chainId hash",
+      (event: RawMultipassReferralProgramChangedEvent) => ({
+        ...event,
+        reward: BigInt(event.reward),
+        discount: BigInt(event.discount),
+        blockNumber: BigInt(event.blockNumber),
+      })
+    );
+  }
+
+  async getMultipassRegisteredEvents(params: { domainName?: string; wallet?: Address; userId?: string }) {
+    return this._queryMultipassEvents(
+      "MultipassRegistered",
+      params,
+      "id domainName wallet userId nonce validUntil name blockNumber blockTimestamp chainId hash",
+      (event: RawMultipassRegisteredEvent) => ({
+        ...event,
+        wallet: event.wallet as Address,
+        nonce: BigInt(event.nonce),
+        validUntil: BigInt(event.validUntil),
+        blockNumber: BigInt(event.blockNumber),
+      })
+    );
+  }
+
+  async getMultipassRegistrarChangedEvents(params: { domainName?: string; registrar?: Address }) {
+    return this._queryMultipassEvents(
+      "MultipassRegistrarChanged",
+      params,
+      "id domainName registrar blockNumber blockTimestamp chainId hash",
+      (event: RawMultipassRegistrarChangedEvent) => ({
+        ...event,
+        registrar: event.registrar as Address,
+        blockNumber: BigInt(event.blockNumber),
+      })
+    );
+  }
+
+  async getMultipassRenewalFeeChangedEvents(params: { domainName?: string; newFee?: bigint }) {
+    return this._queryMultipassEvents(
+      "MultipassRenewalFeeChanged",
+      { ...params, newFee: params.newFee?.toString() },
+      "id domainName newFee blockNumber blockTimestamp chainId hash",
+      (event: RawMultipassRenewalFeeChangedEvent) => ({
+        ...event,
+        newFee: BigInt(event.newFee),
+        blockNumber: BigInt(event.blockNumber),
+      })
+    );
+  }
+
+  async getMultipassRenewedEvents(params: { domainName?: string; wallet?: Address; userId?: string }) {
+    return this._queryMultipassEvents(
+      "MultipassRenewed",
+      params,
+      "id domainName wallet userId nonce validUntil name blockNumber blockTimestamp chainId hash",
+      (event: RawMultipassRenewedEvent) => ({
+        ...event,
+        wallet: event.wallet as Address,
+        nonce: BigInt(event.nonce),
+        validUntil: BigInt(event.validUntil),
+        blockNumber: BigInt(event.blockNumber),
+      })
+    );
+  }
+
+  async getMultipassFundsWithdrawnEvents(params: { account?: Address }) {
+    // Note: `fundsWithdawn` is used to match the provided schema name
+    return this._queryMultipassEvents(
+      "MultipassfundsWithdawn",
+      params,
+      "id account amount blockNumber blockTimestamp chainId hash",
+      (event: RawMultipassFundsWithdrawnEvent) => ({
+        ...event,
+        account: event.account as Address,
+        amount: BigInt(event.amount),
+        blockNumber: BigInt(event.blockNumber),
+      })
+    );
+  }
+
+  async getMultipassNameDeletedEvents(params: { domainName?: string; wallet?: Address; userId?: string }) {
+    return this._queryMultipassEvents(
+      "MultipassNameDeleted",
+      params,
+      "id domainName wallet userId name blockNumber blockTimestamp chainId hash",
+      (event: RawMultipassNameDeletedEvent) => ({
+        ...event,
+        wallet: event.wallet as Address,
+        blockNumber: BigInt(event.blockNumber),
+      })
+    );
+  }
 }
 export default EnvioGraphQLClient;
