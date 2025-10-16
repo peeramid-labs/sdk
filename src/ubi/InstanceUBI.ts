@@ -1,7 +1,7 @@
 import { Address, PublicClient, Hex, WalletClient, type Hash } from "viem";
 import { handleRPCError } from "../utils/index";
 import abis from "../abis";
-const { RankifyDiamondInstanceAbi } = abis;
+const { UBIAbi } = abis;
 import InstanceBase from "../rankify/InstanceBase";
 import { EnvioGraphQLClient } from "../utils/EnvioGraphQLClient";
 
@@ -103,7 +103,7 @@ export default class InstanceUBI extends InstanceBase {
     try {
       return await this.publicClient.readContract({
         address: this.instanceAddress,
-        abi: RankifyDiamondInstanceAbi,
+        abi: UBIAbi,
         functionName: "getCurrentDay",
       });
     } catch (e) {
@@ -119,7 +119,7 @@ export default class InstanceUBI extends InstanceBase {
     try {
       return await this.publicClient.readContract({
         address: this.instanceAddress,
-        abi: RankifyDiamondInstanceAbi,
+        abi: UBIAbi,
         functionName: "currentDay",
       });
     } catch (e) {
@@ -135,7 +135,7 @@ export default class InstanceUBI extends InstanceBase {
     try {
       const [dailyClaimAmount, dailySupportAmount, domainName] = await this.publicClient.readContract({
         address: this.instanceAddress,
-        abi: RankifyDiamondInstanceAbi,
+        abi: UBIAbi,
         functionName: "getUBIParams",
       });
 
@@ -162,7 +162,7 @@ export default class InstanceUBI extends InstanceBase {
     try {
       const result = await this.publicClient.readContract({
         address: this.instanceAddress,
-        abi: RankifyDiamondInstanceAbi,
+        abi: UBIAbi,
         functionName: "proposalLifetimeStats",
         args: [proposalHash],
       });
@@ -187,7 +187,7 @@ export default class InstanceUBI extends InstanceBase {
     try {
       const result = await this.publicClient.readContract({
         address: this.instanceAddress,
-        abi: RankifyDiamondInstanceAbi,
+        abi: UBIAbi,
         functionName: "getProposalDailyScore",
         args: [proposalHash, day],
       });
@@ -212,7 +212,7 @@ export default class InstanceUBI extends InstanceBase {
     try {
       return await this.publicClient.readContract({
         address: this.instanceAddress,
-        abi: RankifyDiamondInstanceAbi,
+        abi: UBIAbi,
         functionName: "getProposalsCnt",
         args: [day],
       });
@@ -230,7 +230,7 @@ export default class InstanceUBI extends InstanceBase {
     try {
       return await this.publicClient.readContract({
         address: this.instanceAddress,
-        abi: RankifyDiamondInstanceAbi,
+        abi: UBIAbi,
         functionName: "lastClaimedAt",
         args: [user],
       });
@@ -248,7 +248,7 @@ export default class InstanceUBI extends InstanceBase {
     try {
       const [claimedToday, supportSpent] = await this.publicClient.readContract({
         address: this.instanceAddress,
-        abi: RankifyDiamondInstanceAbi,
+        abi: UBIAbi,
         functionName: "getUserState",
         args: [user],
       });
@@ -270,7 +270,7 @@ export default class InstanceUBI extends InstanceBase {
     try {
       return await this.publicClient.readContract({
         address: this.instanceAddress,
-        abi: RankifyDiamondInstanceAbi,
+        abi: UBIAbi,
         functionName: "pauser",
       });
     } catch (e) {
@@ -286,7 +286,7 @@ export default class InstanceUBI extends InstanceBase {
     try {
       return await this.publicClient.readContract({
         address: this.instanceAddress,
-        abi: RankifyDiamondInstanceAbi,
+        abi: UBIAbi,
         functionName: "multipass",
       });
     } catch (e) {
@@ -302,7 +302,7 @@ export default class InstanceUBI extends InstanceBase {
     try {
       return await this.publicClient.readContract({
         address: this.instanceAddress,
-        abi: RankifyDiamondInstanceAbi,
+        abi: UBIAbi,
         functionName: "token",
       });
     } catch (e) {
@@ -318,7 +318,7 @@ export default class InstanceUBI extends InstanceBase {
     try {
       return await this.publicClient.readContract({
         address: this.instanceAddress,
-        abi: RankifyDiamondInstanceAbi,
+        abi: UBIAbi,
         functionName: "paused",
       });
     } catch (e) {
@@ -425,7 +425,7 @@ export default class InstanceUBI extends InstanceBase {
     try {
       const { request } = await this.publicClient.simulateContract({
         address: this.instanceAddress,
-        abi: RankifyDiamondInstanceAbi,
+        abi: UBIAbi,
         functionName: "claim",
         args: [proposalText],
         account: this.account,
@@ -460,7 +460,7 @@ export default class InstanceUBI extends InstanceBase {
 
       const { request } = await this.publicClient.simulateContract({
         address: this.instanceAddress,
-        abi: RankifyDiamondInstanceAbi,
+        abi: UBIAbi,
         functionName: "support",
         args: [formattedVotes],
         account: this.account,
@@ -489,7 +489,7 @@ export default class InstanceUBI extends InstanceBase {
     try {
       const { request } = await this.publicClient.simulateContract({
         address: this.instanceAddress,
-        abi: RankifyDiamondInstanceAbi,
+        abi: UBIAbi,
         functionName: "pause",
         account: this.account,
       });
@@ -517,7 +517,7 @@ export default class InstanceUBI extends InstanceBase {
     try {
       const { request } = await this.publicClient.simulateContract({
         address: this.instanceAddress,
-        abi: RankifyDiamondInstanceAbi,
+        abi: UBIAbi,
         functionName: "unpause",
         account: this.account,
       });
