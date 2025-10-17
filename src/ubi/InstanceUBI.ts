@@ -50,6 +50,22 @@ export interface UserState {
 }
 
 /**
+ * Structure representing a voting event from the indexer
+ */
+export interface VotingEvent {
+  id: string;
+  participant: Address;
+  day: bigint;
+  proposal: string;
+  amount: bigint;
+  instanceAddress: Address;
+  blockNumber: bigint;
+  blockTimestamp: string;
+  chainId: number;
+  hash: string;
+}
+
+/**
  * Class for interacting with UBI facet of a Rankify instance
  * Extends InstanceBase and provides UBI-specific functionality
  */
@@ -856,12 +872,10 @@ export default class InstanceUBI extends InstanceBase {
         limit,
       });
 
-      console.log("Votes fetched for scores:", votes);
-
       // Aggregate votes by proposal
       const proposalScores = new Map<string, bigint>();
 
-      votes.forEach((vote: any) => {
+      votes.forEach((vote: VotingEvent) => {
         // Each vote event has proposal and amount directly
         const proposalHash = vote.proposal;
         const amount = vote.amount || BigInt(0);
@@ -879,7 +893,6 @@ export default class InstanceUBI extends InstanceBase {
         }))
         .sort((a, b) => Number(b.score - a.score));
 
-      console.log("Proposal scores calculated:", sortedScores);
       return sortedScores;
     } catch (e) {
       throw await handleRPCError(e);

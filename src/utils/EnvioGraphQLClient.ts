@@ -1593,30 +1593,43 @@ export class EnvioGraphQLClient {
     offset?: number;
   }) {
     try {
-      const whereParts = [];
-      whereParts.push(`instanceAddress: { _eq: "${instanceAddress}" }`);
+      const variables: {
+        instanceAddress: string;
+        proposer?: string;
+        day?: string;
+        chainId?: number;
+        limit: number;
+        offset: number;
+      } = {
+        instanceAddress,
+        limit,
+        offset,
+      };
 
       if (proposer) {
-        whereParts.push(`proposer: { _eq: "${proposer}" }`);
+        variables.proposer = proposer;
       }
 
       if (day !== undefined) {
-        whereParts.push(`day: { _eq: ${day.toString()} }`);
+        variables.day = day.toString();
       }
 
       if (this.config.chainId !== undefined) {
-        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+        variables.chainId = this.config.chainId;
       }
 
-      const whereClause = whereParts.join(", ");
-
       const query = gql`
-        query {
+        query GetUBIProposingByAddress($instanceAddress: String!, $proposer: String, $day: numeric, $chainId: Int, $limit: Int!, $offset: Int!) {
           UBIProposingByAddress(
-            where: { ${whereClause} }
+            where: {
+              instanceAddress: { _eq: $instanceAddress }
+              ${proposer !== undefined ? "proposer: { _eq: $proposer }" : ""}
+              ${day !== undefined ? "day: { _eq: $day }" : ""}
+              ${this.config.chainId !== undefined ? "chainId: { _eq: $chainId }" : ""}
+            }
             order_by: { blockTimestamp: desc }
-            limit: ${limit}
-            offset: ${offset}
+            limit: $limit
+            offset: $offset
           ) {
             id
             proposer
@@ -1647,7 +1660,7 @@ export class EnvioGraphQLClient {
           chainId: number;
           hash: string;
         }>;
-      }>(query);
+      }>(query, variables);
 
       return result.UBIProposingByAddress.map((event) => ({
         ...event,
@@ -1681,30 +1694,43 @@ export class EnvioGraphQLClient {
     offset?: number;
   }) {
     try {
-      const whereParts = [];
-      whereParts.push(`instanceAddress: { _eq: "${instanceAddress}" }`);
+      const variables: {
+        instanceAddress: string;
+        proposal?: string;
+        day?: string;
+        chainId?: number;
+        limit: number;
+        offset: number;
+      } = {
+        instanceAddress,
+        limit,
+        offset,
+      };
 
       if (proposal) {
-        whereParts.push(`proposal: { _eq: "${proposal}" }`);
+        variables.proposal = proposal;
       }
 
       if (day !== undefined) {
-        whereParts.push(`day: { _eq: ${day.toString()} }`);
+        variables.day = day.toString();
       }
 
       if (this.config.chainId !== undefined) {
-        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+        variables.chainId = this.config.chainId;
       }
 
-      const whereClause = whereParts.join(", ");
-
       const query = gql`
-        query {
+        query GetUBIProposalScoreUpdated($instanceAddress: String!, $proposal: String, $day: numeric, $chainId: Int, $limit: Int!, $offset: Int!) {
           UBIProposalScoreUpdatedByProposal(
-            where: { ${whereClause} }
+            where: {
+              instanceAddress: { _eq: $instanceAddress }
+              ${proposal !== undefined ? "proposal: { _eq: $proposal }" : ""}
+              ${day !== undefined ? "day: { _eq: $day }" : ""}
+              ${this.config.chainId !== undefined ? "chainId: { _eq: $chainId }" : ""}
+            }
             order_by: { blockTimestamp: desc }
-            limit: ${limit}
-            offset: ${offset}
+            limit: $limit
+            offset: $offset
           ) {
             id
             dailyScore
@@ -1733,7 +1759,7 @@ export class EnvioGraphQLClient {
           chainId: number;
           hash: string;
         }>;
-      }>(query);
+      }>(query, variables);
 
       return result.UBIProposalScoreUpdatedByProposal.map((event) => ({
         ...event,
@@ -1767,30 +1793,43 @@ export class EnvioGraphQLClient {
     offset?: number;
   }) {
     try {
-      const whereParts = [];
-      whereParts.push(`instanceAddress: { _eq: "${instanceAddress}" }`);
+      const variables: {
+        instanceAddress: string;
+        participant?: string;
+        day?: string;
+        chainId?: number;
+        limit: number;
+        offset: number;
+      } = {
+        instanceAddress,
+        limit,
+        offset,
+      };
 
       if (participant) {
-        whereParts.push(`participant: { _eq: "${participant}" }`);
+        variables.participant = participant;
       }
 
       if (day !== undefined) {
-        whereParts.push(`day: { _eq: ${day.toString()} }`);
+        variables.day = day.toString();
       }
 
       if (this.config.chainId !== undefined) {
-        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+        variables.chainId = this.config.chainId;
       }
 
-      const whereClause = whereParts.join(", ");
-
       const query = gql`
-        query {
+        query GetUBIVotingByAddress($instanceAddress: String!, $participant: String, $day: numeric, $chainId: Int, $limit: Int!, $offset: Int!) {
           UBIVotingByAddress(
-            where: { ${whereClause} }
+            where: {
+              instanceAddress: { _eq: $instanceAddress }
+              ${participant !== undefined ? "participant: { _eq: $participant }" : ""}
+              ${day !== undefined ? "day: { _eq: $day }" : ""}
+              ${this.config.chainId !== undefined ? "chainId: { _eq: $chainId }" : ""}
+            }
             order_by: { blockTimestamp: desc }
-            limit: ${limit}
-            offset: ${offset}
+            limit: $limit
+            offset: $offset
           ) {
             id
             participant
@@ -1819,7 +1858,7 @@ export class EnvioGraphQLClient {
           chainId: number;
           hash: string;
         }>;
-      }>(query);
+      }>(query, variables);
 
       return result.UBIVotingByAddress.map((event) => ({
         ...event,
@@ -1851,26 +1890,37 @@ export class EnvioGraphQLClient {
     offset?: number;
   }) {
     try {
-      const whereParts = [];
-      whereParts.push(`instanceAddress: { _eq: "${instanceAddress}" }`);
+      const variables: {
+        instanceAddress: string;
+        user?: string;
+        chainId?: number;
+        limit: number;
+        offset: number;
+      } = {
+        instanceAddress,
+        limit,
+        offset,
+      };
 
       if (user) {
-        whereParts.push(`user: { _eq: "${user}" }`);
+        variables.user = user;
       }
 
       if (this.config.chainId !== undefined) {
-        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+        variables.chainId = this.config.chainId;
       }
 
-      const whereClause = whereParts.join(", ");
-
       const query = gql`
-        query {
+        query GetUBIClaimed($instanceAddress: String!, $user: String, $chainId: Int, $limit: Int!, $offset: Int!) {
           UBIClaimed(
-            where: { ${whereClause} }
+            where: {
+              instanceAddress: { _eq: $instanceAddress }
+              ${user !== undefined ? "user: { _eq: $user }" : ""}
+              ${this.config.chainId !== undefined ? "chainId: { _eq: $chainId }" : ""}
+            }
             order_by: { blockTimestamp: desc }
-            limit: ${limit}
-            offset: ${offset}
+            limit: $limit
+            offset: $offset
           ) {
             id
             user
@@ -1895,7 +1945,7 @@ export class EnvioGraphQLClient {
           chainId: number;
           hash: string;
         }>;
-      }>(query);
+      }>(query, variables);
 
       return result.UBIClaimed.map((event) => ({
         ...event,
@@ -1928,30 +1978,43 @@ export class EnvioGraphQLClient {
     offset?: number;
   }) {
     try {
-      const whereParts = [];
-      whereParts.push(`instanceAddress: { _eq: "${instanceAddress}" }`);
+      const variables: {
+        instanceAddress: string;
+        reposter?: string;
+        day?: string;
+        chainId?: number;
+        limit: number;
+        offset: number;
+      } = {
+        instanceAddress,
+        limit,
+        offset,
+      };
 
       if (reposter) {
-        whereParts.push(`reposter: { _eq: "${reposter}" }`);
+        variables.reposter = reposter;
       }
 
       if (day !== undefined) {
-        whereParts.push(`day: { _eq: ${day.toString()} }`);
+        variables.day = day.toString();
       }
 
       if (this.config.chainId !== undefined) {
-        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+        variables.chainId = this.config.chainId;
       }
 
-      const whereClause = whereParts.join(", ");
-
       const query = gql`
-        query {
+        query GetUBIRepostByReposter($instanceAddress: String!, $reposter: String, $day: numeric, $chainId: Int, $limit: Int!, $offset: Int!) {
           UBIRepostByReposter(
-            where: { ${whereClause} }
+            where: {
+              instanceAddress: { _eq: $instanceAddress }
+              ${reposter !== undefined ? "reposter: { _eq: $reposter }" : ""}
+              ${day !== undefined ? "day: { _eq: $day }" : ""}
+              ${this.config.chainId !== undefined ? "chainId: { _eq: $chainId }" : ""}
+            }
             order_by: { blockTimestamp: desc }
-            limit: ${limit}
-            offset: ${offset}
+            limit: $limit
+            offset: $offset
           ) {
             id
             proposer
@@ -1982,7 +2045,7 @@ export class EnvioGraphQLClient {
           chainId: number;
           hash: string;
         }>;
-      }>(query);
+      }>(query, variables);
 
       return result.UBIRepostByReposter.map((event) => ({
         ...event,
@@ -2012,22 +2075,31 @@ export class EnvioGraphQLClient {
     offset?: number;
   }) {
     try {
-      const whereParts = [];
-      whereParts.push(`instanceAddress: { _eq: "${instanceAddress}" }`);
+      const variables: {
+        instanceAddress: string;
+        chainId?: number;
+        limit: number;
+        offset: number;
+      } = {
+        instanceAddress,
+        limit,
+        offset,
+      };
 
       if (this.config.chainId !== undefined) {
-        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+        variables.chainId = this.config.chainId;
       }
 
-      const whereClause = whereParts.join(", ");
-
       const query = gql`
-        query {
+        query GetUBIProposalLifetimeScore($instanceAddress: String!, $chainId: Int, $limit: Int!, $offset: Int!) {
           UBIProposalLifetimeScore(
-            where: { ${whereClause} }
+            where: {
+              instanceAddress: { _eq: $instanceAddress }
+              ${this.config.chainId !== undefined ? "chainId: { _eq: $chainId }" : ""}
+            }
             order_by: { blockTimestamp: desc }
-            limit: ${limit}
-            offset: ${offset}
+            limit: $limit
+            offset: $offset
           ) {
             id
             lifeTimeScore
@@ -2054,7 +2126,7 @@ export class EnvioGraphQLClient {
           chainId: number;
           hash: string;
         }>;
-      }>(query);
+      }>(query, variables);
 
       return result.UBIProposalLifetimeScore.map((event) => ({
         ...event,
