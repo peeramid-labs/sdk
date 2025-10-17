@@ -1,13 +1,14 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { getAddress } from "viem";
+import { Address, getAddress, Hex } from "viem";
 import { createPublic, createWallet } from "../../../client";
 import RankifyPlayer from "../../../../rankify/Player";
 import { resolvePk } from "../../../getPk";
 import { CLIUtils } from "../../../utils";
 import EnvioGraphQLClient from "../../../../utils/EnvioGraphQLClient";
-
+import { JoinRequirementsInput } from "../../../../types";
+import fs from "fs";
 export const create = new Command("create")
   .description("Create a new game in a Rankify instance")
   .argument("<instance>", "Address or instanceId of the Rankify instance")
@@ -34,6 +35,7 @@ export const create = new Command("create")
     "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
     "http://localhost:8080/v1/graphql"
   )
+  .option("--requirements <path>", "Path for requirements file JSON")
   .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
   .action(async (instanceAddress, options) => {
     const spinner = ora("Initializing clients...").start();
@@ -101,7 +103,7 @@ export const create = new Command("create")
         proposingPhaseDuration: BigInt(options.proposingPeriod),
       };
 
-      const requirements = {
+      let requirements: JoinRequirementsInput = {
         ethValues: {
           have: 0n,
           lock: 0n,
@@ -111,6 +113,48 @@ export const create = new Command("create")
         },
         contracts: [],
       };
+
+      if (options.requirements) {
+        // Read JSON file
+        const requirementsJson = fs.readFileSync(options.requirements, "utf8");
+        const requirementsData = JSON.parse(requirementsJson);
+        requirements = {
+          ethValues: {
+            have: BigInt(requirementsData.ethValues.have),
+            lock: BigInt(requirementsData.ethValues.lock),
+            burn: BigInt(requirementsData.ethValues.burn),
+            pay: BigInt(requirementsData.ethValues.pay),
+            bet: BigInt(requirementsData.ethValues.stake),
+          },
+          contracts: requirementsData.contracts.map((c: any) => ({
+            contractAddress: getAddress(c.contractAddress),
+            contractId: BigInt(c.contractId),
+            contractType: c.contractType,
+            contractRequirement: {
+              have: {
+                amount: BigInt(c.contractRequirement.have.amount),
+                data: c.contractRequirement.have.data,
+              },
+              lock: {
+                amount: BigInt(c.contractRequirement.lock.amount),
+                data: c.contractRequirement.lock.data,
+              },
+              burn: {
+                amount: BigInt(c.contractRequirement.burn.amount),
+                data: c.contractRequirement.burn.data,
+              },
+              pay: {
+                amount: BigInt(c.contractRequirement.pay.amount),
+                data: c.contractRequirement.pay.data,
+              },
+              bet: {
+                amount: BigInt(c.contractRequirement.stake.amount),
+                data: c.contractRequirement.stake.data,
+              },
+            },
+          })),
+        };
+      }
 
       const gameId = await player.createAndOpenGame(params, requirements, overrideArtifact);
 

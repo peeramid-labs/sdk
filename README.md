@@ -114,6 +114,40 @@ The script uses a fixed mnemonic for consistent addresses across runs.
 - Detach from logs: Press `Ctrl+B` then `D`
 - Stop Anvil: `tmux kill-session -t anvil`
 
+### Setting requirements on game creation
+
+To set requirements on game creation, you can use the `game create` command with the `--requirement` flag. For example:
+
+```bash
+peeramid game create ... --requirement ./req.json
+```
+works with following JSON file structure:
+```JSON
+{
+  "ethValues": {
+    "have": "1",
+    "lock": "2",
+    "burn": "3",
+    "pay": "4",
+    "stake": "5"
+  },
+  "contracts": [
+    {
+      "contractAddress": "0x98fBE64861B331674e195E1A0b2fA303324c83e1",
+      "contractId": 1,
+      "contractType": 2,
+      "contractRequirement": {
+        "have": { "data": "0x00", "amount": "100000000000000" },
+        "lock": { "data": "0x00", "amount": "100000000000000" },
+        "burn": { "data": "0x00", "amount": "100000000000000" },
+        "pay": { "data": "0x00", "amount": "100000000000000" },
+        "stake": { "data": "0x00", "amount": "100000000000000" }
+      }
+    }
+  ]
+}
+```
+
 ## Documentation
 
 The SDK comes with comprehensive API documentation generated using TypeDoc. The documentation is automatically generated during the package build process and is included in the npm package.
