@@ -1573,5 +1573,502 @@ export class EnvioGraphQLClient {
       })
     );
   }
+
+  // ==================== UBI QUERIES ====================
+
+  /**
+   * Get UBI proposal events by proposer
+   */
+  async getUBIProposingByAddressEvents({
+    instanceAddress,
+    proposer,
+    day,
+    limit = 100,
+    offset = 0,
+  }: {
+    instanceAddress: Address;
+    proposer?: Address;
+    day?: bigint;
+    limit?: number;
+    offset?: number;
+  }) {
+    try {
+      const whereParts = [];
+      whereParts.push(`instanceAddress: { _eq: "${instanceAddress}" }`);
+
+      if (proposer) {
+        whereParts.push(`proposer: { _eq: "${proposer}" }`);
+      }
+
+      if (day !== undefined) {
+        whereParts.push(`day: { _eq: ${day.toString()} }`);
+      }
+
+      if (this.config.chainId !== undefined) {
+        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+      }
+
+      const whereClause = whereParts.join(", ");
+
+      const query = gql`
+        query {
+          UBIProposingByAddress(
+            where: { ${whereClause} }
+            order_by: { blockTimestamp: desc }
+            limit: ${limit}
+            offset: ${offset}
+          ) {
+            id
+            proposer
+            day
+            proposal
+            proposalText
+            scoreWhenProposed
+            instanceAddress
+            blockNumber
+            blockTimestamp
+            chainId
+            hash
+          }
+        }
+      `;
+
+      const result = await this.client.request<{
+        UBIProposingByAddress: Array<{
+          id: string;
+          proposer: string;
+          day: string;
+          proposal: string;
+          proposalText: string;
+          scoreWhenProposed: string;
+          instanceAddress: string;
+          blockNumber: string;
+          blockTimestamp: string;
+          chainId: number;
+          hash: string;
+        }>;
+      }>(query);
+
+      return result.UBIProposingByAddress.map((event) => ({
+        ...event,
+        proposer: event.proposer as Address,
+        day: BigInt(event.day),
+        scoreWhenProposed: BigInt(event.scoreWhenProposed),
+        instanceAddress: event.instanceAddress as Address,
+        blockNumber: BigInt(event.blockNumber),
+        chainId: event.chainId,
+      }));
+    } catch (error) {
+      console.error("Error fetching UBI proposing events:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get UBI proposal score updates by proposal hash
+   */
+  async getUBIProposalScoreUpdatedByProposalEvents({
+    instanceAddress,
+    proposal,
+    day,
+    limit = 100,
+    offset = 0,
+  }: {
+    instanceAddress: Address;
+    proposal?: string;
+    day?: bigint;
+    limit?: number;
+    offset?: number;
+  }) {
+    try {
+      const whereParts = [];
+      whereParts.push(`instanceAddress: { _eq: "${instanceAddress}" }`);
+
+      if (proposal) {
+        whereParts.push(`proposal: { _eq: "${proposal}" }`);
+      }
+
+      if (day !== undefined) {
+        whereParts.push(`day: { _eq: ${day.toString()} }`);
+      }
+
+      if (this.config.chainId !== undefined) {
+        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+      }
+
+      const whereClause = whereParts.join(", ");
+
+      const query = gql`
+        query {
+          UBIProposalScoreUpdatedByProposal(
+            where: { ${whereClause} }
+            order_by: { blockTimestamp: desc }
+            limit: ${limit}
+            offset: ${offset}
+          ) {
+            id
+            dailyScore
+            day
+            proposal
+            proposer
+            instanceAddress
+            blockNumber
+            blockTimestamp
+            chainId
+            hash
+          }
+        }
+      `;
+
+      const result = await this.client.request<{
+        UBIProposalScoreUpdatedByProposal: Array<{
+          id: string;
+          dailyScore: string;
+          day: string;
+          proposal: string;
+          proposer: string;
+          instanceAddress: string;
+          blockNumber: string;
+          blockTimestamp: string;
+          chainId: number;
+          hash: string;
+        }>;
+      }>(query);
+
+      return result.UBIProposalScoreUpdatedByProposal.map((event) => ({
+        ...event,
+        dailyScore: BigInt(event.dailyScore),
+        day: BigInt(event.day),
+        proposer: event.proposer as Address,
+        instanceAddress: event.instanceAddress as Address,
+        blockNumber: BigInt(event.blockNumber),
+        chainId: event.chainId,
+      }));
+    } catch (error) {
+      console.error("Error fetching UBI proposal score updated events:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get UBI voting events by address
+   */
+  async getUBIVotingByAddressEvents({
+    instanceAddress,
+    participant,
+    day,
+    limit = 100,
+    offset = 0,
+  }: {
+    instanceAddress: Address;
+    participant?: Address;
+    day?: bigint;
+    limit?: number;
+    offset?: number;
+  }) {
+    try {
+      const whereParts = [];
+      whereParts.push(`instanceAddress: { _eq: "${instanceAddress}" }`);
+
+      if (participant) {
+        whereParts.push(`participant: { _eq: "${participant}" }`);
+      }
+
+      if (day !== undefined) {
+        whereParts.push(`day: { _eq: ${day.toString()} }`);
+      }
+
+      if (this.config.chainId !== undefined) {
+        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+      }
+
+      const whereClause = whereParts.join(", ");
+
+      const query = gql`
+        query {
+          UBIVotingByAddress(
+            where: { ${whereClause} }
+            order_by: { blockTimestamp: desc }
+            limit: ${limit}
+            offset: ${offset}
+          ) {
+            id
+            participant
+            day
+            proposal
+            amount
+            instanceAddress
+            blockNumber
+            blockTimestamp
+            chainId
+            hash
+          }
+        }
+      `;
+
+      const result = await this.client.request<{
+        UBIVotingByAddress: Array<{
+          id: string;
+          participant: string;
+          day: string;
+          proposal: string;
+          amount: string;
+          instanceAddress: string;
+          blockNumber: string;
+          blockTimestamp: string;
+          chainId: number;
+          hash: string;
+        }>;
+      }>(query);
+
+      return result.UBIVotingByAddress.map((event) => ({
+        ...event,
+        participant: event.participant as Address,
+        day: BigInt(event.day),
+        amount: BigInt(event.amount),
+        instanceAddress: event.instanceAddress as Address,
+        blockNumber: BigInt(event.blockNumber),
+        chainId: event.chainId,
+      }));
+    } catch (error) {
+      console.error("Error fetching UBI voting events:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get UBI claimed events
+   */
+  async getUBIClaimedEvents({
+    instanceAddress,
+    user,
+    limit = 100,
+    offset = 0,
+  }: {
+    instanceAddress: Address;
+    user?: Address;
+    limit?: number;
+    offset?: number;
+  }) {
+    try {
+      const whereParts = [];
+      whereParts.push(`instanceAddress: { _eq: "${instanceAddress}" }`);
+
+      if (user) {
+        whereParts.push(`user: { _eq: "${user}" }`);
+      }
+
+      if (this.config.chainId !== undefined) {
+        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+      }
+
+      const whereClause = whereParts.join(", ");
+
+      const query = gql`
+        query {
+          UBIClaimed(
+            where: { ${whereClause} }
+            order_by: { blockTimestamp: desc }
+            limit: ${limit}
+            offset: ${offset}
+          ) {
+            id
+            user
+            amount
+            instanceAddress
+            blockNumber
+            blockTimestamp
+            chainId
+            hash
+          }
+        }
+      `;
+
+      const result = await this.client.request<{
+        UBIClaimed: Array<{
+          id: string;
+          user: string;
+          amount: string;
+          instanceAddress: string;
+          blockNumber: string;
+          blockTimestamp: string;
+          chainId: number;
+          hash: string;
+        }>;
+      }>(query);
+
+      return result.UBIClaimed.map((event) => ({
+        ...event,
+        user: event.user as Address,
+        amount: BigInt(event.amount),
+        instanceAddress: event.instanceAddress as Address,
+        blockNumber: BigInt(event.blockNumber),
+        chainId: event.chainId,
+      }));
+    } catch (error) {
+      console.error("Error fetching UBI claimed events:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get UBI repost events by reposter
+   */
+  async getUBIRepostByReposterEvents({
+    instanceAddress,
+    reposter,
+    day,
+    limit = 100,
+    offset = 0,
+  }: {
+    instanceAddress: Address;
+    reposter?: Address;
+    day?: bigint;
+    limit?: number;
+    offset?: number;
+  }) {
+    try {
+      const whereParts = [];
+      whereParts.push(`instanceAddress: { _eq: "${instanceAddress}" }`);
+
+      if (reposter) {
+        whereParts.push(`reposter: { _eq: "${reposter}" }`);
+      }
+
+      if (day !== undefined) {
+        whereParts.push(`day: { _eq: ${day.toString()} }`);
+      }
+
+      if (this.config.chainId !== undefined) {
+        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+      }
+
+      const whereClause = whereParts.join(", ");
+
+      const query = gql`
+        query {
+          UBIRepostByReposter(
+            where: { ${whereClause} }
+            order_by: { blockTimestamp: desc }
+            limit: ${limit}
+            offset: ${offset}
+          ) {
+            id
+            proposer
+            day
+            proposal
+            reposter
+            proposalText
+            instanceAddress
+            blockNumber
+            blockTimestamp
+            chainId
+            hash
+          }
+        }
+      `;
+
+      const result = await this.client.request<{
+        UBIRepostByReposter: Array<{
+          id: string;
+          proposer: string;
+          day: string;
+          proposal: string;
+          reposter: string;
+          proposalText: string;
+          instanceAddress: string;
+          blockNumber: string;
+          blockTimestamp: string;
+          chainId: number;
+          hash: string;
+        }>;
+      }>(query);
+
+      return result.UBIRepostByReposter.map((event) => ({
+        ...event,
+        proposer: event.proposer as Address,
+        reposter: event.reposter as Address,
+        day: BigInt(event.day),
+        instanceAddress: event.instanceAddress as Address,
+        blockNumber: BigInt(event.blockNumber),
+        chainId: event.chainId,
+      }));
+    } catch (error) {
+      console.error("Error fetching UBI repost events:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get UBI proposal lifetime score
+   */
+  async getUBIProposalLifetimeScoreEvents({
+    instanceAddress,
+    limit = 100,
+    offset = 0,
+  }: {
+    instanceAddress: Address;
+    limit?: number;
+    offset?: number;
+  }) {
+    try {
+      const whereParts = [];
+      whereParts.push(`instanceAddress: { _eq: "${instanceAddress}" }`);
+
+      if (this.config.chainId !== undefined) {
+        whereParts.push(`chainId: { _eq: ${this.config.chainId} }`);
+      }
+
+      const whereClause = whereParts.join(", ");
+
+      const query = gql`
+        query {
+          UBIProposalLifetimeScore(
+            where: { ${whereClause} }
+            order_by: { blockTimestamp: desc }
+            limit: ${limit}
+            offset: ${offset}
+          ) {
+            id
+            lifeTimeScore
+            proposedTimes
+            repostedTimes
+            instanceAddress
+            blockNumber
+            blockTimestamp
+            chainId
+            hash
+          }
+        }
+      `;
+
+      const result = await this.client.request<{
+        UBIProposalLifetimeScore: Array<{
+          id: string;
+          lifeTimeScore: string;
+          proposedTimes: string;
+          repostedTimes: string;
+          instanceAddress: string;
+          blockNumber: string;
+          blockTimestamp: string;
+          chainId: number;
+          hash: string;
+        }>;
+      }>(query);
+
+      return result.UBIProposalLifetimeScore.map((event) => ({
+        ...event,
+        lifeTimeScore: BigInt(event.lifeTimeScore),
+        proposedTimes: BigInt(event.proposedTimes),
+        repostedTimes: BigInt(event.repostedTimes),
+        instanceAddress: event.instanceAddress as Address,
+        blockNumber: BigInt(event.blockNumber),
+        chainId: event.chainId,
+      }));
+    } catch (error) {
+      console.error("Error fetching UBI proposal lifetime score events:", error);
+      throw error;
+    }
+  }
 }
 export default EnvioGraphQLClient;

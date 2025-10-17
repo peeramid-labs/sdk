@@ -528,4 +528,385 @@ export default class InstanceUBI extends InstanceBase {
       throw await handleRPCError(e);
     }
   };
+
+  // ==================== INDEXER QUERY METHODS ====================
+
+  /**
+   * Gets proposals submitted by a specific address
+   * @param proposer - Optional address to filter by proposer
+   * @param day - Optional day to filter proposals
+   * @param limit - Maximum number of results to return
+   * @param offset - Number of results to skip
+   * @returns Array of proposal events
+   */
+  getProposalsByAddress = async ({
+    proposer,
+    day,
+    limit = 100,
+    offset = 0,
+  }: {
+    proposer?: Address;
+    day?: bigint;
+    limit?: number;
+    offset?: number;
+  } = {}) => {
+    try {
+      return await this.envioClient.getUBIProposingByAddressEvents({
+        instanceAddress: this.instanceAddress,
+        proposer,
+        day,
+        limit,
+        offset,
+      });
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
+  /**
+   * Gets all proposals for a specific day
+   * @param day - Optional day to filter proposals (defaults to current day - 1)
+   * @param limit - Maximum number of results to return
+   * @param offset - Number of results to skip
+   * @returns Array of proposal events for the day
+   */
+  getDailyProposals = async ({
+    day,
+    limit = 100,
+    offset = 0,
+  }: {
+    day?: bigint;
+    limit?: number;
+    offset?: number;
+  } = {}) => {
+    try {
+      const queryDay = day ?? (await this.getCurrentDay()) - 1n;
+      return await this.envioClient.getUBIProposingByAddressEvents({
+        instanceAddress: this.instanceAddress,
+        day: queryDay,
+        limit,
+        offset,
+      });
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
+  /**
+   * Gets proposal score updates for a specific proposal
+   * @param proposal - Proposal hash to query
+   * @param day - Optional day to filter results
+   * @param limit - Maximum number of results to return
+   * @param offset - Number of results to skip
+   * @returns Array of proposal score update events
+   */
+  getProposalScoreHistory = async ({
+    proposal,
+    day,
+    limit = 100,
+    offset = 0,
+  }: {
+    proposal?: string;
+    day?: bigint;
+    limit?: number;
+    offset?: number;
+  } = {}) => {
+    try {
+      return await this.envioClient.getUBIProposalScoreUpdatedByProposalEvents({
+        instanceAddress: this.instanceAddress,
+        proposal,
+        day,
+        limit,
+        offset,
+      });
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
+  /**
+   * Gets voting events for a specific participant
+   * @param participant - Address to filter by participant
+   * @param day - Optional day to filter votes
+   * @param limit - Maximum number of results to return
+   * @param offset - Number of results to skip
+   * @returns Array of voting events
+   */
+  getVotesByAddress = async ({
+    participant,
+    day,
+    limit = 100,
+    offset = 0,
+  }: {
+    participant?: Address;
+    day?: bigint;
+    limit?: number;
+    offset?: number;
+  } = {}) => {
+    try {
+      return await this.envioClient.getUBIVotingByAddressEvents({
+        instanceAddress: this.instanceAddress,
+        participant,
+        day,
+        limit,
+        offset,
+      });
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
+  /**
+   * Gets all votes for a specific day
+   * @param day - Optional day to filter votes (defaults to current day - 1)
+   * @param limit - Maximum number of results to return
+   * @param offset - Number of results to skip
+   * @returns Array of voting events for the day
+   */
+  getDailyVotes = async ({
+    day,
+    limit = 100,
+    offset = 0,
+  }: {
+    day?: bigint;
+    limit?: number;
+    offset?: number;
+  } = {}) => {
+    try {
+      const queryDay = day ?? (await this.getCurrentDay()) - 1n;
+      return await this.envioClient.getUBIVotingByAddressEvents({
+        instanceAddress: this.instanceAddress,
+        day: queryDay,
+        limit,
+        offset,
+      });
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
+  /**
+   * Gets claim history
+   * @param user - Optional user address to filter claims
+   * @param limit - Maximum number of results to return
+   * @param offset - Number of results to skip
+   * @returns Array of claim events
+   */
+  getClaimHistory = async ({
+    user,
+    limit = 100,
+    offset = 0,
+  }: {
+    user?: Address;
+    limit?: number;
+    offset?: number;
+  } = {}) => {
+    try {
+      return await this.envioClient.getUBIClaimedEvents({
+        instanceAddress: this.instanceAddress,
+        user,
+        limit,
+        offset,
+      });
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
+  /**
+   * Gets repost events by reposter
+   * @param reposter - Optional address to filter by reposter
+   * @param day - Optional day to filter reposts
+   * @param limit - Maximum number of results to return
+   * @param offset - Number of results to skip
+   * @returns Array of repost events
+   */
+  getRepostsByAddress = async ({
+    reposter,
+    day,
+    limit = 100,
+    offset = 0,
+  }: {
+    reposter?: Address;
+    day?: bigint;
+    limit?: number;
+    offset?: number;
+  } = {}) => {
+    try {
+      return await this.envioClient.getUBIRepostByReposterEvents({
+        instanceAddress: this.instanceAddress,
+        reposter,
+        day,
+        limit,
+        offset,
+      });
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
+  /**
+   * Gets lifetime scores for all proposals
+   * @param limit - Maximum number of results to return
+   * @param offset - Number of results to skip
+   * @returns Array of proposal lifetime score events
+   */
+  getProposalLifetimeScores = async ({
+    limit = 100,
+    offset = 0,
+  }: {
+    limit?: number;
+    offset?: number;
+  } = {}) => {
+    try {
+      return await this.envioClient.getUBIProposalLifetimeScoreEvents({
+        instanceAddress: this.instanceAddress,
+        limit,
+        offset,
+      });
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
+  /**
+   * Gets comprehensive proposal data including proposals, scores, and votes for a specific day
+   * @param day - Optional day to query (defaults to current day - 1)
+   * @param limit - Maximum number of results per query
+   * @returns Object containing proposals, scores, and votes for the day
+   */
+  getDayActivity = async ({
+    day,
+    limit = 100,
+  }: {
+    day?: bigint;
+    limit?: number;
+  } = {}) => {
+    try {
+      const queryDay = day ?? (await this.getCurrentDay()) - 1n;
+      const [proposals, votes, reposts] = await Promise.all([
+        this.getDailyProposals({ day: queryDay, limit }),
+        this.getDailyVotes({ day: queryDay, limit }),
+        this.getRepostsByAddress({ day: queryDay, limit }),
+      ]);
+
+      return {
+        day: queryDay,
+        proposals,
+        votes,
+        reposts,
+        proposalCount: proposals.length,
+        voteCount: votes.length,
+        repostCount: reposts.length,
+      };
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
+  /**
+   * Gets comprehensive user activity data
+   * @param user - User address to query
+   * @param limit - Maximum number of results per query
+   * @returns Object containing user's proposals, votes, reposts, and claims
+   */
+  getUserActivity = async ({ user, limit = 100 }: { user: Address; limit?: number }) => {
+    try {
+      const [proposals, votes, reposts, claims, userInfo] = await Promise.all([
+        this.getProposalsByAddress({ proposer: user, limit }),
+        this.getVotesByAddress({ participant: user, limit }),
+        this.getRepostsByAddress({ reposter: user, limit }),
+        this.getClaimHistory({ user, limit }),
+        this.getUserInfo(user),
+      ]);
+
+      return {
+        user,
+        userInfo,
+        proposals,
+        votes,
+        reposts,
+        claims,
+        proposalCount: proposals.length,
+        voteCount: votes.length,
+        repostCount: reposts.length,
+        claimCount: claims.length,
+      };
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
+  /**
+   * Gets aggregated proposal scores from voting events
+   * @param day - Optional day to filter votes
+   * @param limit - Maximum number of voting events to fetch
+   * @returns Map of proposal hashes to their total support scores
+   */
+  getProposalScores = async ({
+    day,
+    limit = 1000,
+  }: {
+    day?: bigint;
+    limit?: number;
+  } = {}) => {
+    try {
+      const votes = await this.getVotesByAddress({
+        day,
+        limit,
+      });
+
+      console.log("Votes fetched for scores:", votes);
+
+      // Aggregate votes by proposal
+      const proposalScores = new Map<string, bigint>();
+
+      votes.forEach((vote: any) => {
+        // Each vote event has proposal and amount directly
+        const proposalHash = vote.proposal;
+        const amount = vote.amount || BigInt(0);
+
+        const currentScore = proposalScores.get(proposalHash) || BigInt(0);
+        proposalScores.set(proposalHash, currentScore + amount);
+      });
+
+      // Convert to array and sort by score
+      const sortedScores = Array.from(proposalScores.entries())
+        .map(([proposal, score]) => ({
+          proposal,
+          score,
+          stars: Math.floor(Number(score)), // Direct token count as stars
+        }))
+        .sort((a, b) => Number(b.score - a.score));
+
+      console.log("Proposal scores calculated:", sortedScores);
+      return sortedScores;
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
+  /**
+   * Gets the score for a specific proposal
+   * @param proposalHash - The hash of the proposal
+   * @param day - Optional day to filter votes
+   * @returns Total support score for the proposal
+   */
+  getProposalScore = async (
+    proposalHash: Hex,
+    day?: bigint
+  ): Promise<{ proposal: Hex; score: bigint; stars: number }> => {
+    try {
+      const scores = await this.getProposalScores({ day });
+      const proposalScore = scores.find((s) => s.proposal === proposalHash);
+
+      return {
+        proposal: proposalHash,
+        score: proposalScore?.score || BigInt(0),
+        stars: proposalScore?.stars || 0,
+      };
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
 }
