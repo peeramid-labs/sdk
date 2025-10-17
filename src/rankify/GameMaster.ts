@@ -766,7 +766,7 @@ export class GameMaster {
     return { result: true, reason: "" };
   };
 
-  private getGameState({ gameId, instanceAddress }: { gameId: bigint; instanceAddress: Address }) {
+  public getGameState({ gameId, instanceAddress }: { gameId: bigint; instanceAddress: Address }) {
     const baseInstance = new InstanceBase({
       instanceAddress,
       publicClient: this.publicClient,

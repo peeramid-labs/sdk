@@ -12,7 +12,7 @@ export const endVoting = new Command("end-voting")
   .argument("<game>", "Index of the game")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
   .option(
-    "-k, --key <privateKey>",
+    "-k, --gm-key <privateKey>",
     "Private key for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
   )
   .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
@@ -26,7 +26,7 @@ export const endVoting = new Command("end-voting")
 
     try {
       const publicClient = await createPublic(options.rpc);
-      const walletClient = await createWallet(options.rpc, options.key);
+      const walletClient = await createWallet(options.rpc, options.gmKey);
       const chainId = Number(await publicClient.getChainId());
       const envioClient = new EnvioGraphQLClient({
         endpoint: process.env.INDEXER_URL ?? options.envio,

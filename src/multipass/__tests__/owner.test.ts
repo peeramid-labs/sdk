@@ -3,7 +3,8 @@ import { describe, expect, test, jest } from "@jest/globals";
 import MultipassOwner from "../Owner";
 import { type Address, type Hash, type PublicClient, type WalletClient, type Account } from "viem";
 import { type Domain } from "../MultipassBase";
-
+import { createMockEnvioClient } from "../../utils/mockUtils";
+const mockEnvioClient = createMockEnvioClient();
 // Mock viem
 jest.mock("viem", () => ({
   ...(jest.requireActual("viem") as object),
@@ -63,6 +64,7 @@ describe("MultipassOwner", () => {
     chainId: mockChainId,
     walletClient: mockWalletClient,
     publicClient: mockPublicClient,
+    envioClient: mockEnvioClient,
   });
 
   beforeEach(() => {
@@ -150,6 +152,7 @@ describe("MultipassOwner", () => {
         chainId: mockChainId,
         walletClient: noAccountWalletClient,
         publicClient: mockPublicClient,
+        envioClient: mockEnvioClient,
       });
 
       await expect(

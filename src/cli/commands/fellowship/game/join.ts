@@ -20,6 +20,10 @@ export const join = new Command("join")
     "-k, --key <privateKey>",
     "Private key or index to derive from mnemonic for signing transactions. Will be used if no mnemonic index is provided. If both not provided, PRIVATE_KEY environment variable will be used"
   )
+  .option(
+    "-g, --gm-key <privateKey>",
+    "Private key for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
+  )
   .option("-n, --distribution-name <name>", "Distribution name", "MAO Distribution")
   .option(
     "-e, --envio <url>",
@@ -62,7 +66,7 @@ export const join = new Command("join")
         envioClient,
       });
 
-      const gmWalletClient = await createWallet(options.rpc);
+      const gmWalletClient = await createWallet(options.rpc, options.gmKey);
 
       const gameMaster = new GameMaster({
         walletClient: gmWalletClient,

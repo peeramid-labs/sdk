@@ -8,6 +8,7 @@ import { getAddress } from "viem";
 import EnvioGraphQLClient from "../../../utils/EnvioGraphQLClient";
 export const listCommand = new Command("list")
   .description("List all registered instances")
+  .option("-j, --json", "Output results in JSON format")
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
   .option("-a, --address <address>", "Address of the Distributor contract")
   .option(
@@ -20,6 +21,7 @@ export const listCommand = new Command("list")
     "Distributor address, or env DISTRIBUTOR_ADDRESS. If none provided, will attempt to resolve from known chainId artifacts"
   )
   .action(async (options) => {
+    const { json } = options;
     const spinner = ora("Initializing client...").start();
 
     try {
@@ -49,8 +51,11 @@ export const listCommand = new Command("list")
         spinner.info("No instances found");
         return;
       }
-
       spinner.succeed(`Found ${instances.length} instance(s)`);
+      if (json) {
+        console.log(JSON.stringify(instances, null, 2));
+        return;
+      }
 
       console.log("\nInstances:");
       instanceArrays.flat().forEach((instance, index) => {

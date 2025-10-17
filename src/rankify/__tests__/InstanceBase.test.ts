@@ -1,8 +1,8 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { type PublicClient, type GetContractEventsReturnType, type Hex } from "viem";
 import InstanceBase from "../InstanceBase";
-import { MOCK_ADDRESSES, MOCK_HASHES, createMockPublicClient } from "../../utils/mockUtils";
-
+import { MOCK_ADDRESSES, MOCK_HASHES, createMockEnvioClient, createMockPublicClient } from "../../utils/mockUtils";
+const mockEnvioClient = createMockEnvioClient();
 // Mock viem
 jest.mock("viem", () => ({
   ...(jest.requireActual("viem") as object),
@@ -56,6 +56,7 @@ describe("InstanceBase", () => {
     publicClient: mockPublicClient as PublicClient,
     chainId: 1,
     instanceAddress: MOCK_ADDRESSES.INSTANCE,
+    envioClient: mockEnvioClient,
   });
 
   beforeEach(() => {

@@ -15,6 +15,10 @@ export const vote = new Command("vote")
   .argument("<instance>", "Address or instanceId of the Rankify instance")
   .argument("<gameId>", "ID of the game to vote in")
   .argument("<votes>", "Comma-separated list of vote values (e.g. 5,3,0,2,4)")
+  .option(
+    "-g, --gm-key <privateKey>",
+    "Private key for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
+  )
   .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
   .option("-i, --m-index <mnemonicIndex>", "Index to derive from mnemonic")
   .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
@@ -56,7 +60,7 @@ export const vote = new Command("vote")
 
       // Create game master client
       spinner.text = "Creating game master client...";
-      const gmWalletClient = await createWallet(options.rpc);
+      const gmWalletClient = await createWallet(options.rpc, options.gmKey);
 
       const gameMaster = new GameMaster({
         walletClient: gmWalletClient,

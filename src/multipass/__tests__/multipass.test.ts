@@ -1,9 +1,14 @@
 import { describe, expect, test, jest } from "@jest/globals";
 import Multipass from "../Registrar";
 import { RegisterMessage } from "../../types";
-import { MOCK_ADDRESSES, createMockPublicClient, createMockWalletClient } from "../../utils/mockUtils";
+import {
+  MOCK_ADDRESSES,
+  createMockEnvioClient,
+  createMockPublicClient,
+  createMockWalletClient,
+} from "../../utils/mockUtils";
 import { Hex, WalletClient } from "viem";
-
+const mockEnvioClient = createMockEnvioClient();
 // Mock utils
 jest.mock("../../utils", () => ({
   getArtifact: jest.fn().mockReturnValue({
@@ -51,6 +56,7 @@ describe("Multipass", () => {
     chainId: mockChainId,
     publicClient: mockPublicClient,
     walletClient: mockWalletClient,
+    envioClient: mockEnvioClient,
   });
 
   beforeEach(() => {
@@ -124,6 +130,7 @@ describe("Multipass", () => {
         chainId: mockChainId,
         publicClient: mockPublicClient,
         walletClient: { ...mockWalletClient, account: undefined } as WalletClient,
+        envioClient: mockEnvioClient,
       });
 
       await expect(multipassNoAccount.signRegistrarMessage(message, verifierAddress)).rejects.toThrow(

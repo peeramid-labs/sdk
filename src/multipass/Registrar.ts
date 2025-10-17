@@ -2,6 +2,7 @@ import { type Address, type WalletClient, type Hex, TypedDataDomain, PublicClien
 import { getArtifact } from "../utils";
 import type { RegisterMessage } from "../types";
 import MultipassBase from "./MultipassBase";
+import EnvioGraphQLClient from "../utils/EnvioGraphQLClient";
 
 /**
  * Structure representing a name query for Multipass
@@ -42,12 +43,14 @@ export default class Multipass extends MultipassBase {
     chainId,
     walletClient,
     publicClient,
+    envioClient,
   }: {
     chainId: number;
     walletClient: WalletClient;
     publicClient: PublicClient;
+    envioClient: EnvioGraphQLClient;
   }) {
-    super({ chainId, publicClient });
+    super({ chainId, publicClient, envioClient });
     const artifact = getArtifact(chainId, "Multipass");
     this.name = artifact.execute.args[0];
     this.version = artifact.execute.args[1];
