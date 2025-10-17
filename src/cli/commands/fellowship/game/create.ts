@@ -7,6 +7,7 @@ import RankifyPlayer from "../../../../rankify/Player";
 import { resolvePk } from "../../../getPk";
 import { CLIUtils } from "../../../utils";
 import EnvioGraphQLClient from "../../../../utils/EnvioGraphQLClient";
+import { logger } from "../../../../utils/logger";
 
 export const create = new Command("create")
   .description("Create a new game in a Rankify instance")
@@ -55,7 +56,7 @@ export const create = new Command("create")
         options.distributionName,
         spinner
       );
-
+      logger(`Resolved address: ${resolvedInstanceAddress}`, 1);
       spinner.text = "Creating Rankify player client...";
       const account = walletClient.account?.address;
 
