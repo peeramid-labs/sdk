@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { createPublic, createWallet } from "../../client";
+import { createPublic } from "../../client";
 import { BlockchainUtils } from "../../../utils/blockchain";
 
 export const mine = new Command("mine")

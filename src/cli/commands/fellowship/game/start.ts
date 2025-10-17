@@ -4,7 +4,6 @@ import ora from "ora";
 import { createPublic, createWallet } from "../../../client";
 import RankifyPlayer from "../../../../rankify/Player";
 import { resolvePk } from "../../../getPk";
-import GameMaster from "../../../../rankify/GameMaster";
 import { CLIUtils } from "../../../utils";
 import InstanceBase from "../../../../rankify/InstanceBase";
 import { gameStatusEnum } from "../../../../types";
