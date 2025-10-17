@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { Address, getAddress, Hex } from "viem";
+import { getAddress } from "viem";
 import { createPublic, createWallet } from "../../../client";
 import RankifyPlayer from "../../../../rankify/Player";
 import { resolvePk } from "../../../getPk";
@@ -126,7 +126,7 @@ export const create = new Command("create")
             pay: BigInt(requirementsData.ethValues.pay),
             bet: BigInt(requirementsData.ethValues.stake),
           },
-          contracts: requirementsData.contracts.map((c: any) => ({
+          contracts: requirementsData.contracts.map((c: unknown) => ({
             contractAddress: getAddress(c.contractAddress),
             contractId: BigInt(c.contractId),
             contractType: c.contractType,
