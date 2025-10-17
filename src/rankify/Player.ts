@@ -17,6 +17,7 @@ import { handleRPCError } from "../utils";
 import { GmProposalParams } from "../types/contracts";
 import EnvioGraphQLClient from "../utils/EnvioGraphQLClient";
 import { logger } from "../utils/log";
+import { JoinRequirementsInput } from "../types";
 
 type stateMutability = "nonpayable" | "payable";
 export type NewGameParams = {
@@ -193,27 +194,7 @@ export default class RankifyPlayer extends InstanceBase {
       votePhaseDuration: bigint;
       proposingPhaseDuration: bigint;
     },
-    requirements: {
-      ethValues: {
-        have: bigint;
-        lock: bigint;
-        burn: bigint;
-        pay: bigint;
-        bet: bigint;
-      };
-      contracts: readonly {
-        contractAddress: Address;
-        contractId: bigint;
-        contractType: number;
-        contractRequirement: {
-          have: { data: Hex; amount: bigint };
-          lock: { data: Hex; amount: bigint };
-          burn: { data: Hex; amount: bigint };
-          pay: { data: Hex; amount: bigint };
-          bet: { data: Hex; amount: bigint };
-        };
-      }[];
-    },
+    requirements: JoinRequirementsInput,
     overrideArtifact?: { address: Address; pathOverride: string }
   ): Promise<bigint> {
     if (!this.walletClient) throw new Error("Wallet client is required for this operation");

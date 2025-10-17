@@ -217,3 +217,44 @@ export enum gameStatusEnum {
   /** Game was not found */
   notFound = "not found",
 }
+
+/// JOIN REQUIREMENTS, ACCORDING TO libCoinVending.sol
+
+export interface numericConditon {
+  have: bigint;
+  lock: bigint;
+  burn: bigint;
+  pay: bigint;
+  bet: bigint;
+}
+
+export interface JoinRequirementsInput {
+  ethValues: numericConditon;
+  contracts: configSmartRequirement[];
+}
+
+export interface configSmartRequirement {
+  contractAddress: Address;
+  contractId: string;
+  contractType: ContractTypes;
+  contractRequirement: ContractCondition;
+}
+
+export interface ContractCondition {
+  have: TransactionProperties;
+  lock: TransactionProperties;
+  burn: TransactionProperties;
+  pay: TransactionProperties;
+  bet: TransactionProperties;
+}
+
+export interface TransactionProperties {
+  data: Hex;
+  amount: bigint;
+}
+
+export enum ContractTypes {
+  ERC20,
+  ERC1155,
+  ERC721,
+}
