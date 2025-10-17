@@ -76,7 +76,7 @@ export async function storeOrUpdateThreadInApi(params: {
   const isCreate = !!(owner && threadType && metadata);
   const action = isCreate ? "Storing" : "Updating";
 
-  console.log(`\n${action} thread ${threadId} in API server...`);
+  console.log(`\n${action} thread ${threadId} for instance ${instanceAddress} in API server...`);
 
   try {
     let threadData: {
@@ -251,7 +251,7 @@ export function findProposalPosition(
  * Execute a create game command and extract the game ID from output
  */
 export function createGameAndGetId(
-  fellowshipId: number,
+  instanceAddress: Address,
   createIndex: number,
   options: {
     turns?: number;
@@ -276,8 +276,8 @@ export function createGameAndGetId(
   const proposingPeriod = options.proposingPeriod ?? Math.floor(timePerTurn / 2);
 
   const createOutput = executeCommandWithOutput(
-    `pnpm cli fellowship game create ${fellowshipId} -i ${createIndex} --turns ${turns} --time-to-join ${timeToJoin} --time-per-turn ${timePerTurn} --voting-period ${votingPeriod} --proposing-period ${proposingPeriod} --vote-credits ${voteCredits} --metadata ${metadata}`,
-    `Creating fellowship game in fellowship ${fellowshipId}`
+    `pnpm cli fellowship game create ${instanceAddress} -i ${createIndex} --turns ${turns} --time-to-join ${timeToJoin} --time-per-turn ${timePerTurn} --voting-period ${votingPeriod} --proposing-period ${proposingPeriod} --vote-credits ${voteCredits} --metadata ${metadata}`,
+    `Creating fellowship game in fellowship ${instanceAddress}`
   );
 
   // Extract game ID from output: "Game created with ID: 1"

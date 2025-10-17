@@ -39,7 +39,7 @@ async function pushToNextPhase(
       const metadata = "ipfs://QmZuHWcCaSKBrbquCFwhWMTZ5qmxQGxzQhy8NJgaKsY1J8";
 
       // Create game and capture the game ID
-      currentGameId = createGameAndGetId(fellowshipId, 1, {
+      currentGameId = createGameAndGetId(instanceAddress, 1, {
         turns: 3,
         timeToJoin: timeToJoin,
         timePerTurn: timePerTurn,
