@@ -21,10 +21,6 @@ export const start = new Command("start")
     "-k, --key <privateKey>",
     "Private key or index to derive from mnemonic for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
   )
-  .option(
-    "-g, --gm-key <privateKey>",
-    "Game master private key for signing attestations. If not provided, GM_KEY environment variable will be used"
-  )
   .option("--auto-mine", "Automatically mine blocks to advance time on local chains (default: true)", false)
   .option(
     "-e, --envio <url>",
@@ -65,15 +61,6 @@ export const start = new Command("start")
         chainId,
         instanceAddress: resolvedInstanceAddress,
         account,
-        envioClient,
-      });
-
-      const gmWalletClient = await createWallet(options.rpc, options.gmKey);
-
-      const gameMaster = new GameMaster({
-        walletClient: gmWalletClient,
-        publicClient,
-        chainId,
         envioClient,
       });
 
@@ -133,15 +120,6 @@ export const start = new Command("start")
           spinner.start("Starting game...");
         }
       }
-
-      // Generate deterministic permutation
-      spinner.text = "Generating deterministic permutation...";
-      await gameMaster.generateDeterministicPermutation({
-        gameId: gameIdBigInt,
-        turn: 0n,
-        size: gameState.players.length,
-        verifierAddress: resolvedInstanceAddress,
-      });
 
       // Start the game
       spinner.text = "Starting game...";

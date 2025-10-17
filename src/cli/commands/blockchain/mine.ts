@@ -18,8 +18,6 @@ export const mine = new Command("mine")
     try {
       const publicClient = await createPublic(options.rpc);
 
-      // We create the wallet client for authentication but don't use it directly
-      await createWallet(options.rpc, options.key);
       const chainId = Number(await publicClient.getChainId());
 
       const currentBlock = await publicClient.getBlock({ blockTag: "latest" });

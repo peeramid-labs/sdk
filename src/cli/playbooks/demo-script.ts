@@ -20,7 +20,7 @@ async function runPart1(fellowshipId: number, instanceAddress: Address, gameMast
   const proposingPeriod = timePerTurn / 2;
   const timeToJoin = 3000;
   const metadata = "ipfs://QmZuHWcCaSKBrbquCFwhWMTZ5qmxQGxzQhy8NJgaKsY1J8";
-
+  if (!process.env.MNEMONIC) throw new Error("MNEMONIC environment variable is not set");
   // Create game and capture the game ID
   const gameId = createGameAndGetId(fellowshipId, 1, {
     turns: 3,
@@ -45,12 +45,15 @@ async function runPart1(fellowshipId: number, instanceAddress: Address, gameMast
   // Join game with multiple identities
   for (let i = 0; i <= 4; i++) {
     executeCommand(
-      `pnpm cli fellowship game join ${fellowshipId} ${gameId} -i ${i}`,
+      `pnpm cli fellowship game join ${fellowshipId} ${gameId} -i ${i} --gm-key ${process.env.GM_KEY}`,
       `Joining game with identity ${i}`
     );
   }
 
-  executeCommand(`pnpm cli fellowship game start ${fellowshipId} ${gameId} -i 1 --auto-mine`, "Starting game");
+  executeCommand(
+    `pnpm cli fellowship game start ${fellowshipId} ${gameId} -i 1 --auto-mine --key ${process.env.GM_KEY}`,
+    "Starting game"
+  );
 
   // Update game phase to "In progress"
   await storeOrUpdateThreadInApi({
@@ -81,14 +84,17 @@ async function runPart1(fellowshipId: number, instanceAddress: Address, gameMast
   for (let i = 0; i < turn1ProposalTitles.length; i++) {
     if (turn1ProposalTitles[i]) {
       executeCommand(
-        `pnpm cli fellowship game propose ${fellowshipId} ${gameId} -i ${i} -t "${turn1ProposalTitles[i]}" -b "${turn1ProposalBodies[i]}"`,
+        `pnpm cli fellowship game propose ${fellowshipId} ${gameId} -i ${i} -t "${turn1ProposalTitles[i]}" -b "${turn1ProposalBodies[i]}" --gm-key "${process.env.GM_KEY}"`,
         `Player ${i} submitting proposal`
       );
     }
   }
 
   executeCommand(`pnpm cli blockchain mine -t ${proposingPeriod}`, "Mining blockchain");
-  executeCommand(`pnpm cli fellowship game end-proposing ${fellowshipId} ${gameId}`, "Ending proposing phase");
+  executeCommand(
+    `pnpm cli fellowship game end-proposing ${fellowshipId} ${gameId} --gm-key "${process.env.GM_KEY}"`,
+    "Ending proposing phase"
+  );
 
   // Voting for turn 1 - decrypt proposals to get permutation
   console.log("\nDecrypting proposals to calculate correct voting positions...");
@@ -129,13 +135,16 @@ async function runPart1(fellowshipId: number, instanceAddress: Address, gameMast
     const voteString = voteArray.join(",");
 
     executeCommand(
-      `pnpm cli fellowship game vote ${fellowshipId} ${gameId} "${voteString}" -i ${voter}`,
+      `pnpm cli fellowship game vote ${fellowshipId} ${gameId} "${voteString}" -i ${voter} --gm-key ${process.env.GM_KEY}`,
       `Player ${voter} voting for proposal at position ${targetPosition} (originally from player ${targetProposer})`
     );
   }
 
   executeCommand(`pnpm cli blockchain mine -t ${votingPeriod}`, "Mining blockchain");
-  executeCommand(`pnpm cli fellowship game end-voting ${fellowshipId} ${gameId}`, "Ending voting phase");
+  executeCommand(
+    `pnpm cli fellowship game end-voting ${fellowshipId} ${gameId} --gm-key ${process.env.GM_KEY}`,
+    "Ending voting phase"
+  );
 
   // Proposals for turn 2 - store in array matching player order
   const turn2ProposalTitles = [
@@ -158,14 +167,17 @@ async function runPart1(fellowshipId: number, instanceAddress: Address, gameMast
   for (let i = 0; i < turn2ProposalTitles.length; i++) {
     if (turn2ProposalTitles[i]) {
       executeCommand(
-        `pnpm cli fellowship game propose ${fellowshipId} ${gameId} -i ${i} -t "${turn2ProposalTitles[i]}" -b "${turn2ProposalBodies[i]}"`,
+        `pnpm cli fellowship game propose ${fellowshipId} ${gameId} -i ${i} -t "${turn2ProposalTitles[i]}" -b "${turn2ProposalBodies[i]}" --gm-key "${process.env.GM_KEY}"`,
         `Player ${i} submitting proposal for turn 2`
       );
     }
   }
 
   executeCommand(`pnpm cli blockchain mine -t ${proposingPeriod}`, "Mining blockchain");
-  executeCommand(`pnpm cli fellowship game end-proposing ${fellowshipId} ${gameId}`, "Ending proposing phase");
+  executeCommand(
+    `pnpm cli fellowship game end-proposing ${fellowshipId} ${gameId} --gm-key ${process.env.GM_KEY}`,
+    "Ending proposing phase"
+  );
 
   // Voting for turn 2 - decrypt proposals to get permutation
   console.log("\nDecrypting proposals to calculate correct voting positions...");
@@ -200,24 +212,30 @@ async function runPart1(fellowshipId: number, instanceAddress: Address, gameMast
     const voteString = voteArray.join(",");
 
     executeCommand(
-      `pnpm cli fellowship game vote ${fellowshipId} ${gameId} "${voteString}" -i ${voter}`,
+      `pnpm cli fellowship game vote ${fellowshipId} ${gameId} "${voteString}" -i ${voter} --gm-key "${process.env.GM_KEY}"`,
       `Player ${voter} voting for proposal at position ${targetPosition} (originally from player ${targetProposer})`
     );
   }
 
   executeCommand(`pnpm cli blockchain mine -t ${votingPeriod}`, "Mining blockchain");
-  executeCommand(`pnpm cli fellowship game end-voting ${fellowshipId} ${gameId}`, "Ending voting phase");
+  executeCommand(
+    `pnpm cli fellowship game end-voting ${fellowshipId} ${gameId} --gm-key "${process.env.GM_KEY}"`,
+    "Ending voting phase"
+  );
 
   // Proposals for turn 3
   for (let i = 0; i <= 4; i++) {
     executeCommand(
-      `pnpm cli fellowship game propose ${fellowshipId} ${gameId} -i ${i} -t "Dummy data" -b "<p>Dummy data</p>"`,
+      `pnpm cli fellowship game propose ${fellowshipId} ${gameId} -i ${i} --gm-key "${process.env.GM_KEY}" -t "Dummy data" -b "<p>Dummy data</p>"`,
       `Turn 3 Proposal ${i + 1}`
     );
   }
 
   executeCommand(`pnpm cli blockchain mine -t ${proposingPeriod}`, "Mining blockchain");
-  executeCommand(`pnpm cli fellowship game end-proposing ${fellowshipId} ${gameId}`, "Ending proposing phase");
+  executeCommand(
+    `pnpm cli fellowship game end-proposing ${fellowshipId} ${gameId} --gm-key "${process.env.GM_KEY}"`,
+    "Ending proposing phase"
+  );
 }
 
 /**
