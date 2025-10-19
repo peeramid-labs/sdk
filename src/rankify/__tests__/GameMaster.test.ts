@@ -139,7 +139,7 @@ describe("GameMaster", () => {
         {
           id: "1",
           gameId: BigInt("1"),
-          turn: BigInt("1"),
+          // turn: BigInt("1"),
           proposer: publicKeyToAddress(`0x${mockPublicKey}`) as Hex as Address,
           encryptedProposal: await gameMaster
             .encryptProposal({
@@ -157,6 +157,8 @@ describe("GameMaster", () => {
           commitment: BigInt("0"),
           gmSignature: "0x123",
           proposerSignature: "0x123",
+          roundNumber: 1n,
+          chainId: 1,
         },
       ]);
 
@@ -173,6 +175,7 @@ describe("GameMaster", () => {
           contractAddress: MOCK_ADDRESSES.INSTANCE,
           transactionIndex: 0,
           logIndex: 0,
+          chainId: 1,
         },
       ]);
 
@@ -623,6 +626,7 @@ describe("GameMaster", () => {
         id: "1",
         gmCommitment: "0x123",
         blockTimestamp: "1000",
+        chainId: 1,
       }));
 
       jest
@@ -708,6 +712,7 @@ describe("GameMaster", () => {
         id: "1",
         gmCommitment: "0x123",
         blockTimestamp: "1000",
+        chainId: 1,
       }));
 
       // Mock getPlayerJoinedEvents for each player
@@ -790,6 +795,7 @@ describe("GameMaster", () => {
         id: "1",
         gmCommitment: "0x123",
         blockTimestamp: "1000",
+        chainId: 1,
       }));
 
       // Mock getPlayerJoinedEvents for each player
@@ -979,6 +985,7 @@ describe("GameMaster", () => {
           contractAddress: MOCK_ADDRESSES.INSTANCE,
           transactionIndex: 0,
           logIndex: 0,
+          chainId: 1,
         },
       ];
 
@@ -1045,7 +1052,7 @@ describe("GameMaster", () => {
         {
           id: "1",
           gameId: 1n,
-          turn: 1n,
+          // turn: 1n,
           player: MOCK_ADDRESSES.PLAYER,
           sealedBallotId: encryptedBallot,
           blockNumber: 1000n,
@@ -1055,6 +1062,8 @@ describe("GameMaster", () => {
           gmSignature: "0x123",
           voterSignature: "0x123",
           ballotHash: "0x123",
+          chainId: 1,
+          roundNumber: 1n,
         },
       ]);
 
@@ -1111,7 +1120,7 @@ describe("GameMaster", () => {
         {
           id: "1",
           gameId: 1n,
-          turn: 1n,
+          // turn: 1n,
           player: MOCK_ADDRESSES.PLAYER,
           sealedBallotId: invalidEncryptedBallot,
           blockNumber: 1000n,
@@ -1121,6 +1130,8 @@ describe("GameMaster", () => {
           gmSignature: "0x123",
           voterSignature: "0x123",
           ballotHash: "0x123",
+          chainId: 1,
+          roundNumber: 1n,
         },
       ]);
 

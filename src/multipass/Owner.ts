@@ -1,5 +1,6 @@
 import { type Address, type Hash, stringToHex, type WalletClient, type PublicClient } from "viem";
 import MultipassBase from "./MultipassBase";
+import EnvioGraphQLClient from "../utils/EnvioGraphQLClient";
 export type NameQuery = {
   name: `0x${string}`;
   id: `0x${string}`;
@@ -24,12 +25,14 @@ export default class MultipassOwner extends MultipassBase {
     chainId,
     walletClient,
     publicClient,
+    envioClient,
   }: {
     chainId: number;
     walletClient: WalletClient;
     publicClient: PublicClient;
+    envioClient: EnvioGraphQLClient;
   }) {
-    super({ chainId, publicClient });
+    super({ chainId, publicClient, envioClient });
     this.walletClient = walletClient;
   }
 
@@ -109,6 +112,7 @@ export default class MultipassOwner extends MultipassBase {
    * @param params.domainName Domain name as string
    * @param params.referrerReward Reward for referrers in wei
    * @param params.referralDiscount Discount for referred users in wei
+   * @param params.bytes32 Whether to use bytes32 encoding with length in last byte (UBI format)
    * @returns Transaction hash
    */
   public async initializeDomain({
@@ -118,6 +122,7 @@ export default class MultipassOwner extends MultipassBase {
     domainName,
     referrerReward,
     referralDiscount,
+    bytes32 = false,
   }: {
     registrar: Address;
     fee: bigint;
@@ -125,6 +130,7 @@ export default class MultipassOwner extends MultipassBase {
     domainName: string;
     referrerReward: bigint;
     referralDiscount: bigint;
+    bytes32?: boolean;
   }): Promise<Hash> {
     if (!this.walletClient.account) throw new Error("No account found");
 
@@ -132,7 +138,14 @@ export default class MultipassOwner extends MultipassBase {
       address: this.getContractAddress(),
       abi: this.getAbi(),
       functionName: "initializeDomain",
-      args: [registrar, fee, renewalFee, stringToHex(domainName, { size: 32 }), referrerReward, referralDiscount],
+      args: [
+        registrar,
+        fee,
+        renewalFee,
+        bytes32 ? this.getShortStringBytes32(domainName) : stringToHex(domainName, { size: 32 }),
+        referrerReward,
+        referralDiscount,
+      ],
       chain: null,
       account: this.walletClient.account,
     });
@@ -141,16 +154,17 @@ export default class MultipassOwner extends MultipassBase {
   /**
    * Deactivate a domain in Multipass
    * @param domainName Domain name to deactivate
+   * @param bytes32 Whether to use bytes32 encoding with length in last byte (UBI format)
    * @returns Transaction hash
    */
-  public async deactivateDomain(domainName: string): Promise<Hash> {
+  public async deactivateDomain(domainName: string, bytes32: boolean = false): Promise<Hash> {
     if (!this.walletClient.account) throw new Error("No account found");
 
     return this.walletClient.writeContract({
       address: this.getContractAddress(),
       abi: this.getAbi(),
       functionName: "deactivateDomain",
-      args: [stringToHex(domainName, { size: 32 })],
+      args: [bytes32 ? this.getShortStringBytes32(domainName) : stringToHex(domainName, { size: 32 })],
       chain: null,
       account: this.walletClient.account,
     });
@@ -161,16 +175,25 @@ export default class MultipassOwner extends MultipassBase {
    * @param params Parameters for changing fee
    * @param params.domainName Domain name
    * @param params.fee New fee in wei
+   * @param params.bytes32 Whether to use bytes32 encoding with length in last byte (UBI format)
    * @returns Transaction hash
    */
-  public async changeFee({ domainName, fee }: { domainName: string; fee: bigint }): Promise<Hash> {
+  public async changeFee({
+    domainName,
+    fee,
+    bytes32 = false,
+  }: {
+    domainName: string;
+    fee: bigint;
+    bytes32?: boolean;
+  }): Promise<Hash> {
     if (!this.walletClient.account) throw new Error("No account found");
 
     return this.walletClient.writeContract({
       address: this.getContractAddress(),
       abi: this.getAbi(),
       functionName: "changeFee",
-      args: [stringToHex(domainName, { size: 32 }), fee],
+      args: [bytes32 ? this.getShortStringBytes32(domainName) : stringToHex(domainName, { size: 32 }), fee],
       chain: null,
       account: this.walletClient.account,
     });
@@ -181,14 +204,17 @@ export default class MultipassOwner extends MultipassBase {
    * @param params Parameters for changing registrar
    * @param params.domainName Domain name
    * @param params.newRegistrar Address of the new registrar
+   * @param params.bytes32 Whether to use bytes32 encoding with length in last byte (UBI format)
    * @returns Transaction hash
    */
   public async changeRegistrar({
     domainName,
     newRegistrar,
+    bytes32 = false,
   }: {
     domainName: string;
     newRegistrar: Address;
+    bytes32?: boolean;
   }): Promise<Hash> {
     if (!this.walletClient.account) throw new Error("No account found");
 
@@ -196,7 +222,7 @@ export default class MultipassOwner extends MultipassBase {
       address: this.getContractAddress(),
       abi: this.getAbi(),
       functionName: "changeRegistrar",
-      args: [stringToHex(domainName, { size: 32 }), newRegistrar],
+      args: [bytes32 ? this.getShortStringBytes32(domainName) : stringToHex(domainName, { size: 32 }), newRegistrar],
       chain: null,
       account: this.walletClient.account,
     });
@@ -226,16 +252,19 @@ export default class MultipassOwner extends MultipassBase {
    * @param params.domainName Domain name
    * @param params.referrerReward New referrer reward in wei
    * @param params.referralDiscount New referral discount in wei
+   * @param params.bytes32 Whether to use bytes32 encoding with length in last byte (UBI format)
    * @returns Transaction hash
    */
   public async changeReferralProgram({
     domainName,
     referrerReward,
     referralDiscount,
+    bytes32 = false,
   }: {
     domainName: string;
     referrerReward: bigint;
     referralDiscount: bigint;
+    bytes32?: boolean;
   }): Promise<Hash> {
     if (!this.walletClient.account) throw new Error("No account found");
 
@@ -243,7 +272,11 @@ export default class MultipassOwner extends MultipassBase {
       address: this.getContractAddress(),
       abi: this.getAbi(),
       functionName: "changeReferralProgram",
-      args: [referrerReward, referralDiscount, stringToHex(domainName, { size: 32 })],
+      args: [
+        referrerReward,
+        referralDiscount,
+        bytes32 ? this.getShortStringBytes32(domainName) : stringToHex(domainName, { size: 32 }),
+      ],
       chain: null,
       account: this.walletClient.account,
     });
@@ -254,16 +287,25 @@ export default class MultipassOwner extends MultipassBase {
    * @param params Parameters for changing renewal fee
    * @param params.domainName Domain name
    * @param params.fee New renewal fee in wei
+   * @param params.bytes32 Whether to use bytes32 encoding with length in last byte (UBI format)
    * @returns Transaction hash
    */
-  public async changeRenewalFee({ domainName, fee }: { domainName: string; fee: bigint }): Promise<Hash> {
+  public async changeRenewalFee({
+    domainName,
+    fee,
+    bytes32 = false,
+  }: {
+    domainName: string;
+    fee: bigint;
+    bytes32?: boolean;
+  }): Promise<Hash> {
     if (!this.walletClient.account) throw new Error("No account found");
 
     return this.walletClient.writeContract({
       address: this.getContractAddress(),
       abi: this.getAbi(),
       functionName: "changeRenewalFee",
-      args: [fee, stringToHex(domainName, { size: 32 })],
+      args: [fee, bytes32 ? this.getShortStringBytes32(domainName) : stringToHex(domainName, { size: 32 })],
       chain: null,
       account: this.walletClient.account,
     });
@@ -272,16 +314,17 @@ export default class MultipassOwner extends MultipassBase {
   /**
    * Activate a domain in Multipass
    * @param domainName Domain name to activate
+   * @param bytes32 Whether to use bytes32 encoding with length in last byte (UBI format)
    * @returns Transaction hash
    */
-  public async activateDomain(domainName: string): Promise<Hash> {
+  public async activateDomain(domainName: string, bytes32: boolean = false): Promise<Hash> {
     if (!this.walletClient.account) throw new Error("No account found");
 
     return this.walletClient.writeContract({
       address: this.getContractAddress(),
       abi: this.getAbi(),
       functionName: "activateDomain",
-      args: [stringToHex(domainName, { size: 32 })],
+      args: [bytes32 ? this.getShortStringBytes32(domainName) : stringToHex(domainName, { size: 32 })],
       chain: null,
       account: this.walletClient.account,
     });

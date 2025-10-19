@@ -6,6 +6,7 @@ import { createPublic, createWallet } from "../../client";
 import MultipassOwner from "../../../multipass/Owner";
 import inquirer from "inquirer";
 import { Address, Hex, hexToString } from "viem";
+import EnvioGraphQLClient from "../../../utils/EnvioGraphQLClient";
 
 const domainsCommand = new Command("domains")
   .addCommand(
@@ -13,16 +14,24 @@ const domainsCommand = new Command("domains")
       .description("List all domains")
       .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
       .option("-a, --active", "Only list active domains")
+      .option(
+        "-e, --envio <url>",
+        "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+        "http://localhost:8080/v1/graphql"
+      )
       .action(async (options) => {
         const spinner = ora("Fetching domains...").start();
 
         try {
           const publicClient = await createPublic(options.rpc);
           const chainId = Number(await publicClient.getChainId());
-
+          const envioClient = new EnvioGraphQLClient({
+            endpoint: process.env.INDEXER_URL ?? options.envio,
+          });
           const multipass = new MultipassBase({
             chainId,
             publicClient,
+            envioClient,
           });
 
           spinner.stop();
@@ -62,6 +71,13 @@ const domainsCommand = new Command("domains")
       .option("-e, --referrer-reward <referrerReward>", "Referrer reward in wei")
       .option("-d, --referral-discount <referralDiscount>", "Referral discount in wei")
       .option("-a, --activate", "Activate the domain immediately after initialization")
+      .option("-b, --bytes32", "Use bytes32 encoding with length in last byte (UBI format)")
+      .option("-t, --registrar <registrar>", "Registrar address")
+      .option(
+        "--envio <url>",
+        "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+        "http://localhost:8080/v1/graphql"
+      )
       .action(async (options) => {
         const spinner = ora("Initializing domain...").start();
 
@@ -69,11 +85,15 @@ const domainsCommand = new Command("domains")
           const publicClient = await createPublic(options.rpc);
           const walletClient = await createWallet(options.rpc, options.key);
           const chainId = Number(await publicClient.getChainId());
+          const envioClient = new EnvioGraphQLClient({
+            endpoint: process.env.INDEXER_URL ?? options.envio,
+          });
 
           const multipass = new MultipassOwner({
             chainId,
             walletClient,
             publicClient,
+            envioClient,
           });
 
           spinner.stop();
@@ -124,12 +144,13 @@ const domainsCommand = new Command("domains")
           spinner.start("Initializing domain...");
 
           const tx = await multipass.initializeDomain({
-            registrar: walletClient.account?.address as Address,
+            registrar: options.registrar || (walletClient.account?.address as Address),
             fee: BigInt(answers.fee || options.fee),
             renewalFee: BigInt(answers.renewalFee || options.renewalFee),
             domainName: answers.name || options.name,
             referrerReward: BigInt(answers.referrerReward || options.referrerReward),
             referralDiscount: BigInt(answers.referralDiscount || options.referralDiscount),
+            bytes32: options.bytes32,
           });
           await publicClient.waitForTransactionReceipt({ hash: tx });
 
@@ -138,7 +159,7 @@ const domainsCommand = new Command("domains")
 
           if (options.activate) {
             spinner.start("Activating domain...");
-            const activationTx = await multipass.activateDomain(answers.name || options.name);
+            const activationTx = await multipass.activateDomain(answers.name || options.name, options.bytes32);
             await publicClient.waitForTransactionReceipt({ hash: activationTx });
             spinner.succeed("Domain activated successfully!");
             console.log(chalk.green("Activation transaction hash:"), activationTx);

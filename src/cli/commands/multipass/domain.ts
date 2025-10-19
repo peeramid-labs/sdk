@@ -6,21 +6,30 @@ import { stringToHex, type Address, zeroAddress, hexToString, Hex } from "viem";
 import MultipassBase from "../../../multipass/MultipassBase";
 import MultipassOwner, { type NameQuery, type Record } from "../../../multipass/Owner";
 import { createPublic, createWallet } from "../../client";
+import EnvioGraphQLClient from "../../../utils/EnvioGraphQLClient";
 
 export const domainCommand = new Command("domain").description("Domain operations for Multipass").addCommand(
   new Command("query")
     .description("Query for user records")
     .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
+    .option(
+      "-e, --envio <url>",
+      "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+      "http://localhost:8080/v1/graphql"
+    )
     .action(async (options) => {
       const spinner = ora("Initializing client...").start();
 
       try {
         const publicClient = await createPublic(options.rpc);
         const chainId = Number(await publicClient.getChainId());
-
+        const envioClient = new EnvioGraphQLClient({
+          endpoint: process.env.INDEXER_URL ?? options.envio,
+        });
         const multipass = new MultipassBase({
           chainId,
           publicClient,
+          envioClient,
         });
 
         spinner.text = "Please select query type...";
@@ -229,6 +238,11 @@ domainCommand
       .option("-s, --signature <registrarSignature>", "Registrar signature")
       .option("-f, --referrer <referrerAddress>", "Referrer address (optional)")
       .option("-c, --code <referralCode>", "Referral code (optional)")
+      .option(
+        "-e, --envio <url>",
+        "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+        "http://localhost:8080/v1/graphql"
+      )
       .action(async (options) => {
         const spinner = ora("Initializing clients...").start();
 
@@ -236,11 +250,14 @@ domainCommand
           const publicClient = await createPublic(options.rpc);
           const walletClient = await createWallet(options.rpc, options.key);
           const chainId = Number(await publicClient.getChainId());
-
+          const envioClient = new EnvioGraphQLClient({
+            endpoint: process.env.INDEXER_URL ?? options.envio,
+          });
           const multipass = new MultipassOwner({
             chainId,
             walletClient,
             publicClient,
+            envioClient,
           });
 
           spinner.stop();
@@ -359,6 +376,11 @@ domainCommand
       .option("-v, --valid-until <validUntil>", "Valid until timestamp (in seconds)")
       .option("-s, --signature <registrarSignature>", "Registrar signature")
       .option("-w, --wallet <address>", "Wallet address")
+      .option(
+        "-e, --envio <url>",
+        "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+        "http://localhost:8080/v1/graphql"
+      )
       .action(async (options) => {
         const spinner = ora("Initializing clients...").start();
 
@@ -366,11 +388,14 @@ domainCommand
           const publicClient = await createPublic(options.rpc);
           const walletClient = await createWallet(options.rpc, options.key);
           const chainId = Number(await publicClient.getChainId());
-
+          const envioClient = new EnvioGraphQLClient({
+            endpoint: process.env.INDEXER_URL ?? options.envio,
+          });
           const multipass = new MultipassOwner({
             chainId,
             walletClient,
             publicClient,
+            envioClient,
           });
 
           spinner.stop();
@@ -465,10 +490,16 @@ domainCommand
     new Command("activate")
       .description("Activate a domain")
       .argument("<domainName>", "Name of the domain to activate")
+      .option("-b, --bytes32", "Use bytes32 encoding with length in last byte (UBI format)")
       .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
       .option(
         "-k, --key <privateKey>",
         "Private key for signing transactions. If not provided, PRIVATE_KEY environment variable will be used"
+      )
+      .option(
+        "-e, --envio <url>",
+        "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+        "http://localhost:8080/v1/graphql"
       )
       .action(async (domainName, options) => {
         const spinner = ora("Activating domain...").start();
@@ -477,19 +508,34 @@ domainCommand
           const publicClient = await createPublic(options.rpc);
           const walletClient = await createWallet(options.rpc, options.key);
           const chainId = Number(await publicClient.getChainId());
+          const envioClient = new EnvioGraphQLClient({
+            endpoint: process.env.INDEXER_URL ?? options.envio,
+          });
 
           const multipass = new MultipassOwner({
             chainId,
             walletClient,
             publicClient,
+            envioClient,
           });
 
           spinner.stop();
 
-          const tx = await multipass.activateDomain(domainName);
+          // Show information about encoding format
+          if (options.bytes32) {
+            console.log(chalk.yellow("Using UBI bytes32 format (length encoded in last byte)"));
+          }
+
+          const tx = await multipass.activateDomain(domainName, options.bytes32);
 
           spinner.succeed("Domain activated successfully!");
           console.log(chalk.green("Transaction hash:"), tx);
+          console.log(chalk.green("Domain name:"), domainName);
+          if (options.bytes32) {
+            console.log(chalk.green("Bytes32 (UBI format):"), multipass.getShortStringBytes32(domainName));
+          } else {
+            console.log(chalk.green("Bytes32 (standard):"), stringToHex(domainName, { size: 32 }));
+          }
         } catch (error) {
           spinner.fail("Domain activation failed");
           console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
@@ -502,16 +548,25 @@ domainCommand
       .description("Get the state of a domain")
       .argument("<domainName>", "Name of the domain to get the state for")
       .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
+      .option(
+        "-e, --envio <url>",
+        "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+        "http://localhost:8080/v1/graphql"
+      )
       .action(async (domainName, options) => {
         const spinner = ora("Fetching domain state...").start();
 
         try {
           const publicClient = await createPublic(options.rpc);
           const chainId = Number(await publicClient.getChainId());
+          const envioClient = new EnvioGraphQLClient({
+            endpoint: process.env.INDEXER_URL ?? options.envio,
+          });
 
           const multipass = new MultipassBase({
             chainId,
             publicClient,
+            envioClient,
           });
 
           spinner.stop();
@@ -541,16 +596,25 @@ domainCommand
       .argument("<domainName>", "Name of the domain to list records for")
       .option("-r, --rpc <url>", "RPC endpoint URL. If not provided, RPC_URL environment variable will be used")
       .option("-a, --active", "Only list active records")
+      .option(
+        "-e, --envio <url>",
+        "Envio GraphQL endpoint URL. If not provided, http://localhost:8080/v1/graphql will be used. Alternatively INDEXER_URL environment variable may be used",
+        "http://localhost:8080/v1/graphql"
+      )
       .action(async (domainName, options) => {
         const spinner = ora("Fetching records...").start();
 
         try {
           const publicClient = await createPublic(options.rpc);
           const chainId = Number(await publicClient.getChainId());
+          const envioClient = new EnvioGraphQLClient({
+            endpoint: process.env.INDEXER_URL ?? options.envio,
+          });
 
           const multipass = new MultipassBase({
             chainId,
             publicClient,
+            envioClient,
           });
 
           spinner.stop();

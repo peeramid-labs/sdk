@@ -5,6 +5,7 @@ import { getMetadataCommand } from "./metadata";
 import { eip712Command } from "./eip712";
 import { paramsCommand } from "./params";
 import { game } from "./game/index";
+import { gm } from "./gameMaster/index";
 
 export const fellowshipCommand = new Command("fellowship")
   .description("Fellowship contract commands")
@@ -13,4 +14,5 @@ export const fellowshipCommand = new Command("fellowship")
   .addCommand(getMetadataCommand)
   .addCommand(eip712Command)
   .addCommand(paramsCommand)
-  .addCommand(game);
+  .addCommand(game)
+  .addCommand(gm);

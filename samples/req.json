@@ -1,0 +1,23 @@
+{
+  "ethValues": {
+    "have": "1",
+    "lock": "2",
+    "burn": "3",
+    "pay": "4",
+    "stake": "5"
+  },
+  "contracts": [
+    {
+      "contractAddress": "0x98fBE64861B331674e195E1A0b2fA303324c83e1",
+      "contractId": 1,
+      "contractType": 2,
+      "contractRequirement": {
+        "have": { "data": "0x00", "amount": "100000000000000" },
+        "lock": { "data": "0x00", "amount": "100000000000000" },
+        "burn": { "data": "0x00", "amount": "100000000000000" },
+        "pay": { "data": "0x00", "amount": "100000000000000" },
+        "stake": { "data": "0x00", "amount": "100000000000000" }
+      }
+    }
+  ]
+}

@@ -81,17 +81,16 @@ export const getArtifact = (
     };
   }
   let chainPath: string;
-  if (overrideChainName) {
-    chainPath = overrideChainName;
+  if (overrideChainName || process.env.IS_UNIT_TEST) {
+    chainPath = process.env.IS_UNIT_TEST || !overrideChainName ? "arbsepolia" : overrideChainName;
   } else {
     chainPath = getChainPath(chainId);
     if (chainPath === "Custom network") {
       chainPath = "arbsepolia";
     }
   }
-
   const artifact = (
-    artifactName === "Multipass"
+    artifactName == "Multipass" && process.env.NODE_ENV !== "development"
       ? require(`@peeramid-labs/multipass/deployments/${chainPath}/${artifactName}.json`)
       : require(`rankify-contracts/deployments/${chainPath}/${artifactName}.json`)
   ) as {
@@ -106,6 +105,19 @@ export const getArtifact = (
       logs?: Log<bigint, number, false>[];
     };
   };
+
+  // const artifact = require(`${repoPath}/deployments/${chainPath}/${artifactName}.json`) as {
+  //   abi: AbiItem[];
+  //   address: Address;
+  //   execute: { args: string[] };
+  //   receipt: {
+  //     from: Address;
+  //     transactionHash: Hex;
+  //     blockNumber: number;
+  //     args: string[];
+  //     logs?: Log<bigint, number, false>[];
+  //   };
+  // };
 
   if (!artifact) {
     throw new Error("Contract deployment not found");

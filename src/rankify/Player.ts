@@ -17,6 +17,7 @@ import { handleRPCError } from "../utils";
 import { GmProposalParams } from "../types/contracts";
 import EnvioGraphQLClient from "../utils/EnvioGraphQLClient";
 import { logger } from "../utils/log";
+import { JoinRequirementsInput } from "../types";
 
 type stateMutability = "nonpayable" | "payable";
 export type NewGameParams = {
@@ -193,27 +194,7 @@ export default class RankifyPlayer extends InstanceBase {
       votePhaseDuration: bigint;
       proposingPhaseDuration: bigint;
     },
-    requirements: {
-      ethValues: {
-        have: bigint;
-        lock: bigint;
-        burn: bigint;
-        pay: bigint;
-        bet: bigint;
-      };
-      contracts: readonly {
-        contractAddress: Address;
-        contractId: bigint;
-        contractType: number;
-        contractRequirement: {
-          have: { data: Hex; amount: bigint };
-          lock: { data: Hex; amount: bigint };
-          burn: { data: Hex; amount: bigint };
-          pay: { data: Hex; amount: bigint };
-          bet: { data: Hex; amount: bigint };
-        };
-      }[];
-    },
+    requirements: JoinRequirementsInput,
     overrideArtifact?: { address: Address; pathOverride: string }
   ): Promise<bigint> {
     if (!this.walletClient) throw new Error("Wallet client is required for this operation");
@@ -232,13 +213,36 @@ export default class RankifyPlayer extends InstanceBase {
       const gamePrice = await this.estimateGamePrice(params.minGameTime);
       logger(`game price estimated: ${gamePrice.toString()}`, 3);
       await this.approveTokensIfNeeded(gamePrice, overrideArtifact);
+      const abiRequirements = {
+        ethValues: {
+          bet: BigInt(requirements.ethValues.bet),
+          pay: BigInt(requirements.ethValues.pay),
+          burn: BigInt(requirements.ethValues.burn),
+          lock: BigInt(requirements.ethValues.lock),
+          have: BigInt(requirements.ethValues.have),
+        },
+        contracts: requirements.contracts.map((c) => {
+          return {
+            contractAddress: c.contractAddress,
+            contractType: Number(c.contractType),
+            contractId: BigInt(c.contractId),
+            contractRequirement: {
+              bet: { amount: BigInt(c.contractRequirement.bet.amount), data: c.contractRequirement.bet.data },
+              pay: { amount: BigInt(c.contractRequirement.pay.amount), data: c.contractRequirement.pay.data },
+              burn: { amount: BigInt(c.contractRequirement.burn.amount), data: c.contractRequirement.burn.data },
+              lock: { amount: BigInt(c.contractRequirement.lock.amount), data: c.contractRequirement.lock.data },
+              have: { amount: BigInt(c.contractRequirement.have.amount), data: c.contractRequirement.have.data },
+            },
+          };
+        }),
+      };
 
       logger(`simulating createAndOpenGame contract call`, 3);
       const { request } = await this.publicClient.simulateContract({
         abi: instanceAbi,
         address: this.instanceAddress,
         functionName: "createAndOpenGame",
-        args: [params, requirements],
+        args: [params, abiRequirements],
         account: this.walletClient.account,
         chain: this.walletClient.chain,
       });
