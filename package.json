@@ -60,10 +60,10 @@
     "inquirer": "^12.3.0",
     "lodash": "^4.17.21",
     "ora": "^5.4.1",
-    "rankify-contracts": "0.16.0-pr-232.0"
+    "rankify-contracts": "^0.17.1"
   },
   "peerDependencies": {
-    "viem": "^2.22.8"
+    "viem": "^2.38.3"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^0.4.8",
