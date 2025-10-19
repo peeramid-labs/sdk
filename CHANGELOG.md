@@ -1,5 +1,88 @@
 # peeramid-labs/sdk
 
+## 3.16.0
+
+### Minor Changes
+
+- [#215](https://github.com/peeramid-labs/sdk/pull/215) [`cc8658a345d71b76c40926024a252987c34ca161`](https://github.com/peeramid-labs/sdk/commit/cc8658a345d71b76c40926024a252987c34ca161) Thanks [@peersky](https://github.com/peersky)! - administrative fn - adding whitelisted gms trough cli
+
+- [#195](https://github.com/peeramid-labs/sdk/pull/195) [`0cb5c02ace2fdfe9e39f75afbee06ce7cb58c4c9`](https://github.com/peeramid-labs/sdk/commit/0cb5c02ace2fdfe9e39f75afbee06ce7cb58c4c9) Thanks [@peersky](https://github.com/peersky)! - enabled CLI usage outside of known chainIds
+
+- [#213](https://github.com/peeramid-labs/sdk/pull/213) [`ecf7049828f93d1ddfa014231f3df30554febb63`](https://github.com/peeramid-labs/sdk/commit/ecf7049828f93d1ddfa014231f3df30554febb63) Thanks [@peersky](https://github.com/peersky)! - added game create CLI ability to read requirements JSON files
+
+### Patch Changes
+
+- [#209](https://github.com/peeramid-labs/sdk/pull/209) [`408248cc44070a622c4921212132ccc55331f624`](https://github.com/peeramid-labs/sdk/commit/408248cc44070a622c4921212132ccc55331f624) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Add UBI functionality and enhance domain command options
+
+  - Introduced the InstanceUBI class for UBI interactions, including methods for managing proposals and user states.
+  - Updated domain command to support bytes32 encoding for UBI format, enhancing domain activation and initialization processes.
+  - Added new types and utility functions for UBI parameters and proposal statistics.
+  - Enhanced existing Multipass methods to accommodate the new UBI features.
+
+  This update significantly expands the functionality related to UBI within the application, improving user experience and system capabilities.
+
+- [#207](https://github.com/peeramid-labs/sdk/pull/207) [`f912b3a058474dcc2d141c531a1f4af1ba960b27`](https://github.com/peeramid-labs/sdk/commit/f912b3a058474dcc2d141c531a1f4af1ba960b27) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Enhance playbook system with GameMaster integration and new scripts
+
+  - Added GameMaster initialization and utility functions for playbooks.
+  - Introduced `cliPlaybooks.sh` as the main entry point for executing playbooks.
+  - Implemented `demo-script` and `push-game-to-next-phase` playbooks for game management.
+  - Updated README with usage instructions and details on new playbooks.
+  - Improved command execution and logging utilities for better visibility during playbook execution.
+  - Removed deprecated scripts and streamlined the playbook architecture.
+
+- [#173](https://github.com/peeramid-labs/sdk/pull/173) [`efbb0c1049af07ecdb7c405dbd023ef76ce7976f`](https://github.com/peeramid-labs/sdk/commit/efbb0c1049af07ecdb7c405dbd023ef76ce7976f) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Update rankify-contracts version to 0.14.2
+
+- [#201](https://github.com/peeramid-labs/sdk/pull/201) [`6601eef0450bfc7bcba8d292bd0717b8d8b4ae36`](https://github.com/peeramid-labs/sdk/commit/6601eef0450bfc7bcba8d292bd0717b8d8b4ae36) Thanks [@peersky](https://github.com/peersky)! - added ability to launch indexer from deploy-contracts dev script, removed from it multipass
+
+- [#210](https://github.com/peeramid-labs/sdk/pull/210) [`34e8ccc7a8c3b5cff6ab8ab894ca5848430fcada`](https://github.com/peeramid-labs/sdk/commit/34e8ccc7a8c3b5cff6ab8ab894ca5848430fcada) Thanks [@peersky](https://github.com/peersky)! - Bumped rankify-contracts to ^0.17.1 to support new features
+
+- [#197](https://github.com/peeramid-labs/sdk/pull/197) [`a739ef3be9a68a057d3537ac83908529fd186fed`](https://github.com/peeramid-labs/sdk/commit/a739ef3be9a68a057d3537ac83908529fd186fed) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Enhance InstanceBase with ScoreGetterFacet integration
+
+  - Added methods to retrieve proposal scores and existence checks across games and turns.
+  - Updated getContractState method to return additional parameters.
+  - Improved error handling for new contract functions.
+
+- [#199](https://github.com/peeramid-labs/sdk/pull/199) [`3cddf1d775ac6016e3e976cb3ad7983f5f324937`](https://github.com/peeramid-labs/sdk/commit/3cddf1d775ac6016e3e976cb3ad7983f5f324937) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Implement overrideArtifact method for unsupported chains in CLIUtils
+
+  - Added overrideArtifact method to create an override artifact for unsupported chains by fetching the payment token from the instance contract.
+  - Updated create command to check chain support and prepare the override artifact for token approval if necessary.
+  - Modified createAndOpenGame method in RankifyPlayer to accept an optional overrideArtifact parameter for token approval on unsupported chains.
+  - Enhanced error handling in getChainPath to throw an error for unsupported chain IDs.
+
+- [#175](https://github.com/peeramid-labs/sdk/pull/175) [`a876187f7799084d09b4c8ec75478c66eb3e0cea`](https://github.com/peeramid-labs/sdk/commit/a876187f7799084d09b4c8ec75478c66eb3e0cea) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Fix logic in GameMaster for proposal counting and voting points. Adjusted previous turn proposals count and updated loop condition to ensure correct point deduction.
+
+- [#198](https://github.com/peeramid-labs/sdk/pull/198) [`6f611f21624a80e3ef2a54f3d489e045cfd56a8b`](https://github.com/peeramid-labs/sdk/commit/6f611f21624a80e3ef2a54f3d489e045cfd56a8b) Thanks [@peersky](https://github.com/peersky)! - ## Development Infrastructure Improvements and Bug Fixes
+
+  ### 🚀 New Features
+
+  - **Indexer Integration**: Added `--indexer` flag to deploy-contracts script to automatically launch Envio indexer after contract deployment
+  - **Enhanced CLI Arguments**: Improved deploy-contracts script with proper flag parsing (`--clean`, `--indexer`)
+
+  ### 🐛 Bug Fixes
+
+  - **Vote Validation Fix**: Fixed points calculation bug in GameMaster where points were being subtracted incorrectly (using `maxPoints` instead of `maxPoints * maxPoints`)
+
+  ### 🔧 Improvements
+
+  - **Simplified Dependencies**: Removed multipass from deployment process, focusing on core rankify contracts
+  - **Better Session Management**: Added ability to kill existing Anvil sessions when using `--clean` flag
+  - **Enhanced Documentation**: Updated README with clearer usage instructions and new CLI options
+  - **Improved Error Handling**: Better script reliability with enhanced session detection and management
+
+  ### 📝 Documentation Updates
+
+  - Updated deployment script usage examples with new CLI argument format
+  - Added comprehensive CLI argument documentation
+  - Improved setup instructions for local development environment
+
+  ### 🛠️ Technical Changes
+
+  - Refactored deploy-contracts.sh with proper argument parsing using while loop
+  - Added tmux session management for indexer with error checking
+  - Enhanced environment variable validation (removed MULTIPASS_PATH requirement)
+  - Improved script error handling and user feedback
+  - Fixed mathematical error in vote points calculation algorithm
+
 ## 3.15.0
 
 ### Minor Changes
