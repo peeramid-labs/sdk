@@ -126,7 +126,8 @@ export const create = new Command("create")
             pay: BigInt(requirementsData.ethValues.pay),
             bet: BigInt(requirementsData.ethValues.stake),
           },
-          contracts: requirementsData.contracts.map((c: unknown) => ({
+          //eslint-disable-next-line @typescript-eslint/no-explicit-any
+          contracts: requirementsData.contracts.map((c: any) => ({
             contractAddress: getAddress(c.contractAddress),
             contractId: BigInt(c.contractId),
             contractType: c.contractType,
