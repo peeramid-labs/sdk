@@ -498,6 +498,20 @@ export default class InstanceBase {
     }
   };
 
+  isWhitelistedGM = async (address: Address) => {
+    try {
+      const state = await this.publicClient.readContract({
+        address: this.instanceAddress,
+        abi: instanceAbi,
+        functionName: "isWhitelistedGM",
+        args: [address],
+      });
+      return state;
+    } catch (e) {
+      throw await handleRPCError(e);
+    }
+  };
+
   /**
    * Retrieves the game state for a specific game.
    * @param gameId - The ID of the game.
