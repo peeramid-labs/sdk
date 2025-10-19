@@ -213,13 +213,36 @@ export default class RankifyPlayer extends InstanceBase {
       const gamePrice = await this.estimateGamePrice(params.minGameTime);
       logger(`game price estimated: ${gamePrice.toString()}`, 3);
       await this.approveTokensIfNeeded(gamePrice, overrideArtifact);
+      const abiRequirements = {
+        ethValues: {
+          bet: BigInt(requirements.ethValues.bet),
+          pay: BigInt(requirements.ethValues.pay),
+          burn: BigInt(requirements.ethValues.burn),
+          lock: BigInt(requirements.ethValues.lock),
+          have: BigInt(requirements.ethValues.have),
+        },
+        contracts: requirements.contracts.map((c) => {
+          return {
+            contractAddress: c.contractAddress,
+            contractType: Number(c.contractType),
+            contractId: BigInt(c.contractId),
+            contractRequirement: {
+              bet: { amount: BigInt(c.contractRequirement.bet.amount), data: c.contractRequirement.bet.data },
+              pay: { amount: BigInt(c.contractRequirement.pay.amount), data: c.contractRequirement.pay.data },
+              burn: { amount: BigInt(c.contractRequirement.burn.amount), data: c.contractRequirement.burn.data },
+              lock: { amount: BigInt(c.contractRequirement.lock.amount), data: c.contractRequirement.lock.data },
+              have: { amount: BigInt(c.contractRequirement.have.amount), data: c.contractRequirement.have.data },
+            },
+          };
+        }),
+      };
 
       logger(`simulating createAndOpenGame contract call`, 3);
       const { request } = await this.publicClient.simulateContract({
         abi: instanceAbi,
         address: this.instanceAddress,
         functionName: "createAndOpenGame",
-        args: [params, requirements],
+        args: [params, abiRequirements],
         account: this.walletClient.account,
         chain: this.walletClient.chain,
       });
