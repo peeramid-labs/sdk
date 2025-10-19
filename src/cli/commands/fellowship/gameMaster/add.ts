@@ -21,7 +21,7 @@ export const addWhitelistedGM = new Command("add")
 
     try {
       const publicClient = await createPublic(options.rpc);
-      const walletClient = await createWallet(options.rpc, resolvePk(options.mIndex ?? options.key, spinner));
+      const walletClient = await createWallet(options.rpc, resolvePk(options.mnemonicIndex ?? options.key, spinner));
 
       const chainId = Number(await publicClient.getChainId());
 
