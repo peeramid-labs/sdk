@@ -15,10 +15,6 @@ export const addWhitelistedGM = new Command("add")
     "-k, --key <privateKey>",
     "Will be used if no mnemonic index is provided. Private key with admin permissions. If not provided, PRIVATE_KEY environment variable will be used"
   )
-  .option(
-    "-a, --fellowship-address <address>",
-    "Distributor address, or env DISTRIBUTOR_ADDRESS. If none provided, will attempt to resolve from known chainId artifacts"
-  )
   .option("-g, --game-master-address <address>", "Game master address. ")
   .action(async (instanceAddress, options) => {
     const spinner = ora("Initializing clients...").start();
