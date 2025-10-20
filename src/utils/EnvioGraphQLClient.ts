@@ -1782,12 +1782,14 @@ export class EnvioGraphQLClient {
   async getUBIVotingByAddressEvents({
     instanceAddress,
     participant,
+    proposal,
     day,
     limit = 100,
     offset = 0,
   }: {
     instanceAddress: Address;
     participant?: Address;
+    proposal?: string;
     day?: bigint;
     limit?: number;
     offset?: number;
@@ -1796,6 +1798,7 @@ export class EnvioGraphQLClient {
       const variables: {
         instanceAddress: string;
         participant?: string;
+        proposal?: string;
         day?: string;
         chainId?: number;
         limit: number;
@@ -1810,6 +1813,10 @@ export class EnvioGraphQLClient {
         variables.participant = participant;
       }
 
+      if (proposal) {
+        variables.proposal = proposal;
+      }
+
       if (day !== undefined) {
         variables.day = day.toString();
       }
@@ -1819,11 +1826,12 @@ export class EnvioGraphQLClient {
       }
 
       const query = gql`
-        query GetUBIVotingByAddress($instanceAddress: String!, $participant: String, $day: numeric, $chainId: Int, $limit: Int!, $offset: Int!) {
+        query GetUBIVotingByAddress($instanceAddress: String!, $participant: String, $proposal: String, $day: numeric, $chainId: Int, $limit: Int!, $offset: Int!) {
           UBIVotingByAddress(
             where: {
               instanceAddress: { _eq: $instanceAddress }
               ${participant !== undefined ? "participant: { _eq: $participant }" : ""}
+              ${proposal !== undefined ? "proposal: { _eq: $proposal }" : ""}
               ${day !== undefined ? "day: { _eq: $day }" : ""}
               ${this.config.chainId !== undefined ? "chainId: { _eq: $chainId }" : ""}
             }
