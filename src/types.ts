@@ -220,7 +220,7 @@ export enum gameStatusEnum {
 
 /// JOIN REQUIREMENTS, ACCORDING TO libCoinVending.sol
 
-export interface numericConditon {
+export interface numericCondition {
   have: bigint;
   lock: bigint;
   burn: bigint;
@@ -229,7 +229,7 @@ export interface numericConditon {
 }
 
 export interface JoinRequirementsInput {
-  ethValues: numericConditon;
+  ethValues: numericCondition;
   contracts: configSmartRequirement[];
 }
 
