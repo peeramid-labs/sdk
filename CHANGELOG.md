@@ -1,5 +1,15 @@
 # peeramid-labs/sdk
 
+## 3.16.1
+
+### Patch Changes
+
+- [#217](https://github.com/peeramid-labs/sdk/pull/217) [`fd9d123daad340f1bad71963a11e819c11835c73`](https://github.com/peeramid-labs/sdk/commit/fd9d123daad340f1bad71963a11e819c11835c73) Thanks [@peersky](https://github.com/peersky)! - adjusted fellowship creation cli to accomodate new UBI deploy option
+
+- [#217](https://github.com/peeramid-labs/sdk/pull/217) [`911fe74b9e6406fcc0d2c08329cf8d0bed2359b6`](https://github.com/peeramid-labs/sdk/commit/911fe74b9e6406fcc0d2c08329cf8d0bed2359b6) Thanks [@peersky](https://github.com/peersky)! - fixed bug with fellowship create command that caused distriburtor package name (-n) flag to be ignored
+
+- [#217](https://github.com/peeramid-labs/sdk/pull/217) [`d20052e3269d57e4ca775148517c16bd42a3f8f6`](https://github.com/peeramid-labs/sdk/commit/d20052e3269d57e4ca775148517c16bd42a3f8f6) Thanks [@peersky](https://github.com/peersky)! - NewGameParams contract fileds are not read-only anymore
+
 ## 3.16.0
 
 ### Minor Changes
