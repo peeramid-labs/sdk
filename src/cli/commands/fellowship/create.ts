@@ -233,7 +233,7 @@ export const createFellowshipCommand = new Command("create")
         },
       };
 
-      const contracts = await maoDistributor.instantiate(args, options.distributionName, chain);
+      const contracts = await maoDistributor.instantiate(args, options.distName, chain);
 
       spinner.succeed("Fellowship created successfully!");
 
