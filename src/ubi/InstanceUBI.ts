@@ -643,6 +643,7 @@ export default class InstanceUBI extends InstanceBase {
   /**
    * Gets voting events for a specific participant
    * @param participant - Address to filter by participant
+   * @param proposal - Optional proposal hash to filter votes
    * @param day - Optional day to filter votes
    * @param limit - Maximum number of results to return
    * @param offset - Number of results to skip
@@ -650,11 +651,13 @@ export default class InstanceUBI extends InstanceBase {
    */
   getVotesByAddress = async ({
     participant,
+    proposal,
     day,
     limit = 100,
     offset = 0,
   }: {
     participant?: Address;
+    proposal?: string;
     day?: bigint;
     limit?: number;
     offset?: number;
@@ -663,6 +666,7 @@ export default class InstanceUBI extends InstanceBase {
       return await this.envioClient.getUBIVotingByAddressEvents({
         instanceAddress: this.instanceAddress,
         participant,
+        proposal,
         day,
         limit,
         offset,
