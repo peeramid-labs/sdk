@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.16.2
+
+### Patch Changes
+
+- [#219](https://github.com/peeramid-labs/sdk/pull/219) [`d71c999fdbdd47c4b1eeb5a0b7086792b1d305ea`](https://github.com/peeramid-labs/sdk/commit/d71c999fdbdd47c4b1eeb5a0b7086792b1d305ea) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Enhance voting event retrieval by adding optional proposal filter
+
 ## 3.16.1
 
 ### Patch Changes
