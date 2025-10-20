@@ -8,7 +8,6 @@ import { createPublic, createWallet } from "../../client";
 import { chainToPath } from "../../../utils/chainMapping";
 import { resolvePk } from "../../getPk";
 import EnvioGraphQLClient from "../../../utils/EnvioGraphQLClient";
-import { getArtifact } from "../../../utils";
 
 // Define enum for fellowship defaults
 enum FellowshipDefaults {
