@@ -29,9 +29,9 @@ export type NewGameParams = {
   timeToJoin: bigint;
   gameMaster: Hex;
   joinRequirements: {
-    contractAddresses: readonly Hex[];
-    contractIds: readonly bigint[];
-    contractTypes: readonly number[];
+    contractAddresses: Hex[];
+    contractIds: bigint[];
+    contractTypes: number[];
     ethValues: {
       have: bigint;
       lock: bigint;

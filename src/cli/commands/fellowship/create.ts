@@ -2,13 +2,12 @@ import { Command } from "commander";
 import chalk from "chalk";
 import inquirer from "inquirer";
 import ora from "ora";
-import { Chain } from "viem";
+import { Chain, zeroAddress } from "viem";
 import { MAODistributorClient } from "../../../rankify/MAODistributor";
 import { createPublic, createWallet } from "../../client";
 import { chainToPath } from "../../../utils/chainMapping";
 import { resolvePk } from "../../getPk";
 import EnvioGraphQLClient from "../../../utils/EnvioGraphQLClient";
-import { getArtifact } from "../../../utils";
 
 // Define enum for fellowship defaults
 enum FellowshipDefaults {
@@ -184,13 +183,11 @@ export const createFellowshipCommand = new Command("create")
 
       // Get payment token address from options or fallback to Rankify address
       let paymentToken;
-      try {
-        paymentToken = options.paymentToken || getArtifact(chainId, "Rankify").address;
-      } catch (error) {
+      paymentToken = options.paymentToken ?? zeroAddress;
+      if (!options.paymentToken) {
         console.warn(
-          "\n\n ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ \n\n\n If you are using development build, you MUST provide a payment token address via --payment-token \n\n ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ \n"
+          " ⚠️ If you are using development build, you MUST provide a payment token address via --payment-token, otherwise an UBI token will be deployed."
         );
-        throw error;
       }
 
       const args = [
@@ -233,7 +230,7 @@ export const createFellowshipCommand = new Command("create")
         },
       };
 
-      const contracts = await maoDistributor.instantiate(args, options.distributionName, chain);
+      const contracts = await maoDistributor.instantiate(args, options.distName, chain);
 
       spinner.succeed("Fellowship created successfully!");
 
