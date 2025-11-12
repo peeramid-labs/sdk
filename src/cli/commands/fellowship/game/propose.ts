@@ -64,7 +64,7 @@ export const propose = new Command("propose")
 
       // Create game master client
       spinner.text = "Creating game master client...";
-      const gmWalletClient = await createWallet(options.rpc, options.gmKey);
+      const gmWalletClient = await createWallet(options.rpc, options.gmKey || process.env.GM_KEY);
 
       const gameMaster = new GameMaster({
         walletClient: gmWalletClient,

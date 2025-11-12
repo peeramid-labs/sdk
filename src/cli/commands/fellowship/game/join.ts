@@ -66,7 +66,7 @@ export const join = new Command("join")
         envioClient,
       });
 
-      const gmWalletClient = await createWallet(options.rpc, options.gmKey);
+      const gmWalletClient = await createWallet(options.rpc, options.gmKey || process.env.GM_KEY);
 
       const gameMaster = new GameMaster({
         walletClient: gmWalletClient,
