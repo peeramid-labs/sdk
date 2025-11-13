@@ -1,5 +1,13 @@
 # peeramid-labs/sdk
 
+## 3.16.3
+
+### Patch Changes
+
+- [#223](https://github.com/peeramid-labs/sdk/pull/223) [`3b32457324ee437d58fa8899336eb187861829f8`](https://github.com/peeramid-labs/sdk/commit/3b32457324ee437d58fa8899336eb187861829f8) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Enhance voting event retrieval by adding optional proposal filter
+
+- [#223](https://github.com/peeramid-labs/sdk/pull/223) [`3b32457324ee437d58fa8899336eb187861829f8`](https://github.com/peeramid-labs/sdk/commit/3b32457324ee437d58fa8899336eb187861829f8) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Refactor wallet client initialization to use environment variable as fallback for GM_KEY; enhance EnvioGraphQLClient to support optional cookies for requests.
+
 ## 3.16.2
 
 ### Patch Changes
