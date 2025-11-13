@@ -26,6 +26,12 @@ export interface EnvioGraphQLClientConfig {
    * @default true
    */
   fallbackToRPC?: boolean;
+
+  /**
+   * Optional HTTP cookies to include with every GraphQL request.
+   * Can be provided either as a serialized cookie string or as a key/value map.
+   */
+  cookies?: CookieInput;
 }
 
 /**
@@ -51,6 +57,8 @@ type FilterValue = string | number | bigint | boolean | string[] | number[] | bi
  * Generic filter type for GraphQL queries
  */
 export type GraphQLFilter = Record<string, Record<FilterOperator, FilterValue>>;
+
+type CookieInput = string | Record<string, string>;
 
 /**
  * Type for GraphQL query variables
@@ -222,6 +230,8 @@ interface RawMultipassNameDeletedEvent {
 export class EnvioGraphQLClient {
   private config: EnvioGraphQLClientConfig;
   public client: GraphQLClient;
+  private cookieHeader?: string;
+  private headers: Record<string, string>;
 
   /**
    * Create a new Envio GraphQL client
@@ -239,7 +249,7 @@ export class EnvioGraphQLClient {
       );
     }
 
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
 
@@ -247,9 +257,56 @@ export class EnvioGraphQLClient {
       headers["Authorization"] = `Bearer ${this.config.apiKey}`;
     }
 
+    this.cookieHeader = this.buildCookieHeader(this.config.cookies);
+
+    if (this.cookieHeader) {
+      headers["Cookie"] = this.cookieHeader;
+    }
+
+    this.headers = headers;
+
     this.client = new GraphQLClient(this.config.endpoint, {
-      headers,
+      headers: this.headers,
+      credentials: "include",
     });
+  }
+
+  /**
+   * Update the cookies sent with every GraphQL request.
+   * Passing undefined or an empty string clears previously set cookies.
+   */
+  public setCookies(cookies?: CookieInput | string) {
+    this.cookieHeader = this.buildCookieHeader(cookies);
+
+    if (this.cookieHeader) {
+      this.headers = {
+        ...this.headers,
+        Cookie: this.cookieHeader,
+      };
+    } else {
+      const updatedHeaders = { ...this.headers };
+      delete updatedHeaders.Cookie;
+      this.headers = updatedHeaders;
+    }
+
+    this.client.setHeaders(this.headers);
+  }
+
+  private buildCookieHeader(cookies?: CookieInput | string): string | undefined {
+    if (!cookies) {
+      return undefined;
+    }
+
+    if (typeof cookies === "string") {
+      const trimmed = cookies.trim();
+      return trimmed.length > 0 ? trimmed : undefined;
+    }
+
+    const parts = Object.entries(cookies)
+      .filter(([key, value]) => key && value !== undefined && value !== null && value !== "")
+      .map(([key, value]) => `${key}=${value}`);
+
+    return parts.length > 0 ? parts.join("; ") : undefined;
   }
 
   /**

@@ -26,7 +26,7 @@ export const endVoting = new Command("end-voting")
 
     try {
       const publicClient = await createPublic(options.rpc);
-      const walletClient = await createWallet(options.rpc, options.gmKey);
+      const walletClient = await createWallet(options.rpc, options.gmKey || process.env.GM_KEY);
       const chainId = Number(await publicClient.getChainId());
       const envioClient = new EnvioGraphQLClient({
         endpoint: process.env.INDEXER_URL ?? options.envio,
