@@ -16,6 +16,26 @@ enum TurnPhase {
   VOTING = 1,
 }
 
+async function populateAndStartGame(fellowshipId: number, gameId: number, instanceAddress: Address): Promise<void> {
+  for (let i = 0; i <= 4; i++) {
+    executeCommand(
+      `pnpm cli fellowship game join ${fellowshipId} ${gameId} -i ${i}`,
+      `Joining game with identity ${i}`
+    );
+  }
+
+  executeCommand(`pnpm cli fellowship game start ${fellowshipId} ${gameId} -i 1 --auto-mine`, "Starting game");
+
+  await storeOrUpdateThreadInApi({
+    threadId: gameId,
+    fellowshipId: fellowshipId,
+    instanceAddress: instanceAddress,
+    gamePhase: "In progress",
+  });
+
+  logSuccess(`Game ${gameId} started successfully!`);
+}
+
 /**
  * Push game to next phase
  * - If no gameId: create and start game
@@ -57,27 +77,7 @@ async function pushToNextPhase(
         metadata: metadata,
       });
 
-      // Join game with multiple identities
-      for (let i = 0; i <= 4; i++) {
-        executeCommand(
-          `pnpm cli fellowship game join ${fellowshipId} ${currentGameId} -i ${i}`,
-          `Joining game with identity ${i}`
-        );
-      }
-
-      executeCommand(
-        `pnpm cli fellowship game start ${fellowshipId} ${currentGameId} -i 1 --auto-mine`,
-        "Starting game"
-      );
-
-      // Update game phase to "In progress"
-      await storeOrUpdateThreadInApi({
-        threadId: currentGameId,
-        fellowshipId: fellowshipId,
-        instanceAddress: instanceAddress,
-        gamePhase: "In progress",
-      });
-
+      await populateAndStartGame(fellowshipId, currentGameId, instanceAddress);
       logSuccess(`Game ${currentGameId} created and started successfully!`);
       return currentGameId;
     }
@@ -85,7 +85,7 @@ async function pushToNextPhase(
     // Game ID exists - get current state and advance to next phase
     logSection(`Advancing game ${currentGameId} to next phase`);
 
-    const gameState = await gameMaster.getGameState({
+    let gameState = await gameMaster.getGameState({
       instanceAddress,
       gameId: BigInt(currentGameId),
     });
@@ -102,8 +102,19 @@ async function pushToNextPhase(
 
     // Check if game has started
     if (!gameState.hasStarted) {
-      logError("Game has not started yet. Cannot advance phases.");
-      throw new Error("Game not started");
+      const playerCount = Array.isArray(gameState.players) ? gameState.players.length : 0;
+      if (playerCount === 0) {
+        logSection("Game is in registration with 0 players - adding players and starting game");
+        await populateAndStartGame(fellowshipId, currentGameId, instanceAddress);
+        gameState = await gameMaster.getGameState({
+          instanceAddress,
+          gameId: BigInt(currentGameId),
+        });
+        return currentGameId;
+      } else {
+        logError("Game has not started yet. Cannot advance phases.");
+        throw new Error("Game not started");
+      }
     }
 
     const currentPhase = Number(gameState.phase);
