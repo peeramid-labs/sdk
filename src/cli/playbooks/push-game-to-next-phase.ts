@@ -9,7 +9,9 @@ import {
   storeOrUpdateThreadInApi,
 } from "./utils";
 import { GameMaster } from "../../rankify/GameMaster";
-import { Address } from "viem";
+import { Address, zeroAddress } from "viem";
+import { getPkFromMnemonic } from "../getPk";
+import { privateKeyToAccount } from "viem/accounts";
 
 enum TurnPhase {
   PROPOSING = 0,
@@ -147,20 +149,66 @@ async function pushToNextPhase(
       // Get voting period from game state
       const votingPeriod = Number(gameState.votePhaseDuration);
 
-      // Submit dummy votes for all players
-      // Each player votes for the next player's proposal (to avoid self-voting)
+      // Get players and permuted proposals to determine valid vote targets
       const players = [...gameState.players];
+      const currentTurn = gameState.currentTurn;
 
+      // Get permuted proposals to find which proposal index corresponds to which proposer
+      const permutedProposals = await gameMaster.decryptProposals({
+        instanceAddress,
+        gameId: BigInt(currentGameId),
+        turn: currentTurn,
+        players,
+        permute: true,
+      });
+
+      // Submit votes for all players
+      // Each player votes for a proposal that is not their own
       for (let i = 0; i < players.length; i++) {
+        // Get the address for identity i
+        const privateKey = getPkFromMnemonic(i);
+        const account = privateKeyToAccount(privateKey);
+        const voterAddress = account.address;
+
+        // Find which proposal index corresponds to this voter's proposal
+        let ownProposalIndex = -1;
+        for (let j = 0; j < permutedProposals.length; j++) {
+          if (permutedProposals[j].proposer.toLowerCase() === voterAddress.toLowerCase()) {
+            ownProposalIndex = j;
+            break;
+          }
+        }
+
+        // Create vote array
         const voteArray = new Array(players.length).fill(0);
-        // Vote for the next player's proposal (wraps around to 0 if at the end)
-        const targetIndex = (i + 1) % players.length;
+
+        // Find a valid proposal to vote for (not the voter's own proposal)
+        let targetIndex = -1;
+        for (let j = 0; j < permutedProposals.length; j++) {
+          // Skip empty proposals and the voter's own proposal
+          if (
+            permutedProposals[j].proposal !== "" &&
+            permutedProposals[j].proposer !== zeroAddress &&
+            j !== ownProposalIndex
+          ) {
+            targetIndex = j;
+            break;
+          }
+        }
+
+        // If no valid target found, try the next index (wrapping around)
+        if (targetIndex === -1) {
+          // This shouldn't happen in a valid game, but fallback to next index
+          targetIndex = (ownProposalIndex + 1) % players.length;
+        }
+
         voteArray[targetIndex] = 1;
         const voteString = voteArray.join(",");
 
+        const targetProposer = permutedProposals[targetIndex]?.proposer || "unknown";
         executeCommand(
           `pnpm cli fellowship game vote ${fellowshipId} ${currentGameId} "${voteString}" -i ${i}`,
-          `Player ${i} voting for player ${targetIndex}'s proposal`
+          `Identity ${i} (${voterAddress}) voting for proposal at index ${targetIndex} (proposer: ${targetProposer})`
         );
       }
 

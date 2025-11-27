@@ -9,6 +9,7 @@ import { CLIUtils } from "../../../utils";
 import EnvioGraphQLClient from "../../../../utils/EnvioGraphQLClient";
 import { JoinRequirementsInput } from "../../../../types";
 import fs from "fs";
+import { storeOrUpdateThreadInApi } from "../../../playbooks/utils";
 export const create = new Command("create")
   .description("Create a new game in a Rankify instance")
   .argument("<instance>", "Address or instanceId of the Rankify instance")
@@ -37,6 +38,10 @@ export const create = new Command("create")
   )
   .option("--requirements <path>", "Path for requirements file JSON")
   .option("-d, --distribution-name <name>", "Distribution name", "MAO Distribution")
+  .option("--jwt-token <token>", "JWT token for API authentication. Can also be set via JWT_TOKEN environment variable")
+  .option("--store-thread", "Store thread in API after game creation")
+  .option("--fellowship-id <id>", "Fellowship ID (required when --store-thread is set)")
+  .option("--api-url <url>", "API server URL. If not provided, API_URL environment variable will be used")
   .action(async (instanceAddress, options) => {
     const spinner = ora("Initializing clients...").start();
 
@@ -162,6 +167,37 @@ export const create = new Command("create")
       spinner.succeed("Game created and opened successfully");
 
       console.log(chalk.green(`\nGame created with ID: ${gameId.toString()}`));
+
+      // Store thread in API if requested
+      if (options.storeThread) {
+        if (!options.fellowshipId) {
+          spinner.fail("Fellowship ID is required when --store-thread is set");
+          throw new Error("--fellowship-id is required when --store-thread is set");
+        }
+
+        spinner.text = "Storing thread in API...";
+        try {
+          await storeOrUpdateThreadInApi({
+            threadId: Number(gameId),
+            fellowshipId: parseInt(options.fellowshipId),
+            instanceAddress: resolvedInstanceAddress,
+            owner: account,
+            threadType: "MARKUP",
+            metadata: options.metadata || "ipfs://QmXLnWFvdbVzbHN3dqbhfnPPPtHSiKxx2B8gySLaRHhFmW",
+            apiUrl: options.apiUrl,
+            jwtToken: options.jwtToken,
+          });
+          spinner.succeed("Thread stored in API successfully");
+        } catch (error) {
+          spinner.fail("Failed to store thread in API");
+          console.error(
+            chalk.yellow(
+              `Warning: Failed to store thread in API: ${error instanceof Error ? error.message : String(error)}`
+            )
+          );
+          // Don't throw - game creation was successful, API storage is optional
+        }
+      }
     } catch (error) {
       spinner.fail("Failed to create game");
       console.error(chalk.red(`Error: ${error instanceof Error ? error.message + "\n" + error.stack : String(error)}`));
