@@ -1,7 +1,17 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { type Address, Hex, bytesToHex, encodePacked, hexToBytes, keccak256 } from "viem";
+import {
+  type Address,
+  Hex,
+  bytesToHex,
+  encodePacked,
+  hexToBytes,
+  keccak256,
+  erc20Abi,
+  maxUint256,
+  ContractFunctionReturnType,
+} from "viem";
 import { createPublic, createWallet } from "../../../client";
 import RankifyPlayer from "../../../../rankify/Player";
 import { resolvePk } from "../../../getPk";
@@ -9,6 +19,8 @@ import GameMaster from "../../../../rankify/GameMaster";
 import { CLIUtils } from "../../../utils";
 import * as secp256k1 from "@noble/secp256k1";
 import EnvioGraphQLClient from "../../../../utils/EnvioGraphQLClient";
+import instanceAbi from "../../../../abis/RankifyDiamondInstance";
+import { ContractTypes } from "../../../../types";
 
 export const join = new Command("join")
   .description("Join an existing game in a Rankify instance")
@@ -118,6 +130,96 @@ export const join = new Command("join")
         },
         timeToJoin
       );
+
+      const ensureTokenBalanceAndAllowance = async (tokenAddress: Address, requiredAmount: bigint) => {
+        if (!walletClient.account?.address) throw new Error("No account available");
+        if (requiredAmount <= 0n) return;
+
+        const [balance, allowance] = await Promise.all([
+          publicClient.readContract({
+            address: tokenAddress,
+            abi: erc20Abi,
+            functionName: "balanceOf",
+            args: [walletClient.account.address],
+          }),
+          publicClient.readContract({
+            address: tokenAddress,
+            abi: erc20Abi,
+            functionName: "allowance",
+            args: [walletClient.account.address, resolvedInstanceAddress],
+          }),
+        ]);
+
+        if (balance < requiredAmount) {
+          if (!gmWalletClient.account?.address) {
+            throw new Error("GM wallet account not configured for payment token transfer");
+          }
+          const shortfall = requiredAmount - balance;
+          spinner.info(`Transferring ${shortfall.toString()} tokens from GM wallet to player for ${tokenAddress}`);
+          const { request } = await publicClient.simulateContract({
+            address: tokenAddress,
+            abi: erc20Abi,
+            functionName: "transfer",
+            args: [walletClient.account.address, shortfall],
+            account: gmWalletClient.account,
+          });
+          const transferHash = await gmWalletClient.writeContract(request);
+          await publicClient.waitForTransactionReceipt({ hash: transferHash });
+          spinner.info(`Payment token transfer completed (tx: ${transferHash})`);
+        }
+
+        if (allowance < requiredAmount) {
+          spinner.info(`Approving payment token ${tokenAddress} for Rankify instance`);
+          const { request } = await publicClient.simulateContract({
+            address: tokenAddress,
+            abi: erc20Abi,
+            functionName: "approve",
+            args: [resolvedInstanceAddress, maxUint256],
+            account: walletClient.account,
+          });
+          const approvalHash = await walletClient.writeContract(request);
+          await publicClient.waitForTransactionReceipt({ hash: approvalHash });
+          spinner.info(`Approval transaction completed (tx: ${approvalHash})`);
+        }
+      };
+
+      const ensureErc20Requirements = async () => {
+        const joinRequirements = (await publicClient.readContract({
+          address: resolvedInstanceAddress,
+          abi: instanceAbi,
+          functionName: "getJoinRequirements",
+          args: [gameIdBigInt],
+        })) as ContractFunctionReturnType<typeof instanceAbi, "view", "getJoinRequirements">;
+
+        const contractAddresses = Array.from(joinRequirements.contractAddresses ?? []);
+        const contractIds = Array.from(joinRequirements.contractIds ?? []);
+        const contractTypes = Array.from(joinRequirements.contractTypes ?? []);
+
+        const requirementsPerContract = await Promise.all(
+          contractAddresses.map((address, idx) =>
+            publicClient.readContract({
+              address: resolvedInstanceAddress,
+              abi: instanceAbi,
+              functionName: "getJoinRequirementsByToken",
+              args: [gameIdBigInt, address, contractIds[idx] ?? 0n, contractTypes[idx] ?? 0n],
+            })
+          )
+        );
+
+        for (let idx = 0; idx < contractAddresses.length; idx++) {
+          const tokenAddress = contractAddresses[idx];
+          const contractType = contractTypes[idx];
+          if (!tokenAddress || contractType === undefined) continue;
+          if (Number(contractType) !== ContractTypes.ERC20) continue;
+          const requirementDetails = requirementsPerContract[idx];
+          const payAmount = requirementDetails?.pay?.amount ?? 0n;
+          if (payAmount <= 0n) continue;
+          await ensureTokenBalanceAndAllowance(tokenAddress as Address, payAmount);
+        }
+      };
+
+      spinner.text = "Preparing payment tokens...";
+      await ensureErc20Requirements();
 
       spinner.text = "Joining game...";
       const receipt = await player.joinGame({

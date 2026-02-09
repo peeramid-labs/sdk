@@ -251,6 +251,7 @@ export class EnvioGraphQLClient {
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest",
     };
 
     if (this.config.apiKey) {

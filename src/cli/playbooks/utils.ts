@@ -137,6 +137,7 @@ export async function storeOrUpdateThreadInApi(params: {
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest",
     };
 
     if (authToken) {
@@ -149,7 +150,7 @@ export async function storeOrUpdateThreadInApi(params: {
       headers["x-gm-secret"] = gmSecret;
     }
 
-    const response = await fetch(`${apiUrl}/gm/thread/store`, {
+    const response = await fetch(`${apiUrl}/thread/cron/store`, {
       method: "POST",
       headers,
       body: JSON.stringify(threadData),
