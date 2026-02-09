@@ -1,5 +1,11 @@
 # peeramid-labs/sdk
 
+## 3.16.4
+
+### Patch Changes
+
+- [#227](https://github.com/peeramid-labs/sdk/pull/227) [`bb28bf820a892c99719b4526ec0aec0f9aa2ea25`](https://github.com/peeramid-labs/sdk/commit/bb28bf820a892c99719b4526ec0aec0f9aa2ea25) Thanks [@theKosmoss](https://github.com/theKosmoss)! - Add "X-Requested-With" header to API requests and update thread store endpoint
+
 ## 3.16.3
 
 ### Patch Changes
