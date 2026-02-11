@@ -48,9 +48,22 @@ export function logError(message: string, error?: unknown) {
 }
 
 /**
+ * Get JWT token from environment variable or parameter
+ * Priority: jwtToken param > JWT_TOKEN env var
+ */
+export function getJwtToken(jwtToken?: string): string | undefined {
+  return jwtToken || process.env.JWT_TOKEN;
+}
+
+/**
  * Store or update thread in API server
  * Use with owner, threadType, and metadata to create a new thread
  * Use with only gamePhase to update an existing thread
+ * 
+ * JWT token can be provided via:
+ * - jwtToken parameter (highest priority)
+ * - JWT_TOKEN environment variable
+ * - authToken parameter (legacy, for privy-id-token cookie)
  */
 export async function storeOrUpdateThreadInApi(params: {
   threadId: number;
@@ -62,6 +75,7 @@ export async function storeOrUpdateThreadInApi(params: {
   metadata?: string;
   apiUrl?: string;
   authToken?: string;
+  jwtToken?: string;
 }): Promise<void> {
   const apiUrl = params.apiUrl || process.env.API_URL;
 
@@ -70,7 +84,7 @@ export async function storeOrUpdateThreadInApi(params: {
     return;
   }
 
-  const { threadId, fellowshipId, instanceAddress, gamePhase, owner, threadType, metadata, authToken } = params;
+  const { threadId, fellowshipId, instanceAddress, gamePhase, owner, threadType, metadata, authToken, jwtToken } = params;
 
   // Determine if this is a create or update operation
   const isCreate = !!(owner && threadType && metadata);
@@ -140,8 +154,13 @@ export async function storeOrUpdateThreadInApi(params: {
       "X-Requested-With": "XMLHttpRequest",
     };
 
-    if (authToken) {
-      headers["Cookie"] = `privy-id-token=${authToken}`;
+    const token = getJwtToken(jwtToken) || authToken;
+    if (token) {
+      if (jwtToken || process.env.JWT_TOKEN) {
+        headers["Authorization"] = `Bearer ${token}`;
+      } else if (authToken) {
+        headers["Cookie"] = `privy-id-token=${authToken}`;
+      }
     }
 
     // Add GM secret to headers
